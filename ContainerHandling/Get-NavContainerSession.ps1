@@ -26,37 +26,36 @@ function Get-BcContainerSession {
     Process {
         $newsession = $false
         $session = $null
-        if ($sessions.ContainsKey($containerName)) {
-            $session = $sessions[$containerName]
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if (!($inspect.Config.Labels.psobject.Properties.Name -eq 'maintainer' -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
+            throw "Container $containerOrImageName is not a NAV/BC container"
+        }
+        [System.Version]$platformVersion = [System.Version]"$($inspect.Config.Labels.platform)"
+        if ($inspect.Config.Labels.PSObject.Properties.Name -eq 'filesonly' -and $inspect.Config.Labels.filesonly -eq 'yes') {
+            $tryWinRmSession = 'never'
+        }
+        if ($platformVersion.Major -lt 24) {
+            $usePwsh = $false
+        }
+        $configurationName = 'Microsoft.PowerShell'
+        if ($usePwsh) {
+            $configurationName = 'PowerShell.7'
+        }
+        $cacheName = "$containerName-$configurationName"
+        if ($sessions.ContainsKey($cacheName)) {
+            $session = $sessions[$cacheName]
             try {
-                $platformVersion = Invoke-Command -Session $session -ScriptBlock { [System.Version](get-item 'C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe').Versioninfo.FileVersion }
-                if ($platformVersion.Major -ge 24 -and ($usePwsh -xor $session.ConfigurationName -eq 'PowerShell.7')) {
-                    # Cannot use existing session
-                    Remove-PSSession -Session $session
-                    $sessions.Remove($containerName)
-                    $session = $null
-                }
-                else {
-                    if (!$reinit) {
-                        return $session
-                    }
+                Invoke-Command -Session $session -ScriptBlock { $PID } | Out-Null
+                if (!$reinit) {
+                    return $session
                 }
             }
             catch {
-                Remove-PSSession -Session $session
-                $sessions.Remove($containerName)
+                $sessions.Remove($cacheName)
                 $session = $null
             }
         }
         if (!$session) {
-            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-            if ($platformVersion.Major -lt 24) {
-                $usePwsh = $false
-            }
-            $configurationName = 'Microsoft.PowerShell'
-            if ($usePwsh) {
-                $configurationName = 'PowerShell.7'
-            }
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
@@ -118,7 +117,7 @@ function Get-BcContainerSession {
             Set-Location $runPath
         } -ArgumentList $silent
         if ($newsession) {
-            $sessions.Add($containerName, $session)
+            $sessions.Add($cacheName, $session)
         }
         return $session
     }

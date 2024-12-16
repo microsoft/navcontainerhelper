@@ -111,7 +111,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Get-BcContainerSharedFolders', 'Get-BcContainerTenants', 
                'Get-BcEnvironmentAvailableRestorePeriods', 
                'Get-BcEnvironmentDatabaseExportHistory', 
-               'Get-BcEnvironmentInstalledExtensions', 
+               'Get-BcEnvironmentInstalledExtensions', 'Download-BcEnvironmentInstalledExtensionToFolder',
                'Get-BcEnvironmentOperations', 'Get-BcEnvironmentPublishedApps', 
                'Get-BcEnvironments', 'Get-BcEnvironmentScheduledUpgrade', 
                'Get-BcEnvironmentUpdateWindow', 'Get-BcEnvironmentUsedStorage', 
@@ -259,7 +259,7 @@ PrivateData = @{
         # Tags = @()
 
         # A URL to the license for this module.
-        LicenseUri = 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE'
+        LicenseUri = 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE'
 
         # A URL to the main website for this project.
         ProjectUri = 'https://github.com/microsoft/navcontainerhelper'

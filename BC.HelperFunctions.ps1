@@ -2,6 +2,10 @@ if ($isWindows) {
     $programDataFolder = 'C:\ProgramData\BcContainerHelper'
     $artifactsCacheFolder = "c:\bcartifacts.cache"
 }
+elseif ($isMacOS) {
+    $programDataFolder = "/Users/$myUsername/.bccontainerhelper"
+    $artifactsCacheFolder = "/Users/$myUsername/.bcartifacts.cache"
+}
 else {
     $programDataFolder = "/home/$myUsername/.bccontainerhelper"
     $artifactsCacheFolder = "/home/$myUsername/.bcartifacts.cache"
@@ -19,7 +23,7 @@ function Get-ContainerHelperConfig {
             "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
-            "usePrereleaseAlTool" = $true
+            "usePrereleaseAlTool" = $false
             "useVolumes" = $false
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
@@ -111,6 +115,11 @@ function Get-ContainerHelperConfig {
             "MSAppsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json'
             "TrustedNuGetFeeds" = @(
             )
+            "IsGitHubActions" = ($env:GITHUB_ACTIONS -eq "true")
+            "IsAzureDevOps" = ($env:TF_BUILD -eq "true")
+            "IsGitLab" = ($env:GITLAB_CI -eq "true")
+            "useApproximateVersion" = $false
+            "useSqlServerModule" = $false
         }
 
         if ($isInsider) {

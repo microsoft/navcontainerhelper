@@ -1,7 +1,71 @@
+6.0.30
+Issue 3762 Give Option to Choose SQL PowerShell Module When Restoring From BacPac
+There are instances where sqlps does not work as expected when it is installed. This change adds a switch parameter, useSqlServerModule, to Restore-BcDatabaseFromArtifacts, New-NavContainer, and the BcContainerHelper config file.
+Issue 1303 from AL-Go repository - renew federated token when access token needs renewal (works only for GitHub at this time)
+Issue 3590 EarliestMatching select option added to Download-BcNuGetPackageToFolder
+Regression when from PR 3760 - Push-BcNuGetPackage doesn't work on PowerSHell 5
+Issue 3772 Get-BcNuGetPackageId name length limit
+Two new parameter in Sort-AppFoldersByDependencies - selectSubordinates and SkippedApps. If specified, then only the appFolders specified in the first array plus the apps depending on these recursively will be sorted. The remaining folder not included in the sorted appfolders list will be returned in skippedApps.
+Remove some excessive logging
+If Import-TestToolkitToBcContainer was running with useCompilerFolder, then it would require a container to be present at that time.
+Make Run-AlPipeline do just-in-time creation of CompilerFolder and Containers
+Issue 1338 from AL-Go repository: Multi-Project Repository Test App Dependencies Not Resolved
+
+6.0.29
+Issue 3591 When using Publish-NAVApp to publish an app, which fails compilation in the service, the command might hang forever - the fix for this is a temporary hack put in place for the versions which doesn't work.
+Improve performance and reduce memory consumption when creating and pushing NuGet packages
+
+6.0.28
+Set useApproximateVersion to true in settings to increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering on blobs
+Regression on Run-AlPipeline, when running containerless compile while having a ImportTestDataInBcContainer registered, would cause an error (AL-Go error 1291 and 1292)
+
+6.0.27
+Issue 3538 Compile-AppWithBcCompilerFolder fails when dependency does propagateDependencies
+Issue 3727 Regression - Release pipelines failing with SaaS environments due BcAuthContext
+Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter transferred is containerName
+Add new parameter to Run-AlPipeline: restoreDatabases, indicating when (during the pipeline execution) a database restore is needed
+Add PageScripting test runner to Run-AlPipeline, adding 4 new parameters: pageScriptingTests, pageScriptingTestResultsFile, pageScriptingTestResultsFolder and doNotRunPageScriptingTests.
+Add BCPT test apps to build artifacts in Run-AlPipeline
+
+6.0.26
+As minimum, always use the generic tag version which was available when shipping BcContainerHelper
+Add awareness of Windows 11 24H2
+Issue #3697 Running tests fails with 401 when running on a BC25 sandbox container with AAD authentication
+Issue #3701 Compile-AppWithBcCompilerFolder, ALTool returns dependencies.appId for older apps
+Wait for databases to be mounted when running Restore-DatabasesInBcContainer
+Include AI Toolkit when copying symbols from container
+Issue 3714 Download-BcNuGetPackageToFolder - throws error when use "-select Exact"
+Issue 3621 New-AadAppsForBc shows "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead." but includeOtherServicesAadApp us not setting email permissions
+Issue 3718 Business Central Web Client Fails to Load After Updating to Windows 24H2
+Issue #3703 Missing Function Download-BcEnvironmentInstalledExtensionToFolder    
+Fix for issue 1262 in AL-Go for GitHub
+Fix instabilities during Publish-PerTenantExtensionApps
+
+6.0.25
+Fix issue where generateDependencyArtifact doesn't result in dependencies if useCompilerFolder is true or filesonly containers are used in Run-AlPipeline
+Issue 3686 PowerShell container shortcuts for >= BC24 using wrong PowerShell version
+Issue 3666 Run-AlCops + Run-AlPipeline using outdated appsource default ruleset
+Fix issue where linux executables are missing in the AL Language Extension (use dotnet to execute the commands instead)
+Fix issue where PowerShell sometimes hangs when trying to establish a new PSSession shortly after removing another PSSession (Noticed during end 2 end tests on AL-Go for GitHub)
+
+6.0.24
+Use pre-release altool when running alcops (to be able to get runtime version of nextmajor)
+
+6.0.23
+Issue 3573 GitHub NuGet Handling fails for User Feeds
+
+6.0.22
+Issue #3660 Error about missing 'azuredevops' property when using Compile-AppWithBcCompilerFolder
+
 6.0.21
+Main branch is now main instead of master
 Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
 Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
 Remove functions for supporting Alpaca and Cloud Containers - integration between alpaca and cloud containers with AL-Go for GitHub will NOT be done through BcContainerHelper
+Issue #2623 New-BcContainer for BC25.1 or BC26 insider with includeTestToolkit AI Test Toolkit dependency missing
+If template for applicationDependency or platformDependency is specified when creating a new BcNuGetPackage, it will create an invalid package if application or platform properties are missing in app.json
+Normalize version strings in nuGetFeed to ensure that NuGet packages with version 1.2.3 are seen as being equal to version 1.2.3.0
+Add Schedule parameter to Publish-PerTenantExtensionApps
 
 6.0.20
 Add trustServerCertificate is the parameter exists in various functions that might be running on the host

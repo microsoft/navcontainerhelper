@@ -14,6 +14,8 @@ class NuGetFeed {
     [string] $packagePublishUrl
     [string] $packageBaseAddressUrl
 
+    [hashtable] $orgType = @{}
+
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
@@ -95,7 +97,16 @@ class NuGetFeed {
                     "Authorization" = "Bearer $($this.token)"
                 }
             }
-            $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
+            if (-not $this.orgType.ContainsKey($organization)) {
+                $orgMetadata = Invoke-RestMethod -Method GET -Headers $headers -Uri "https://api.github.com/users/$organization"
+                if ($orgMetadata.type -eq 'Organization') {
+                    $this.orgType[$organization] = 'orgs'
+                }
+                else {
+                    $this.orgType[$organization] = 'users'
+                }
+            }
+            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=100&page="
             $page = 1
             Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
             $matching = @()
@@ -180,6 +191,8 @@ class NuGetFeed {
     }
 
     static [Int32] CompareVersions([string] $version1, [string] $version2) {
+        $version1 = [NuGetFeed]::NormalizeVersionStr($version1)
+        $version2 = [NuGetFeed]::NormalizeVersionStr($version2)
         $ver1 = $version1 -replace '-.+$' -as [System.Version]
         $ver2 = $version2 -replace '-.+$' -as [System.Version]
         if ($ver1 -eq $ver2) {
@@ -199,6 +212,7 @@ class NuGetFeed {
     # Test if version is included in NuGet version range
     # https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
     static [bool] IsVersionIncludedInRange([string] $versionStr, [string] $nuGetVersionRange) {
+        $versionStr = [NuGetFeed]::NormalizeVersionStr($versionStr)
         $version = $versionStr -replace '-.+$' -as [System.Version]
         if ($nuGetVersionRange -match '^\s*([\[(]?)([\d\.]*)(,?)([\d\.]*)([\])]?)\s*$') {
             $inclFrom = $matches[1] -ne '('
@@ -208,7 +222,7 @@ class NuGetFeed {
                 $range = $true
             }
             if ($matches[2]) {
-                $fromver = [System.Version]$matches[2]
+                $fromver = [System.Version]([NuGetFeed]::NormalizeVersionStr($matches[2]))
             }
             else {
                 $fromver = [System.Version]::new(0,0,0,0)
@@ -218,7 +232,7 @@ class NuGetFeed {
                 }
             }
             if ($matches[4]) {
-                $tover = [System.Version]$matches[4]
+                $tover = [System.Version]([NuGetFeed]::NormalizeVersionStr($matches[4]))
             }
             elseif ($range) {
                 $tover = [System.Version]::new([int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue)
@@ -339,17 +353,20 @@ class NuGetFeed {
             "X-NuGet-ApiKey" = $this.token
             "X-NuGet-Client-Version" = "6.3.0"
         }
-        $FileContent = [System.IO.File]::ReadAllBytes($package)
-        $boundary = [System.Guid]::NewGuid().ToString(); 
+        $boundary = [System.Guid]::NewGuid().ToString();
         $LF = "`r`n";
-        
-        $body  = [System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF")
-        $body += [System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)")
-        $body += $fileContent
-        $body += [System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF")
-        
         $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-        [System.IO.File]::WriteAllBytes($tmpFile, $body)
+        $fs = [System.IO.File]::OpenWrite($tmpFile)
+        $fs | Add-Member -MemberType ScriptMethod -Name WriteBytes -Value { param($bytes) $this.Write($bytes, 0, $bytes.Length) }
+        try {
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF"))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
+            $fs.WriteBytes([System.IO.File]::ReadAllBytes($package))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
+        } finally {
+            $fs.Close()
+        }
+        
         Write-Host "Submitting NuGet package"
         try {
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host

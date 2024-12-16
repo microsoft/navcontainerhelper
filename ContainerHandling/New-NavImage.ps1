@@ -138,7 +138,10 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 22631) {
+    if ($os.BuildNumber -eq 26100) {
+        $hostOs = "24H2"
+    }
+    elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
     }
     elseif ($os.BuildNumber -eq 22621) {
@@ -352,48 +355,7 @@ try {
                 }
         
                 $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
-                if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-                    $containerOs = "ltsc2016"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-                    $containerOs = "1703"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-                    $containerOs = "1709"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-                    $containerOs = "1803"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-                    $containerOs = "ltsc2019"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-                    $containerOs = "1903"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-                    $containerOs = "1909"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-                    $containerOs = "2004"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
-                    $containerOs = "20H2"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
-                    $containerOs = "21H1"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
-                    $containerOs = "21H2"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
-                    $containerOs = "22H2"
-                }
-                elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
-                    $containerOs = "ltsc2022"
-                }
-                else {
-                    $containerOs = "unknown"
-                }
+                $containerOs = GetContainerOs -containerOsVersion $containerOsVersion
                 Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
                 Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
             
@@ -403,45 +365,8 @@ try {
             
                     throw "The container operating system is newer than the host operating system, cannot use image"
                 }
-            
-                if ($hostOsVersion -eq $containerOsVersion) {
-                    if ($isolation -eq "") { 
-                        $isolation = "process"
-                    }
-                }
-                elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
-                    if ($isolation -eq "") {
-                        Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
-                        $isolation = "process"
-                    }
-                }
-                elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
-                    if ($isolation -eq "") {
-                        Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
-                        $isolation = "process"
-                    }
-                }
-                else {
-                    if ($isolation -eq "") {
-                        if ($isAdministrator) {
-                            if (Get-HypervState -ne "Disabled") {
-                                $isolation = "hyperv"
-                            }
-                            else {
-                                $isolation = "process"
-                                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
-                            }
-                        }
-                        else {
-                            $isolation = "hyperv"
-                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
-                        }
-            
-                    }
-                    elseif ($isolation -eq "process") {
-                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
-                    }
-                }
+
+                $isolation = GetIsolationMode -hostOsVersion $hostOsVersion -containerOsVersion $containerOsVersion -useSSL $false -isolation $isolation
                 Write-Host "Using $isolation isolation"
             }
             
@@ -472,9 +397,9 @@ try {
                 $InstallDotNet = ""
                 if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
                     Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
-                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/main/generic/Run/210-new/SetupConfiguration.ps1" )
                     Write-Host "Patching prompt.ps1 due to issue #2891"
-                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
+                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/main/generic/Run/Prompt.ps1" )
                     $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/04389c24-12a9-4e0e-8498-31989f30bb22/141aef28265938153eefad0f2398a73b/dotnet-hosting-6.0.27-win.exe" )
                     Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.27"
                     $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.27-win.exe" -ArgumentList /quiet'

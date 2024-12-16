@@ -179,6 +179,8 @@
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
+ .Parameter useSqlServerModule
+  Switch, forces the use of the sqlserver module instead of the sqlps module. Default is to use the sqlps module. The default can be changed in the bcContainerHelperConfig file by setting "useSqlServerModule" = $false.
  .Example
   New-BcContainer -accept_eula -containerName test
  .Example
@@ -287,7 +289,8 @@ function New-BcContainer {
         [switch] $doNotUseRuntimePackages = $true,
         [string] $vsixFile = "",
         [string] $applicationInsightsKey,
-        [scriptblock] $finalizeDatabasesScriptBlock
+        [scriptblock] $finalizeDatabasesScriptBlock,
+        [switch] $useSqlServerModule = $bcContainerHelperConfig.useSqlServerModule
     )
 
 $telemetryScope = InitTelemetryScope `
@@ -421,74 +424,14 @@ try {
     $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
     
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
-    $hostOs = "Unknown/Insider build"
-    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
-
     $isServerHost = $os.ProductType -eq 3
-
-    if ($os.BuildNumber -eq 22631) {
-        $hostOs = "23H2"
-    }
-    elseif ($os.BuildNumber -eq 22621) {
-        $hostOs = "22H2"
-    }
-    elseif ($os.BuildNumber -eq 22000) { 
-        $hostOs = "21H2"
-    }
-    elseif ($os.BuildNumber -eq 20348) { 
-        $hostOs = "ltsc2022"
-    }
-    elseif ($os.BuildNumber -eq 19045) { 
-        $hostOs = "22H2"
-    }
-    elseif ($os.BuildNumber -eq 19044) { 
-        $hostOs = "21H2"
-    }
-    elseif ($os.BuildNumber -eq 19043) { 
-        $hostOs = "21H1"
-    }
-    elseif ($os.BuildNumber -eq 19042) { 
-        $hostOs = "20H2"
-    }
-    elseif ($os.BuildNumber -eq 19041) { 
-        $hostOs = "2004"
-    }
-    elseif ($os.BuildNumber -eq 18363) { 
-        $hostOs = "1909"
-    }
-    elseif ($os.BuildNumber -eq 18362) { 
-        $hostOs = "1903"
-    }
-    elseif ($os.BuildNumber -eq 17763) { 
-        if ($isServerHost) {
-            $hostOs = "ltsc2019"
-        }
-        else {
-            $hostOs = "1809"
-        }
-    }
-    elseif ($os.BuildNumber -eq 17134) { 
-        $hostOs = "1803"
-    }
-    elseif ($os.BuildNumber -eq 16299) { 
-        $hostOs = "1709"
-    }
-    elseif ($os.BuildNumber -eq 15063) {
-        $hostOs = "1703"
-    }
-    elseif ($os.BuildNumber -eq 14393) {
-        if ($isServerHost) {
-            $hostOs = "ltsc2016"
-        }
-        else {
-            $hostOs = "1607"
-        }
-    }
+    $hostOs = GetHostOs -hostOsVersion $hostOsVersion -isServerHost $isServerHost
+    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
     
     Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
     if ($isAdministrator) {
         Write-Host "BcContainerHelper is running as administrator"
-        Write-Host "HyperV is $(Get-HypervState)"
+        Write-Host "HyperV is $(GetHypervState)"
     }
     else {
         Write-Host "BcContainerHelper is not running as administrator"
@@ -586,7 +529,7 @@ try {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
             }
             Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
-            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -async
+            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -useSqlServerModule:$useSqlServerModule.IsPresent -async
             $createTenantAndUserInExternalDatabase = $true
             $bakFile = ""
             $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"
@@ -781,8 +724,8 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.20") {
-                    Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
+                if ($genericTagVersion -lt [Version]$LatestGenericTagVersion) {
+                    Write-Host "Existing generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
             }
@@ -1092,50 +1035,9 @@ try {
     AddTelemetryProperty -telemetryScope $telemetryScope -key "genericTag" -value "$genericTag"
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
-    if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-        $containerOs = "ltsc2016"
-        if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
-            $timeZoneId = (Get-TimeZone).Id
-        }
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-        $containerOs = "1703"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-        $containerOs = "1709"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-        $containerOs = "1803"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-        $containerOs = "ltsc2019"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-        $containerOs = "1903"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-        $containerOs = "1909"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-        $containerOs = "2004"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
-        $containerOs = "20H2"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
-        $containerOs = "21H1"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
-        $containerOs = "21H2"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
-        $containerOs = "22H2"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
-        $containerOs = "ltsc2022"
-    }
-    else {
-        $containerOs = "unknown"
+    $containerOs = GetContainerOs -containerOsVersion $containerOsVersion
+    if ($containerOs -eq 'ltsc2016' -and !$useBestContainerOS -and $TimeZoneId -eq $null) {
+        $timeZoneId = (Get-TimeZone).Id
     }
     Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
     Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
@@ -1220,97 +1122,18 @@ try {
         }
 
         $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
-    
-        if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-            $containerOs = "ltsc2016"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-            $containerOs = "1703"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-            $containerOs = "1709"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-            $containerOs = "1803"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-            $containerOs = "ltsc2019"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-            $containerOs = "1903"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-            $containerOs = "1909"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-            $containerOs = "2004"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
-            $containerOs = "20H2"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
-            $containerOs = "21H1"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
-            $containerOs = "21H2"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
-            $containerOs = "22H2"
-        }
-        elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
-            $containerOs = "ltsc2022"
-        }
-        else {
-            $containerOs = "unknown"
-        }
-    
+        $containerOs = GetContainerOs -containerOsVersion $containerOsVersion
+
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
 
         $genericTagVersion = [Version]"$($inspect.Config.Labels.tag)"
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ($hostOsVersion -eq $containerOsVersion) {
-        if ($isolation -eq "") {
-            $isolation = "process"
-        }
-    }
-    elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
-        if ($isolation -eq "") {
-            Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
-            $isolation = "process"
-        }
-    }
-    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
-        if ($isolation -eq "") {
-            Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
-            $isolation = "process"
-        }
-    }
-    else {
-        if ($isolation -eq "") {
-            if ($isAdministrator) {
-                if (Get-HypervState -ne "Disabled") {
-                    $isolation = "hyperv"
-                }
-                else {
-                    $isolation = "process"
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and HyperV is not installed. If you encounter issues, you could try to install HyperV."
-                }
-            }
-            else {
-                $isolation = "hyperv"
-                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have HyperV installed or you encounter issues, you could try to specify -isolation process"
-            }
-
-        }
-        elseif ($isolation -eq "process") {
-            Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
-        }
-    }
+    $isolation = GetIsolationMode -hostOsVersion $hostOsVersion -containerOsVersion $containerOsVersion -useSSL $useSSL -isolation $isolation
     Write-Host "Using $isolation isolation"
 
-    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
+    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631 -or $os.BuildNumber -eq 26100) -and $useSSL) {
         Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
@@ -1566,6 +1389,9 @@ try {
             $AadTenantId = $AadTenant
             if (!$AadTenantId) { $AadTenantId = "Common" }
             $customWebSettings += @("AadApplicationId=$AadAppId","AadAuthorityUri=https://login.microsoftonline.com/$AADTenantId")
+            if ($version.Major -ge 25) {
+                $customWebSettings += @("AadValidAudience=https://api.businesscentral.dynamics.com")
+            }
         }
     }
 
@@ -2168,10 +1994,15 @@ if (-not `$restartingInstance) {
                 $vs = "NAV"
             }
             $cmdPrompt = "/S /K ""prompt [$($containerName.ToUpperInvariant())] `$p`$g & echo Welcome to the $vs Container Command prompt & echo Microsoft Windows Version $($containerOsVersion.ToString())"
-            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($containerOsVersion.ToString())'; Write-Host 'Windows PowerShell Version $($PSVersionTable.psversion.ToString())'; Write-Host; . 'c:\run\prompt.ps1' -silent"""
+            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($containerOsVersion.ToString())'; "+'Write-Host "Windows PowerShell Version $($PSVersionTable.psversion.ToString())"; Write-Host; . "c:\run\prompt.ps1" -silent"'
 
             New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd $cmdPrompt" -Shortcuts $shortcuts
-            New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit $psPrompt" -Shortcuts $shortcuts
+            $psname = "PowerShell"
+            if ($version.Major -ge 24) {
+                New-DesktopShortcut -Name "$containerName $psname Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName pwsh -noexit -command $psPrompt" -Shortcuts $shortcuts
+                $psname = "PS5"
+            }
+            New-DesktopShortcut -Name "$containerName $psname Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit $psPrompt" -Shortcuts $shortcuts
         }
 
         if ($version -eq [System.Version]"14.10.40471.0") {

@@ -2,7 +2,7 @@
  .SYNOPSIS
   Create a new Compiler Folder
  .DESCRIPTION
-  Create a folder containing all the necessary pieces from the artifatcs to compile apps without the need of a container
+  Create a folder containing all the necessary pieces from the artifacts to compile apps without the need of a container
   Returns a compilerFolder path, which can be used for functions like Compile-AppWithBcCompilerFolder or Remove-BcCompilerFolder
  .PARAMETER artifactUrl
   Artifacts URL to download the compiler and all .app files from
@@ -146,7 +146,7 @@ try {
             if ($appAppsPath) {
                 $appApps = @(Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse)
             }
-            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
+            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app','Microsoft_Business Foundation Test Libraries*.app','Microsoft_AI Test Toolkit*.app' | ForEach-Object {
                 $appName = $_
                 $apps = $appApps | Where-Object { $_.Name -like $appName }
                 if (!$apps) {
@@ -220,21 +220,34 @@ try {
         Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $packagesFolder -Force -Recurse
     }
 
-    if ($isLinux) {
-        $alToolExePath = Join-Path $containerCompilerPath 'extension/bin/linux/altool'
-        if (Test-Path $alToolExePath) {
-            # Set execute permissions on altool
-            Write-Host "Setting execute permissions on altool"
-            & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExePath"
+    if ($isLinux -or $isMacOS) {
+        $compilerPlatform = 'linux'
+        if ($isMacOS) {
+            $compilerPlatform = 'darwin'
         }
-        $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
+        $alcExePath = Join-Path $containerCompilerPath "extension/bin/$($compilerPlatform)/alc"
+        $alToolExePath = Join-Path $containerCompilerPath "extension/bin/$($compilerPlatform)/altool"
+
         if (Test-Path $alcExePath) {
+            if (Test-Path $alToolExePath) {
+                # Set execute permissions on altool
+                Write-Host "Setting execute permissions on altool"
+                if ($isLinux) {
+                    & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExePath"
+                } else {
+                    & chmod +x $alToolExePath
+                }
+            }
             # Set execute permissions on alc
-            & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
-        }
-        else {
-            # Patch alc.runtimeconfig.json for use with Linux
-            Write-Host "Patching alc.runtimeconfig.json for use with Linux"
+            Write-Host "Setting execute permissions on alc"
+            if ($isLinux) {
+                & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
+            } else {
+                & chmod +x $alcExePath
+            }
+        } else {
+            # Patch alc.runtimeconfig.json for use with Linux or macOS
+            Write-Host "Patching alc.runtimeconfig.json for use with $($compilerPlatform)"
             $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/win32/alc.runtimeconfig.json'
             if (Test-Path $alcConfigPath) {
                 $oldAlcConfig = Get-Content -Path $alcConfigPath -Encoding UTF8 | ConvertFrom-Json

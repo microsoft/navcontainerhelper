@@ -84,8 +84,8 @@ function Compile-AppWithBcCompilerFolder {
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
-        [switch] $AzureDevOps,
-        [switch] $gitHubActions,
+        [switch] $AzureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -186,9 +186,13 @@ try {
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
-        }
+        } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
+        $addDependencies = @()
         if ($existingApp) {
             Write-Host "Dependency App exists"
+            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies -and $existingApp.ContainsKey('Dependencies')) {
+                $addDependencies += $existingApp.Dependencies
+            }
         }
         else {
             Write-Host "Dependency App not found"
@@ -208,20 +212,21 @@ try {
                 if (!($dependencies | where-Object { $_.Name -eq 'System'})) {
                     $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $copyCompilerFolderApp.Platform }
                 }
-                $copyCompilerFolderApp.Dependencies | ForEach-Object {
-                    $addDependency = $_
-                    try {
-                        $appId = $addDependency.id
-                    }
-                    catch {
-                        $appId = $addDependency.appid
-                    }
-                    $dependencyExists = $dependencies | Where-Object { $_.appId -eq $appId }
-                    if (-not $dependencyExists) {
-                        Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
-                        $dependencies += @($compilerFolderApps | Where-Object { $_.appId -eq $appId })
-                    }
-                }
+                $addDependencies += $copyCompilerFolderApp.Dependencies
+            }
+        }
+        $addDependencies | ForEach-Object {
+            $addDependency = $_
+            try {
+                $appId = $addDependency.id
+            }
+            catch {
+                $appId = $addDependency.appid
+            }
+            $dependencyExists = $dependencies | Where-Object { $_.appId -eq $appId }
+            if (-not $dependencyExists) {
+                Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                $dependencies += @($compilerFolderApps | Where-Object { $_.appId -eq $appId })
             }
         }
         $depidx++
@@ -300,7 +305,7 @@ try {
     if (Test-Path $sharedFolder) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), $sharedFolder) + $probingPaths
     }
-    elseif ($isLinux) {
+    elseif ($isLinux -or $isMacOS) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
     }
     elseif ($platformversion.Major -ge 22) {
@@ -324,26 +329,36 @@ try {
     Write-Host "Compiling..."
     $alcParameters = @()
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
-    $alcPath = Join-Path $binPath 'win32'
-    $alcExe = 'alc.exe'
-    $alcCmd = ".\$alcExe"
+
+    $compilerPlatform = 'win32'
+    switch ($true) {
+        ($isLinux) { $compilerPlatform = 'linux' }
+        ($isMacOS) { $compilerPlatform = 'darwin' }
+    }
+    $alcPath = Join-Path $binPath $compilerPlatform
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
 
-    if ($isLinux) {
-        $linuxPath = Join-Path $binPath 'linux'
-        if (Test-Path $linuxPath) {
-            $alcPath = $linuxPath
-            $alcExe = 'alc'
-            $alcCmd = "./$alcExe"
-        }
-        else {
+    $alcExe = 'alc.exe'
+    $alcCmd = ".\$alcExe"
+    if ($isLinux -or $isMacOS) {
+        if ($alcPath -eq $binPath) {
             $alcCmd = "dotnet"
             $alcExe = 'alc.dll'
             $alcParameters += @((Join-Path $alcPath $alcExe))
-            Write-Host "No Linux version of alc found. Using dotnet to run alc.dll."
+            Write-Host "No $($compilerPlatform) version of alc found. Using dotnet to run alc.dll."
+        } else {
+            $alcExe = 'alc'
+            $alcCmd = "./$alcExe"
         }
+    }   
+
+    if (!(Test-Path -Path (Join-Path $alcPath $alcExe))) {
+        $alcCmd = "dotnet"
+        $alcExe = 'alc.dll'
+        $alcParameters += @((Join-Path $alcPath $alcExe))
+        Write-Host "No alc executable in $compilerPlatform. Using dotnet to run alc.dll."
     }
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion

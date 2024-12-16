@@ -171,6 +171,9 @@ Function New-BcNuGetPackage {
                 $applicationDependency = GetDependencyVersionStr -template $applicationDependency -version ([System.Version]::Parse($appJson.Application))
             }
         }
+        elseif ($applicationDependency.Contains('{')) {
+            $applicationDependency = ''
+        }
         if ($appJson.PSObject.Properties.Name -eq 'Platform' -and $appJson.Platform) {
             if (-not $platformDependency) {
                 $platformDependency = $appJson.Platform
@@ -178,6 +181,9 @@ Function New-BcNuGetPackage {
             else {
                 $platformDependency = GetDependencyVersionStr -template $platformDependency -version ([System.Version]::Parse($appJson.Platform))
             }
+        }
+        elseif ($platformDependency.Contains('{')) {
+            $platformDependency = ''
         }
 
         if ($prereleaseTag) {
@@ -211,41 +217,43 @@ Function New-BcNuGetPackage {
             $XmlObjectWriter.WriteAttributeString("url", $githubRepository)
             $XmlObjectWriter.WriteEndElement()
         }
-        $XmlObjectWriter.WriteStartElement("dependencies")
-        if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
-            $appJson.dependencies | ForEach-Object {
-                if ($_.PSObject.Properties.name -eq 'id') {
-                    $dependencyId = $_.id
-                } else {
-                    $dependencyId = $_.appId
+        if ($dependencyIdTemplate) {
+            $XmlObjectWriter.WriteStartElement("dependencies")
+            if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
+                $appJson.dependencies | ForEach-Object {
+                    if ($_.PSObject.Properties.name -eq 'id') {
+                        $dependencyId = $_.id
+                    } else {
+                        $dependencyId = $_.appId
+                    }
+                    $id = Get-BcNuGetPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
+                    $XmlObjectWriter.WriteStartElement("dependency")
+                    $XmlObjectWriter.WriteAttributeString("id", $id)
+                    $XmlObjectWriter.WriteAttributeString("version", (GetDependencyVersionStr -template $dependencyVersionTemplate -version ([System.Version]::Parse($_.version))))
+                    $XmlObjectWriter.WriteEndElement()
                 }
-                $id = Get-BcNuGetPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
+            }
+            if ($applicationDependency) {
                 $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $id)
-                $XmlObjectWriter.WriteAttributeString("version", (GetDependencyVersionStr -template $dependencyVersionTemplate -version ([System.Version]::Parse($_.version))))
+                $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
+                $XmlObjectWriter.WriteAttributeString("version", $applicationDependency)
                 $XmlObjectWriter.WriteEndElement()
             }
-        }
-        if ($applicationDependency) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
-            $XmlObjectWriter.WriteAttributeString("version", $applicationDependency)
+            if ($platformDependency) {
+                $XmlObjectWriter.WriteStartElement("dependency")
+                $XmlObjectWriter.WriteAttributeString("id", $platformDependencyId)
+                $XmlObjectWriter.WriteAttributeString("version", $platformDependency)
+                $XmlObjectWriter.WriteEndElement()
+            }
+            if ($isIndirectPackage.IsPresent) {
+                $XmlObjectWriter.WriteStartElement("dependency")
+                $id = Get-BcNuGetPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
+                $XmlObjectWriter.WriteAttributeString("id", $id)
+                $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
+                $XmlObjectWriter.WriteEndElement()
+            }
             $XmlObjectWriter.WriteEndElement()
         }
-        if ($platformDependency) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $XmlObjectWriter.WriteAttributeString("id", $platformDependencyId)
-            $XmlObjectWriter.WriteAttributeString("version", $platformDependency)
-            $XmlObjectWriter.WriteEndElement()
-        }
-        if ($isIndirectPackage.IsPresent) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $id = Get-BcNuGetPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
-            $XmlObjectWriter.WriteAttributeString("id", $id)
-            $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
-            $XmlObjectWriter.WriteEndElement()
-        }
-        $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndElement()
         if (!$isIndirectPackage.IsPresent) {
             $XmlObjectWriter.WriteStartElement("files")
@@ -278,7 +286,11 @@ Function New-BcNuGetPackage {
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
         }
-        Compress-Archive -Path "$rootFolder\*" -DestinationPath "$nupkgFile.zip" -Force
+        if (Test-Path "$nupkgFile.zip" -PathType Leaf) {
+            Remove-Item "$nupkgFile.zip" -Force
+        }
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::CreateFromDirectory("$rootFolder", "$nupkgFile.zip", [System.IO.Compression.CompressionLevel]::Optimal, $false)
         Rename-Item -Path "$nupkgFile.zip" -NewName $nuPkgFileName
         
         $size = (Get-Item $nupkgFile).Length

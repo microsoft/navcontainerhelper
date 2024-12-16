@@ -87,7 +87,7 @@ Your computer will restart.
 
 Run PowerShell as an administrator:
 ```PowerShell
-Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/microsoft/nav-arm-templates/master/InstallOrUpdateDockerEngine.ps1' -OutFile (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
+Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/microsoft/nav-arm-templates/main/InstallOrUpdateDockerEngine.ps1' -OutFile (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
 . (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
 ```
 
@@ -135,7 +135,7 @@ Your computer will restart.
 
 Run PowerShell as an administrator:
 ```PowerShell
-Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/microsoft/nav-arm-templates/master/InstallOrUpdateDockerEngine.ps1' -OutFile (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
+Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/microsoft/nav-arm-templates/main/InstallOrUpdateDockerEngine.ps1' -OutFile (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
 . (Join-Path $ENV:TEMP 'installOrUpdateDocker.ps1')
 ```
 
@@ -174,9 +174,9 @@ These images will also be tagged with the `osversion`, but BcContainerHelper's `
 - Windows Server 2022 can run process isolation with the latest image
 # Branches
 
-**NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** will as of August 1st 2020 only receive bug fixes.
+**NavContainerHelper** is the main branch for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** is no longer supported.
 
-**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will from August 1st 2020 ship as release and pre-release.
+**main** is the main branch for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will from August 1st 2020 ship as release and pre-release.
 
 Please report issues in the issues list.
 

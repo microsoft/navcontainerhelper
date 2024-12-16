@@ -376,7 +376,7 @@ function GetTestToolkitApps {
             $apps += @('Microsoft_Any', 'Microsoft_Library Assert', 'Microsoft_Library Variable Storage')
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries')
+                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries','Microsoft_AI Test Toolkit')
                 if (!$includeTestLibrariesOnly) {
                     # Add Tests
                     if ($version -ge [Version]"18.0.0.0") {
@@ -414,7 +414,7 @@ function GetTestToolkitApps {
     
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
         
@@ -912,6 +912,10 @@ Function CreatePsTestToolFolder {
         if (!(Test-Path $myClientDllPath)) {
             $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
             Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+            $antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'Microsoft.Internal.AntiSSRF.dll'
+            if (Test-Path $antiSSRFdll) {
+                Copy-Item -Path $antiSSRFdll -Destination ([System.IO.Path]::GetDirectoryName($myClientDllPath))
+            }
         }
     } -argumentList (Get-BcContainerPath -containerName $containerName -Path $newtonSoftDllPath), (Get-BcContainerPath -containerName $containerName -Path $clientDllPath)
 }
@@ -1051,23 +1055,49 @@ function GetAppInfo {
         }
         Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
-    Write-Host "::group::Getting .app info $cacheAppInfoPath"
+    Write-Host "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
+    $alToolDll = ''
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
-        $alToolExe = Join-Path $alcPath 'altool'
-        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+        $command = Join-Path $alcPath 'altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & /usr/bin/env sudo pwsh -command "& chmod +x $command"
+            $alToolExists = $true
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $alToolDll = Join-Path $alcPath 'altool.dll'
+            $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
+        }
+    }
+    elseif ($isMacOS) {
+        $alcPath = Join-Path $binPath 'darwin'
+        $command = Join-Path $alcPath 'altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & chmod +x $command
+            $alToolExists = $true
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $alToolDll = Join-Path $alcPath 'altool.dll'
+            $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
+        }
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
-        $alToolExe = Join-Path $alcPath 'altool.exe'
+        $command = Join-Path $alcPath 'altool.exe'
+        $alToolExists = Test-Path -Path $command -PathType Leaf
     }
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
-    $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
+    if (!($isLinux -or $isMacOS) -and !$isPsCore) {
         $alcDllPath = $binPath
     }
 
@@ -1077,15 +1107,17 @@ function GetAppInfo {
     $package = $null
     try {
         foreach($path in $appFiles) {
-            Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
             $relativePath = Resolve-Path -Path $path -Relative
             if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
                 $appInfo = $appInfoCache."$relativePath"
-                Write-Host " (cached)"
             }
             else {
                 if ($alToolExists) {
-                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$path""") -returnValue -silent | ConvertFrom-Json
+                    $arguments = @('GetPackageManifest', """$path""")
+                    if ($alToolDll) {
+                        $arguments = @($alToolDll) + $arguments
+                    }
+                    $manifest = CmdDo -Command $command -arguments $arguments -returnValue -silent | ConvertFrom-Json
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
@@ -1094,9 +1126,8 @@ function GetAppInfo {
                         "application"           = "$(if($manifest.PSObject.Properties.Name -eq 'application'){$manifest.application})"
                         "platform"              = "$(if($manifest.PSObject.Properties.Name -eq 'platform'){$manifest.Platform})"
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
-                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
+                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
-                    Write-Host " (succeeded using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1124,7 +1155,6 @@ function GetAppInfo {
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     $packageStream.Close()
-                    Write-Host " (succeeded using codeanalysis)"
                 }
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
@@ -1149,7 +1179,6 @@ function GetAppInfo {
         }
     }
     catch [System.Reflection.ReflectionTypeLoadException] {
-        Write-Host " (failed)"
         if ($_.Exception.LoaderExceptions) {
             $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
                 Write-Host "LoaderException: $($_.Message)"
@@ -1166,7 +1195,6 @@ function GetAppInfo {
         }
         Pop-Location
     }
-    Write-Host "::endgroup::"
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1274,13 +1302,33 @@ function RunAlTool {
     )
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
-        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
-        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+        $command = Join-Path $path 'extension/bin/linux/altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & /usr/bin/env sudo pwsh -command "& chmod +x $command"
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
+        }
+    } 
+    elseif ($isMacOS) {
+        $command = Join-Path $path 'extension/bin/darwin/altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & chmod +x $command
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
+        }
     }
     else {
-        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
+        $command = Join-Path $path 'extension/bin/win32/altool.exe'
     }
-    CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent
+    CmdDo -Command $command -arguments $arguments -returnValue -silent
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
@@ -1338,4 +1386,255 @@ function ReplaceCDN {
         }
     }
     $sourceUrl
+}
+
+function Write-GroupStart([string] $Message) {
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
+        Default { Write-Host $Message}
+    }
+}
+
+function Write-GroupEnd {
+     switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
+}
+
+function CopySymbolsFromContainer {
+    Param(
+        [string] $containerName,
+        [string] $containerSymbolsFolder
+    )
+
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder)
+        if (Test-Path "C:\Extensions\*.app") {
+            $paths = @(
+                "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                "C:\Extensions\*.app"
+            )
+        }
+        else {
+            $paths = @(
+                "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app"
+                "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
+                "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
+                "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
+                "C:\Applications.*\Microsoft_AI Test Toolkit_*.app,C:\Applications\BusinessFoundation\source\Microsoft_AI Test Toolkit.app"
+            )
+        }
+        # Include Apps only available offline
+        "Microsoft_System Application Test Library", "Microsoft_Business Foundation Test Libraries", "Microsoft_Tests-TestLibraries" | ForEach-Object {
+            $paths += @(
+                "C:\Applications.*\$($_)_*.app,C:\Applications\BusinessFoundation\source\$($_).app"
+            )
+        }
+        $paths | ForEach-Object {
+            $appFiles = $_.Split(',')
+            $appFile = ""
+            if (Test-Path -Path $appFiles[0]) {
+                $appFile = $appFiles[0]
+            }
+            elseif (Test-Path -path $appFiles[1]) {
+                $appFile = $appFiles[1]
+            }
+            if ($appFile) {
+                Get-Item -Path $appFile | ForEach-Object {
+                    Write-Host "Copying $([System.IO.Path]::GetFileName($_.FullName)) from Container"
+                    Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
+                }
+            }
+        }
+    } -argumentList $containerSymbolsFolder
+}
+
+function GetIsolationMode {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [System.Version] $hostOsVersion,
+        [Parameter(Mandatory=$true)]
+        [System.Version] $containerOsVersion,
+        [Parameter(Mandatory=$true)]
+        [bool] $useSSL,
+        [string] $isolation = ''
+    )
+    if ($hostOsVersion -eq $containerOsVersion) {
+        $recommendation = "Host and container OS match, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    elseif ($hostOsVersion.Build -ge 26100) {
+        $recommendation = "Host OS is 26100 (24H2) or above, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+    elseif ($hostOsVersion.Build -ge 22621 -and $useSSL) {
+        $recommendation = "Host OS is 22621 (22H2) or above and you are using SSL, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+    elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+        $recommendation = "Container and host OS are 20348 or above, not using SSL, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+        $recommendation = "Host OS is Windows 10 21H1 or newer and Container OS is 2004, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    else {
+        $recommendation = "Host OS and Base Image Container OS doesn't match, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+
+    $hypervState = GetHypervState
+    if ($recommendedIsolation -eq "hyperv") {
+        if ($hypervState -eq "Disabled") {
+            $recommendation += ' HyperV is not installed, recommending process isolation instead.'
+            $recommendedIsolation = "process"
+        }
+        elseif ($hypervState -eq 'Unknown') {
+            $recommendation += ' HyperV state is unknown, if you encounter problems you might need to install HyperV.'
+        }
+    }
+
+    if ($isolation -eq '') {
+        $isolation = $recommendedIsolation
+        Write-Host $recommendation
+    }
+    elseif ($isolation -ne $recommendedIsolation) {
+        Write-Host -ForegroundColor Yellow "WARNING: You have specified isolation mode $isolation. $recommendation If you encounter issues you could try to specify -isolation $recommendedIsolation (or remove the -isolation parameter)."
+    }
+
+    return $isolation
+}
+
+function GetContainerOs {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Version] $containerOsVersion
+    )
+    if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+        $containerOs = "ltsc2016"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+        $containerOs = "1703"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+        $containerOs = "1709"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+        $containerOs = "1803"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+        $containerOs = "ltsc2019"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+        $containerOs = "1903"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+        $containerOs = "1909"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+        $containerOs = "2004"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+        $containerOs = "20H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+        $containerOs = "21H1"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+        $containerOs = "21H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+        $containerOs = "22H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+        $containerOs = "ltsc2022"
+    }
+    else {
+        $containerOs = "unknown"
+    }
+    return $containerOs
+}
+
+function GetHostOs {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Version] $hostOsVersion,
+        [Parameter(Mandatory=$true)]
+        [bool] $isServerHost
+    )
+
+    $hostOs = "Unknown/Insider build"
+    if ($os.BuildNumber -eq 26100) {
+        $hostOs = "24H2"
+    }
+    elseif ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 22000) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 20348) { 
+        $hostOs = "ltsc2022"
+    }
+    elseif ($os.BuildNumber -eq 19045) { 
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 19044) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 19043) { 
+        $hostOs = "21H1"
+    }
+    elseif ($os.BuildNumber -eq 19042) { 
+        $hostOs = "20H2"
+    }
+    elseif ($os.BuildNumber -eq 19041) { 
+        $hostOs = "2004"
+    }
+    elseif ($os.BuildNumber -eq 18363) { 
+        $hostOs = "1909"
+    }
+    elseif ($os.BuildNumber -eq 18362) { 
+        $hostOs = "1903"
+    }
+    elseif ($os.BuildNumber -eq 17763) { 
+        if ($isServerHost) {
+            $hostOs = "ltsc2019"
+        }
+        else {
+            $hostOs = "1809"
+        }
+    }
+    elseif ($os.BuildNumber -eq 17134) { 
+        $hostOs = "1803"
+    }
+    elseif ($os.BuildNumber -eq 16299) { 
+        $hostOs = "1709"
+    }
+    elseif ($os.BuildNumber -eq 15063) {
+        $hostOs = "1703"
+    }
+    elseif ($os.BuildNumber -eq 14393) {
+        if ($isServerHost) {
+            $hostOs = "ltsc2016"
+        }
+        else {
+            $hostOs = "1607"
+        }
+    }
+    return $hostOs
+}
+
+function Write-PSCallStack {
+    Param(
+        [string] $message
+    )
+    Write-Host "PS CallStack $message :"
+    Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName)) Line $($_.ScriptLineNumber))" }
 }

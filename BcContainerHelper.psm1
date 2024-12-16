@@ -15,7 +15,8 @@ param(
 . (Join-Path $PSScriptRoot "BC.HelperFunctions.ps1")
 
 if ($isMacOS) {
-    throw "BcContainerHelper isn't supported on MacOS"
+    Write-Host "Running on macOS, PowerShell $($PSVersionTable.PSVersion)"
+    Write-Host -ForegroundColor Red "BcContainerHelper is not supported on macOS, only limited features are available"
 }
 elseif (!$silent) {
     if ($isLinux) {
@@ -30,9 +31,9 @@ if ($useVolumes -or $isInsideContainer) {
     $bcContainerHelperConfig.UseVolumes = $true
 }
 
-$hypervState = ""
-function Get-HypervState {
-    if ($isAdministrator -and $hypervState -eq "") {
+$hypervState = "Unknown"
+function GetHypervState {
+    if ($isAdministrator -and $hypervState -eq "Unknown") {
         try {
             $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
             if ($feature) {
@@ -286,3 +287,12 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
+
+# In Development mode only
+if ($LatestGenericTagVersion -eq '0.0.0.0') {
+    $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+    if ($labels) {
+        $LatestGenericTagVersion = $labels.tag
+        Write-Host "LatestGenericTagVersion is $LatestGenericTagVersion"
+    }
+}
