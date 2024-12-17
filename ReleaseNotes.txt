@@ -10,8 +10,6 @@ Remove some excessive logging
 If Import-TestToolkitToBcContainer was running with useCompilerFolder, then it would require a container to be present at that time.
 Make Run-AlPipeline do just-in-time creation of CompilerFolder and Containers
 Issue 1338 from AL-Go repository: Multi-Project Repository Test App Dependencies Not Resolved
-
-6.0.29
 Issue 3591 When using Publish-NAVApp to publish an app, which fails compilation in the service, the command might hang forever - the fix for this is a temporary hack put in place for the versions which doesn't work.
 Improve performance and reduce memory consumption when creating and pushing NuGet packages
 
