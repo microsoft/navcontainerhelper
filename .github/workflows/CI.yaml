@@ -200,6 +200,7 @@ jobs:
             Import-Module $modulePath -DisableNameChecking
           
             $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+            Write-Host "Set latest generic tag version to $($labels.tag)"
             Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
             
             $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
