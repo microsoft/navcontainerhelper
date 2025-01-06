@@ -70,6 +70,9 @@ try {
         $includeDeviceLogin = $true
     }
 
+    $password = 'P@ssword1'
+    $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
+
     if ($resource) {
         Write-Host -ForegroundColor Yellow "Resource parameter on New-BcAuthContext is obsolete, please use scopes parameter instead"
         $scopes = "$($resource.TrimEnd('/'))/"
