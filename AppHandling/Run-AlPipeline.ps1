@@ -482,6 +482,9 @@ function GetInstalledAppIds {
     )
     if ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
+        Get-ChildItem $compilerFolder -Recurse -Filter '*.app' | ForEach-Object {
+            Write-Host $_.FullName
+        }
         $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
