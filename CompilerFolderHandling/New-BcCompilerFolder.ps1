@@ -135,12 +135,12 @@ try {
         Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
         $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
-        $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
-        if (Test-Path $extensionsFolder -PathType Container) {
+        $extensionsFolder = Join-Path $appArtifactPath '?xtensions' -Resolve
+        if ($extensionsFolder) {
             Write-Host "Copying app files from $extensionsFolder"
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
-            $platformAppsPath = Join-Path $platformArtifactPath 'Applications'
-            $appAppsPath = Join-Path $AppArtifactPath 'Applications.*' -Resolve
+            $platformAppsPath = Join-Path $platformArtifactPath '?pplications' -Resolve
+            $appAppsPath = Join-Path $AppArtifactPath '?pplications.*' -Resolve
             
             $platformApps = @(Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse)
             Write-Host "PlatForm apps"
@@ -163,8 +163,8 @@ try {
             }
         }
         else {
-            $platformAppsPath = Join-Path $platformArtifactPath 'Applications'
-            $appAppsPath = Join-Path $AppArtifactPath 'Applications'
+            $platformAppsPath = Join-Path $platformArtifactPath '?pplications' -Resolve
+            $appAppsPath = Join-Path $AppArtifactPath '?pplications' -Resolve
             if (Test-Path $appAppsPath -PathType Container) {
                 Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
