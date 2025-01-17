@@ -137,14 +137,19 @@ try {
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
+            Write-Host "Copying app files from $extensionsFolder"
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
             $platformAppsPath = Join-Path $platformArtifactPath 'Applications'
             $appAppsPath = Join-Path $AppArtifactPath 'Applications.*' -Resolve
             
             $platformApps = @(Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse)
+            Write-Host "PlatForm apps"
+            $platformApps | ForEach-Object { Write-Host "- $($_.Name)" }
             $appApps = @()
             if ($appAppsPath) {
                 $appApps = @(Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse)
+                Write-Host "App apps"
+                $appApps | ForEach-Object { Write-Host "- $($_.Name)" }
             }
             'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app','Microsoft_Business Foundation Test Libraries*.app','Microsoft_AI Test Toolkit*.app' | ForEach-Object {
                 $appName = $_
