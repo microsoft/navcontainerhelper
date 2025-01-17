@@ -135,6 +135,7 @@ try {
         Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
         $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
+        # Use questionmark as diffent versions of BC have different casing of the folder name (extensions/Extensions and applications/Applications)
         $extensionsFolder = Join-Path $appArtifactPath '?xtensions' -Resolve
         if ($extensionsFolder) {
             Write-Host "Copying app files from $extensionsFolder"
@@ -164,8 +165,11 @@ try {
         }
         else {
             $platformAppsPath = Join-Path $platformArtifactPath '?pplications' -Resolve
-            $appAppsPath = Join-Path $AppArtifactPath '?pplications' -Resolve
-            if (Test-Path $appAppsPath -PathType Container) {
+            $appAppsPath = ''
+            if ($appArtifactPath) {
+                $appAppsPath = Join-Path $AppArtifactPath '?pplications' -Resolve
+            }
+            if ($appAppsPath) {
                 Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
             else {
