@@ -165,10 +165,7 @@ try {
         }
         else {
             $platformAppsPath = Join-Path $platformArtifactPath '?pplications' -Resolve
-            $appAppsPath = ''
-            if ($appArtifactPath) {
-                $appAppsPath = Join-Path $AppArtifactPath '?pplications' -Resolve
-            }
+            $appAppsPath = Join-Path $AppArtifactPath '?pplications' -Resolve
             if ($appAppsPath) {
                 Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
