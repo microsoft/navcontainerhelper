@@ -30,8 +30,8 @@ try {
     Write-Host "Copying Al Source Files from $Path to $Destination"
 
     if ($alFileStructure) {
-        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension', 'pagecustomization')
-        $noidtypes = @('profile','interface','entitlement','pagecustomization')
+        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension', 'pagecustomization', 'reportextension', 'profileextension')
+        $noidtypes = @('profile','profileextension','interface','entitlement','pagecustomization')
 
         $extensions = @(".al",".xlf",".lcl")
 
