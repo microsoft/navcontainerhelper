@@ -2679,9 +2679,13 @@ $testFolders | ForEach-Object {
     }
 }
 
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
+    if ($installedAppIds -notcontains $id) {
+        throw "App with $id is not installed, cannot run tests"
+    }
     $folder = $testAppIds."$id"
 
     if ($folder) {
