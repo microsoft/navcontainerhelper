@@ -1,3 +1,6 @@
+6.0.32
+BcContainerHelper now also loads on PowerShell 7.5.0
+
 6.0.31
 New-BcCompilerFolder with base artifacts doesn't locate apps in version 25.0 due to a rename of the applications folder (was Applications)
 Run-AlPipeline might try to run tests even though a test app isn't installed (see https://github.com/microsoft/AL-Go/issues/1405)

@@ -1,20 +1,30 @@
-﻿$sslCallbackCode = @"
+﻿if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+    if ($isPsCore) {
+        $sslCallbackCode = @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 public static class SslVerification
 {
-	public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-	public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
-	public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+    public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
     public static void DisableSsl(System.Net.Http.HttpClientHandler handler) { handler.ServerCertificateCustomValidationCallback = DisabledServerCertificateValidationCallback; }
 }
 "@
-if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
-    if ($isPsCore) {
         Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
     }
     else {
+        $sslCallbackCode = @"
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+public static class SslVerification
+{
+    public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+    public static void DisableSsl(System.Net.Http.HttpClientHandler handler) { handler.ServerCertificateCustomValidationCallback = DisabledServerCertificateValidationCallback; }
+}
+"@
         Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -ReferencedAssemblies @('System.Net.Http') -WarningAction SilentlyContinue | Out-Null
     }
 }
