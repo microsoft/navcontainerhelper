@@ -99,7 +99,7 @@ try {
                 $baseAppSource = @(get-childitem -Path $countryApplicationsFolder -recurse -filter "Base Application.Source.zip")
             }
             else {
-                $baseAppSource = @(get-childitem -Path (Join-Path $platformArtifactPath "Applications") -recurse -filter "Base Application.Source.zip")
+                $baseAppSource = @(get-childitem -Path (Join-Path $platformArtifactPath "?pplications") -recurse -filter "Base Application.Source.zip")
             }
             if ($baseAppSource.Count -ne 1) {
                 throw "Unable to locate Base Application.Source.zip"
@@ -114,7 +114,9 @@ try {
         New-Item $symbolsPath -ItemType Directory | Out-Null
         New-Item $compilerPath -ItemType Directory | Out-Null
         New-Item $dllsPath -ItemType Directory | Out-Null
-        $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment" -Resolve
+        # Enumerate subfolders to ensure we support different casings in folder structure
+        $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment"
+        $modernDevFolder = Get-ChildItem -Recurse -Directory -Path $platformArtifactPath | Where-Object { $_.FullName -like $modernDevFolder } | ForEach-Object { $_.FullName }
         Copy-Item -Path (Join-Path $modernDevFolder 'System.app') -Destination $symbolsPath
         if ($cacheFolder -or !$vsixFile) {
             # Only unpack the artifact vsix file if we are populating a cache folder - or no vsixFile was specified
