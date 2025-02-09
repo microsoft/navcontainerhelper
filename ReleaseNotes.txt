@@ -1,3 +1,6 @@
+6.0.34
+Compare files before giving a warning about apps with the same name in Run-AlPipeline
+
 6.0.33
 Latest v26 artifacts have lowercase folder names in some areas, breaking New-BcCompilerFolder on Linux
 

@@ -555,7 +555,7 @@ function CopyAppFilesToFolder {
                 if ($appFile -like "*.app") {
                     $destFileName = [System.IO.Path]::GetFileName($appFile)
                     $destFile = Join-Path $folder $destFileName
-                    if (Test-Path $destFile) {
+                    if ((Test-Path $destFile) -and ((Get-FileHash -Path $appFile).Hash -ne (Get-FileHash -Path $destFile).Hash)) {
                         Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                     }
                     Copy-Item -Path $appFile -Destination $destFile -Force
