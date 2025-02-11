@@ -184,7 +184,7 @@ function Sort-AppFilesByDependencies {
                 }
                 else {
                     $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
-                    Write-PSCallStack -message "$appName (AppId=$($_.id)) is skipped as it is not referenced"
+                    Write-Host "$appName (AppId=$($_.id)) is skipped as it is not referenced"
                 }
             }
         }
