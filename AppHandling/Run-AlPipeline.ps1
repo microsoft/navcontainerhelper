@@ -1547,7 +1547,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 
-if ($installTestApps) {
+if ($installApps -or $installTestApps) {
 Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
@@ -1564,7 +1564,8 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    $installTestApps | ForEach-Object{
+    # Install both Apps + TestApps as some of the Apps might have been skipped earlier due to missing dependencies
+    @($installApps + $installTestApps) | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
