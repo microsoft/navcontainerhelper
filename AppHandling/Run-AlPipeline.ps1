@@ -1485,6 +1485,7 @@ Measure-Command {
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $appSymbolsFolder
         "installedApps" = $installedApps
+        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1659,6 +1660,7 @@ Measure-Command {
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $appSymbolsFolder
         "installedApps" = $installedApps
+        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
