@@ -1056,6 +1056,12 @@ if ($pageScriptingTests) { $pageScriptingTests | ForEach-Object { Write-Host "- 
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
+$runTestApps = @($installTestApps)
+if ($installOnlyReferencedApps) {
+    # Some dependencies in installApps might be skipped due to missing references if InstallOnlyReferencedApps is specified
+    $installTestApps += @($installApps)
+}
+
 $vsixFile = DetermineVsixFile -vsixFile $vsixFile
 $compilerFolder = ''
 $createContainer = $true
@@ -2611,7 +2617,7 @@ Write-GroupEnd
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
-if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
+if (!$doNotRunTests -and (($testFolders) -or ($runTestApps))) {
 Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               _            _
@@ -2629,7 +2635,7 @@ if ($testCountry) {
 }
 
 $testAppIds = @{}
-$installTestApps | ForEach-Object {
+$runTestApps | ForEach-Object {
     $appId = [Guid]::Empty
     if ([Guid]::TryParse($_, [ref] $appId)) {
         if ($testAppIds.ContainsKey($appId)) {
