@@ -229,10 +229,8 @@ try {
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
                     if ($installedApp) {
                         # Dependency is already installed, check version number
-                        Write-Host "Dependency is already installed $($installedApp.Version), check version number $dependencyVersion"
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
                             # The version installed ins't compatible with the NuGet package found
-                            Write-Host "SET ERROR"
                             $dependenciesErr = "Dependency $dependencyId is already installed with version $($installedApp.Version), which is not compatible with the version $dependencyVersion required by the NuGet package $packageId (version $packageVersion))"
                         }
                     }
