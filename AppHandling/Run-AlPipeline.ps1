@@ -1489,6 +1489,11 @@ Measure-Command {
             "tenant" = $tenant
         }
     }
+    elseif($useCompilerFolder) {
+        $Parameters += @{
+            "compilerFolder" = (GetCompilerFolder)
+        }
+    }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
             "CopyInstalledAppsToFolder" = $dependenciesFolder
@@ -1498,7 +1503,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Write-Host "check $appSymbolsFolder"
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
-            Write-Host "Move $($_.Name)"
+            Write-Host "Move $($_.Name) to $packagesFolder"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
             $appsBeforeApps += @(Join-Path $packagesFolder $_.Name)
         }
