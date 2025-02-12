@@ -224,9 +224,6 @@ try {
                         $dependencyPublisher = $matches[1]
                         if ($dependencyPublisher -eq 'microsoft') {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
-                            if ($dependencyCountry -eq 'symbols') {
-                                $dependencyCountry = ''
-                            }
                         }
                     }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
@@ -249,6 +246,10 @@ try {
                     else {
                         $downloadIt = ($downloadDependencies -ne 'none')
                     }
+                }
+                # When downloading symbols, country will be symbols if no specific country is specified
+                if ($dependencyCountry -eq 'symbols') {
+                    $dependencyCountry = ''
                 }
                 if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                     # The NuGet package found isn't compatible with the installed application
