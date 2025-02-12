@@ -1570,7 +1570,7 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    @($installTestApps) | ForEach-Object{
+    $installTestApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
@@ -1772,7 +1772,7 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    @($installTestApps) | ForEach-Object{
+    $installTestApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
