@@ -1056,6 +1056,12 @@ if ($pageScriptingTests) { $pageScriptingTests | ForEach-Object { Write-Host "- 
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
+$runTestApps = @($installTestApps)
+if ($installOnlyReferencedApps) {
+    # Some dependencies in installApps might be skipped due to missing references if InstallOnlyReferencedApps is specified
+    $installTestApps += @($installApps)
+}
+
 $vsixFile = DetermineVsixFile -vsixFile $vsixFile
 $compilerFolder = ''
 $createContainer = $true
@@ -1547,7 +1553,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 
-if ($installApps -or $installTestApps) {
+if ($installTestApps) {
 Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
@@ -1564,8 +1570,7 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    # Install both Apps + TestApps as some of the Apps might have been skipped earlier due to missing dependencies
-    @($installApps + $installTestApps) | ForEach-Object{
+    @($installTestApps) | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
@@ -1750,7 +1755,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
-if ($installApps -or $installTestApps) {
+if ($installTestApps) {
 Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
@@ -1767,8 +1772,7 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    # Install both Apps + TestApps as some of the Apps might have been skipped earlier due to missing dependencies
-    @($installApps+$installTestApps) | ForEach-Object{
+    @($installTestApps) | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
@@ -2613,7 +2617,7 @@ Write-GroupEnd
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
-if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
+if (!$doNotRunTests -and (($testFolders) -or ($runTestApps))) {
 Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               _            _
@@ -2631,7 +2635,7 @@ if ($testCountry) {
 }
 
 $testAppIds = @{}
-$installTestApps | ForEach-Object {
+$runTestApps | ForEach-Object {
     $appId = [Guid]::Empty
     if ([Guid]::TryParse($_, [ref] $appId)) {
         if ($testAppIds.ContainsKey($appId)) {
