@@ -593,7 +593,7 @@ function GetBuildContainer {
             Write-Host "Reusing existing docker container"
         }
         else {
-            Write-Host "Creaing docker container"
+            Write-Host "Creating docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }

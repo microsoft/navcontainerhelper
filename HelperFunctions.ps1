@@ -1230,7 +1230,7 @@ function GetAlLanguageExtensionVersionAndUrl {
 	}
 
 	elseif ($vsixUri.Scheme -iin 'file') {
-		if ($vsixUri.AbsolutePath -imatch '(\d+\.\d+\.\d+\.*\d*)\.vsix') {
+		if ($vsixUri.AbsolutePath -imatch '(\d+\.\d+\.\d+\.*\d*)') {
 			$version = $Matches[1];
 			$result = $results | Where-Object { $_.version -ieq $version };
 		}
@@ -1350,6 +1350,7 @@ function GetAlLanguageExtension() {
 	Write-Host "Locating $(if ($extract.IsPresent) { "extracted " })AL Language Extension $($vsixFile)$(if ($allowPrerelease.IsPresent) { " (Prerelease)" }).";
 
 	if ($vsixFile -ine '') {
+
 		if ((Test-Path -Path $vsixFile -PathType Leaf) -and !$extract.IsPresent) {
 			return $vsixFile;
 		}
