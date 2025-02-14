@@ -51,12 +51,12 @@ try {
     $version = [System.Version]($parts[4])
     $country = $parts[5]
 
-    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
-
     if ($version -lt "16.0.0.0") {
         throw "Containerless compiling is not supported with versions before 16.0"
     }
     
+	$vsixFile = GetAlLanguageExtension -vsixFile $vsixFile -extract;
+
     if (!$containerName) {
         $containerName = [GUID]::NewGuid().ToString()
     }
@@ -195,17 +195,22 @@ try {
         Remove-Item -Path $dotnetFolder -Recurse -Force
     }
 
-    $containerCompilerPath = Join-Path $compilerFolder 'compiler'
-    if ($vsixFile) {
-        # If a vsix file was specified unpack directly to compilerfolder
+    $containerCompilerPath = Join-Path $compilerFolder 'compiler';
+
+	if ($vsixFile) {
+        # If a vsix "file" was specified it is an already extracted path
         Write-Host "Using $vsixFile"
-        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
-        Download-File -sourceUrl $vsixFile -destinationFile $tempZip
-        Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
+		Remove-Item -Path $containerCompilerPath -Recurse -Force -ErrorAction SilentlyContinue;
+		New-Item -Path $containerCompilerPath -ItemType SymbolicLink -Value $vsixFile | Out-Null;
+
+		if ($cacheFolder) {
+			Remove-Item -Path $compilerPath -Recurse -Force -ErrorAction SilentlyContinue;
+			New-Item -Path $compilerPath -ItemType SymbolicLink -Value $vsixFile | Out-Null;
+		}
+
         if ($isWindows -and $newtonSoftDllPath) {
-            Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
+            Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path -Path $vsixFile -ChildPath 'extension\bin') -Force -ErrorAction SilentlyContinue;
         }
-        Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
     }
 
     # If a cacheFolder was specified, the cache folder has been populated

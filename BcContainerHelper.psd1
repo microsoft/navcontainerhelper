@@ -118,7 +118,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Get-BcNotificationRecipients', 'Get-BcNuGetPackage', 
                'Get-BcNuGetPackageId', 'Get-BestBcContainerImageName', 
                'Get-BestGenericImageName', 'Get-CompanyInBcContainer', 
-               'Get-LatestAlLanguageExtensionUrl', 'Get-LocaleFromCountry', 
+               'Get-LatestAlLanguageExtensionUrl', 'Get-LatestAlLanguageExtension', 'Get-LocaleFromCountry', 
                'Get-NavArtifactUrl', 'Get-NavVersionFromVersionInfo', 
                'Get-PackageInfoFromRapidStartFile', 'Get-PlainText', 
                'Get-TestsFromBcContainer', 'Import-BcContainerLicense', 
@@ -293,4 +293,3 @@ Remove functions for supporting Alpaca and Cloud Containers - integration betwee
 # DefaultCommandPrefix = ''
 
 }
-

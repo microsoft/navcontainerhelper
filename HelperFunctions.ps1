@@ -1207,28 +1207,114 @@ function GetAppInfo {
     }
 }
 
+function GetAlLanguageExtensionVersionAndUrl {
+    param (
+		[string] $vsixFile = 'latest',
+        [switch] $allowPrerelease
+    )
+
+	$listing = Invoke-WebRequest -Method POST -UseBasicParsing `
+		-Uri 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=3.0-preview.1' `
+		-Body '{"filters":[{"criteria":[{"filterType":8,"value":"Microsoft.VisualStudio.Code"},{"filterType":12,"value":"4096"},{"filterType":7,"value":"ms-dynamics-smb.al"}],"pageNumber":1,"pageSize":50,"sortBy":0,"sortOrder":0}],"assetTypes":[],"flags":0x192}' `
+		-ContentType 'application/json' | ConvertFrom-Json;
+	
+	$preReleaseKey = 'Microsoft.VisualStudio.Code.PreRelease';
+	$vsixPackageKey = 'Microsoft.VisualStudio.Services.VSIXPackage';
+
+	$results = $listing.results | Select-Object -First 1 -ExpandProperty 'extensions' | Select-Object -ExpandProperty 'versions';
+	$vsixUri = [System.Uri]$vsixFile;
+	$result = $null;
+
+	if ($vsixUri.Scheme -iin 'https', 'http') {
+		$result = $results | Where-Object { $_.files | Where-Object { ($_.assetType -ieq $vsixPackageKey) -and ($_.source -ieq $vsixFile) } };
+	}
+
+	elseif ($vsixUri.Scheme -iin 'file') {
+		if ($vsixUri.AbsolutePath -imatch '(\d+\.\d+\.\d+\.*\d*)\.vsix') {
+			$version = $Matches[1];
+			$result = $results | Where-Object { $_.version -ieq $version };
+		}
+	}
+
+	else {
+		$results = $results | Where-Object { 
+			($allowPrerelease.IsPresent -or !(($_.properties.Key -eq $preReleaseKey) -and ($_.properties | Where-Object { $_.Key -eq $preReleaseKey }).value -eq "true"))
+		};
+
+		switch($vsixFile) {
+			'latest' {
+				$result = $results | Select-Object -First 1;
+			}
+	
+			'previous' {
+				$result = $results | Select-Object -Skip 1 -First 1;
+			}
+		}
+	}
+
+	if ($result) {
+		$vsixUrl = $result.files | Where-Object { $_.assetType -eq $vsixPackageKey} | Select-Object -ExpandProperty 'source';
+
+		$isPrereleaseKey = $result.properties | Where-Object { $_.Key -eq $preReleaseKey };
+		$isPrerelease = $isPrereleaseKey -and ($isPrereleaseKey.value -eq 'true');
+
+		if ($vsixUrl) {
+			return $result.version, $isPrerelease, $vsixUrl;
+		}
+	}
+
+	throw "Unable to locate $($vsixFile) AL Language Extension $(if ($allowPrerelease.IsPresent) { "prerelease " })from the VS Code Marketplace.";
+}
+
+function CleanupOldAlLanguageExtensions() {
+    param (
+        [string] $path,
+		[string] $version,
+		[switch] $isPrerelease
+    )
+
+	$versionFiles = Get-ChildItem -Path $path -File -Filter '*.vsix';
+	$versionFiles | ForEach-Object {
+		if ($_.Name -imatch '(\d+\.\d+\.\d+\.*\d*)\.vsix') {
+			$_ | Add-Member -MemberType NoteProperty -Name "Version" -Value ([System.Version]$Matches[1]) -Force;
+			$_ | Add-Member -MemberType NoteProperty -Name "IsPrerelease" -Value ($_.Name -imatch 'pre-') -Force;
+		}
+	};
+
+	$cleanedUpText = 'Cleaned up old AL Language Extension'
+
+	$versionFilesToDelete = @($versionFiles | Where-Object { ($_.Version.ToString() -ine $version) -and $_.IsPrerelease } | Sort-Object -Property 'Version' -Descending | Select-Object -Skip 2);
+	$versionFilesToDelete += ($versionFiles | Where-Object { ($_.Version.ToString() -ine $version) -and !$_.IsPrerelease } | Sort-Object -Property 'Version' -Descending | Select-Object -Skip 2);
+	
+	$versionFilesToDelete | ForEach-Object {
+		$fileToDelete = $_.FullName;
+		Remove-Item -Path $fileToDelete -Force | Out-Null;
+		Write-Host "$($cleanedUpText): $($fileToDelete)";
+
+		$folderToDelete = $fileToDelete -replace '\.vsix$', '';
+
+		if (Test-Path -Path $folderToDelete -PathType Container) {
+			Remove-Item -Path $folderToDelete -Recurse -Force | Out-Null;
+			Write-Host "$($cleanedUpText): $($folderToDelete)";
+		}
+	}
+
+	$null = Get-ChildItem -Path $path -Directory | Where-Object { $_.Name -imatch '(\d+\.\d+\.\d+\.*\d*)' } | ForEach-Object {
+		if (!(Test-Path -Path "$($_.FullName).vsix" -PathType Leaf)) {
+			Remove-Item -Path $_.FullName -Recurse -Force | Out-Null;
+			Write-Host "$($cleanedUpText): $($_.FullName)";
+		}
+	};
+}
+
 function GetLatestAlLanguageExtensionVersionAndUrl {
     Param(
         [switch] $allowPrerelease
     )
 
-    $listing = Invoke-WebRequest -Method POST -UseBasicParsing `
-                      -Uri https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=3.0-preview.1 `
-                      -Body '{"filters":[{"criteria":[{"filterType":8,"value":"Microsoft.VisualStudio.Code"},{"filterType":12,"value":"4096"},{"filterType":7,"value":"ms-dynamics-smb.al"}],"pageNumber":1,"pageSize":50,"sortBy":0,"sortOrder":0}],"assetTypes":[],"flags":0x192}' `
-                      -ContentType application/json | ConvertFrom-Json
-    
-    $result =  $listing.results | Select-Object -First 1 -ExpandProperty extensions `
-                         | Select-Object -ExpandProperty versions `
-                         | Where-Object { ($allowPrerelease.IsPresent -or !(($_.properties.Key -eq 'Microsoft.VisualStudio.Code.PreRelease') -and ($_.properties | where-object { $_.Key -eq 'Microsoft.VisualStudio.Code.PreRelease' }).value -eq "true")) } `
-                         | Select-Object -First 1
+	$version, $isPrerelease, $vsixUrl = GetAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease;
 
-    if ($result) {
-        $vsixUrl = $result.files | Where-Object { $_.assetType -eq "Microsoft.VisualStudio.Services.VSIXPackage"} | Select-Object -ExpandProperty source
-        if ($vsixUrl) {
-            return $result.version, $vsixUrl
-        }
-    }
-    throw "Unable to locate latest AL Language Extension from the VS Code Marketplace"
+	return $version, $vsixUrl;
 }
 
 function DetermineVsixFile {
@@ -1237,81 +1323,125 @@ function DetermineVsixFile {
     )
 
     if ($vsixFile -eq 'default') {
-        return ''
+        return '';
     }
     elseif ($vsixFile -eq 'latest' -or $vsixFile -eq 'preview') {
-        $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:($vsixFile -eq 'preview')
-        return $url
+        $version, $isPrerelease, $url = GetAlLanguageExtensionVersionAndUrl -allowPrerelease:($vsixFile -eq 'preview');
+
+		return $url;
     }
     else {
-        return $vsixFile
+        return $vsixFile;
     }
 }
 
-# Cached Path for latest and preview versions of AL Language Extension
-$AlLanguageExtenssionPath = @('','')
+function GetAlLanguageExtension() {
+	param(
+		[string] $vsixFile = 'latest',
+		[switch] $allowPrerelease,
+		[switch] $extract,
+		[switch] $skipCleanup
+	)
+
+	if ($vsixFile -iin 'default', '', '.') {
+		return '';
+	}
+
+	Write-Host "Locating $(if ($extract.IsPresent) { "extracted " })AL Language Extension $($vsixFile)$(if ($allowPrerelease.IsPresent) { " (Prerelease)" }).";
+
+	if ($vsixFile -ine '') {
+		if ((Test-Path -Path $vsixFile -PathType Leaf) -and !$extract.IsPresent) {
+			return $vsixFile;
+		}
+
+		if ((Test-Path -Path $vsixFile -PathType Container) -and $extract.IsPresent) {
+			return $vsixFile;
+		}
+
+		$vsixUri = [System.Uri]$vsixFile;
+
+		if ($vsixUri.Scheme -iin 'https', 'http') {
+			$vsixFile = $vsixUri.AbsoluteUri;
+			$allowPrerelease = $false;
+		}
+	}
+
+	$allowPrerelease = $allowPrerelease -or ($vsixFile -ieq 'preview');
+
+	$mutexName = "GetLatestAlLanguageExtension";
+    $mutex = New-Object System.Threading.Mutex($false, $mutexName);
+
+    try {
+        try {
+            if (!$mutex.WaitOne(1000)) {
+                Write-Host "Waiting for another process providing the AL Language Extension.";
+                $mutex.WaitOne() | Out-Null;
+                Write-Host "Another process completed providing the AL Language Extension.";
+            }
+        }
+
+        catch [System.Threading.AbandonedMutexException] {
+           Write-Host "The other process terminated abnormally while providing the AL Language Extension.";
+        }
+
+		$vsixVersion, $isPrerelease, $vsixUrl = GetAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease -vsixFile $vsixFile;
+
+		$alLanguageExtensionsPath = Join-Path -Path $bcContainerHelperConfig.hostHelperFolder -ChildPath "alLanguageExtension";
+		$preRelease = "$(if ($isPrerelease) { "pre-" })";
+		$extractedPath = Join-Path -Path $alLanguageExtensionsPath -ChildPath "$($prerelease)$($vsixVersion)";
+		$vsixPath = "$($extractedPath).vsix";
+
+		$shouldCleanup = $false;
+
+		if (!(Test-Path -Path $vsixPath -PathType Leaf)) {
+			$downloadDescription = "AL Language Extension$(if ($isPrerelease) { " (Prerelease)" })";
+			Download-File -sourceUrl $vsixUrl -destinationFile $vsixPath -Description $downloadDescription;
+
+			$shouldCleanup = !$skipCleanup.IsPresent;
+		}
+
+		if ($extract.IsPresent) {
+			if (!(Test-Path -Path $extractedPath -PathType Container)) {
+				Expand-7zipArchive -Path $vsixPath -DestinationPath $extractedPath;
+			}
+
+			$vsixPath = $extractedPath;
+			$shouldCleanup = !$skipCleanup.IsPresent;
+		}
+
+		if ($shouldCleanup) {
+			CleanupOldAlLanguageExtensions -path $alLanguageExtensionsPath -version $vsixVersion -isPrerelease:$isPrerelease;
+		}
+
+		Write-Host "Returning $(if ($extract.IsPresent) { "extracted " })AL Language Extension $($vsixPath)$(if ($isPrerelease) { " (Prerelease)" }).";
+
+		return $vsixPath;
+    }
+
+    finally {
+        $mutex.ReleaseMutex();
+    }
+}
 
 function DownloadLatestAlLanguageExtension {
     Param(
         [switch] $allowPrerelease
     )
 
-    # Check if we already have the latest version downloaded and located in this session
-    if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
-        $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
-        if (Test-Path $path -PathType Container) {
-            return $path
-        }
-        else {
-            $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
-        }
-    }
-    
-    $mutexName = "DownloadAlLanguageExtension"
-    $mutex = New-Object System.Threading.Mutex($false, $mutexName)
-    try {
-        try {
-            if (!$mutex.WaitOne(1000)) {
-                Write-Host "Waiting for other process downloading AL Language Extension"
-                $mutex.WaitOne() | Out-Null
-                Write-Host "Other process completed downloading"
-            }
-        }
-        catch [System.Threading.AbandonedMutexException] {
-           Write-Host "Other process terminated abnormally"
-        }
+	$path = GetAlLanguageExtension -allowPrerelease:$allowPrerelease -extract;
 
-        $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
-        $path = Join-Path $bcContainerHelperConfig.hostHelperFolder "alLanguageExtension/$version"
-        if (!(Test-Path $path -PathType Container)) {
-            $AlLanguageExtensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "alLanguageExtension"
-            if (!(Test-Path $AlLanguageExtensionsFolder -PathType Container)) {
-                New-Item -Path $AlLanguageExtensionsFolder -ItemType Directory | Out-Null
-            }
-            $description = "AL Language Extension"
-            if ($allowPrerelease) {
-                $description += " (Prerelease)"
-            }
-            $zipFile = "$path.zip"
-            Download-File -sourceUrl $url -destinationFile $zipFile -Description $description
-            Expand-7zipArchive -Path $zipFile -DestinationPath $path
-            Remove-Item -Path $zipFile -Force
-        }
-        $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = $path
-        return $path
-    }
-    finally {
-        $mutex.ReleaseMutex()
-    }
+	return $path;
 }
 
 function RunAlTool {
     Param(
         [string[]] $arguments,
-        [switch] $usePrereleaseAlTool = ($bccontainerHelperConfig.usePrereleaseAlTool)
+        [switch] $usePrereleaseAlTool = ($bcContainerHelperConfig.usePrereleaseAlTool)
     )
-    $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
-    if ($isLinux) {
+
+	$path = GetAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool -extract;
+
+	if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
         if (Test-Path $command) {
             Write-Host "Setting execute permissions on altool"

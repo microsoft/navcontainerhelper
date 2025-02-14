@@ -157,6 +157,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Flush-ContainerHelperCache.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtensionUrl.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtension.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-AlLanguageExtensionFromArtifacts.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\traefik\Add-DomainToTraefikConfig.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\traefik\Create-CustomTraefikImage.ps1")

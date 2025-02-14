@@ -48,6 +48,7 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEULA) to get latest insider .vsix
+  Use Get-LatestAlLanguageExtension to download and optionally extract the latest AL Language extension from Marketplace to a local folder.
   Use . to specify that you want to use the AL Language extension from the container spun up for validation
   Default is to use the latest AL Language extension from Marketplace for non-insider containers and the Language extension in the container for insider containers
  .Parameter skipVerification
@@ -295,8 +296,7 @@ else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
 
-$vsixFile = DetermineVsixFile -vsixFile $vsixFile
-
+$vsixFile = GetAlLanguageExtension -vsixFile $vsixFile -extract;
 $currentArtifactUrl = ""
 
 if ("$validateVersion" -eq "" -and !$validateCurrent -and !$validateNextMinor -and !$validateNextMajor) {
