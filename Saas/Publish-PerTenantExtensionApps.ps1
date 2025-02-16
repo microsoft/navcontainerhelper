@@ -58,7 +58,7 @@ try {
 
     $newLine = @{}
     if (!$useNewLine) {
-        $newLine = @{ "NoNewLine" = $true }
+        #$newLine = @{ "NoNewLine" = $true }
     }
 
     if ($PsCmdlet.ParameterSetName -eq "CC") {
@@ -136,7 +136,7 @@ try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
                 Write-Host @newline "$([System.IO.Path]::GetFileName($_)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $_
-                
+                $appJson | Out-Host
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {

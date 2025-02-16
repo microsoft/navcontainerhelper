@@ -101,10 +101,10 @@ try {
         $filestream.Close()
     }
 
-    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | % {
+    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | ForEach-Object {
         $folder = Join-Path $appFolder $_
         if (Test-Path $folder) {
-            @(Get-ChildItem $folder) | % {
+            @(Get-ChildItem $folder) | ForEach-Object {
                 Copy-Item -Path $_.FullName -Destination $appFolder -Recurse -Force
                 Remove-Item -Path $_.FullName -Recurse -Force
             }
@@ -113,7 +113,7 @@ try {
 
     if ($generateAppJson) {
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
-        $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | ForEach-Object { $_.Value } )"
         if ($runtimeStr) {
             $runtime = [System.Version]$runtimeStr
         }
@@ -121,15 +121,15 @@ try {
             $runtime = [System.Version]"9.2"
         }
 
-        $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
+        $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | ForEach-Object { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
             "name" = $manifest.Package.App.Name
             "publisher" = $manifest.Package.App.Publisher
             "version" = $manifest.Package.App.Version
-            "brief" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Brief" } | % { $_.Value } )"
-            "description" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Description" } | % { $_.Value } )"
-            "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | % { $_.Value } )"
+            "brief" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Brief" } | ForEach-Object { $_.Value } )"
+            "description" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Description" } | ForEach-Object { $_.Value } )"
+            "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | ForEach-Object { $_.Value } )"
         }
         if ($application) {
             $appJson += @{
@@ -151,12 +151,12 @@ try {
             }
         }
         $appJson += [ordered]@{
-            "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
-            "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
-            "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | % { $_.Value } )"
-            "privacyStatement" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "PrivacyStatement" } | % { $_.Value } )"
-            "help" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Help" } | % { $_.Value } )"
-            "target" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "target" } | % { $_.Value } )"
+            "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | ForEach-Object { $_.Value } )".TrimStart('/')
+            "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | ForEach-Object { $_.Value } )"
+            "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | ForEach-Object { $_.Value } )"
+            "privacyStatement" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "PrivacyStatement" } | ForEach-Object { $_.Value } )"
+            "help" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Help" } | ForEach-Object { $_.Value } )"
+            "target" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "target" } | ForEach-Object { $_.Value } )"
             "screenshots" = @()
             "dependencies" = @()
             "idRanges" = @()
@@ -165,15 +165,15 @@ try {
 
         if ($runtime -lt [System.Version]"8.0")  {
             $appJson += @{
-                "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
+                "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | ForEach-Object { $_.Value } )" -eq "True"
             }
         }
         else {
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | % { 
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | ForEach-Object { 
                 $resExp = [ordered]@{}
-                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile","applyToDevExtension" | % {
+                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile","applyToDevExtension" | ForEach-Object {
                     $prop = $_
-                    if ($manifest.Package.ResourceExposurePolicy.Attributes | Where-Object { $_.name -eq $prop } | % { $_.Value -eq "true" }) {
+                    if ($manifest.Package.ResourceExposurePolicy.Attributes | Where-Object { $_.name -eq $prop } | ForEach-Object { $_.Value -eq "true" }) {
                         $resExp += @{
                             "$prop" = $true
                         }
@@ -183,30 +183,30 @@ try {
             }
         }
         if ($runtime -ge [System.Version]"12.0")  {
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Source" } | % { 
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Source" } | ForEach-Object { 
                 $node = $_
                 $ht = [ordered]@{}
-                "repositoryUrl", "commit" | % {
+                "repositoryUrl", "commit" | ForEach-Object {
                     $prop = $_
                     if ($node) {
-                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | ForEach-Object {
                             $ht += @{
-                                "$prop" = $_.Value
+                                "$prop" = $_.Value.Trim('"')
                             }
                         }
                     }
                 }
                 $appJson += @{ "source" = $ht }
             }
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Build" } | % { 
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Build" } | ForEach-Object { 
                 $node = $_
                 $ht = [ordered]@{}
-                "by", "url" | % {
+                "by", "url" | ForEach-Object {
                     $prop = $_
                     if ($node) {
-                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | ForEach-Object {
                             $ht += @{
-                                "$prop" = $_.Value
+                                "$prop" = $_.Value.Trim('"')
                             }
                         }
                     }
@@ -215,14 +215,14 @@ try {
             }
         }
         if ($runtime -ge [System.Version]"5.0")  {
-            $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
+            $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | ForEach-Object { $_.Value } 
             if ($appInsightsKey) {
                 $appJson += @{
                     "applicationInsightsKey" = "$appInsightsKey"
                 }
             }
             elseif ($runtime -ge [System.Version]"7.2")  {
-                $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
+                $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | ForEach-Object { $_.Value } 
                 if ($appInsightsConnectionString) {
                     $appJson += @{
                         "applicationInsightsConnectionString" = "$appInsightsConnectionString"
@@ -230,14 +230,14 @@ try {
                 }
             }
         }
-        $contextSensitiveHelpUrl = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "contextSensitiveHelpUrl" } | % { $_.Value } )"
+        $contextSensitiveHelpUrl = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "contextSensitiveHelpUrl" } | ForEach-Object { $_.Value } )"
         if ($contextSensitiveHelpUrl) {
             $appJson += @{
                 "contextSensitiveHelpUrl" = $contextSensitiveHelpUrl
             }
         }
-        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
-            $_.GetEnumerator() | % {
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | ForEach-Object { 
+            $_.GetEnumerator() | ForEach-Object {
                 if ($runtime -gt [System.Version]"4.1") {
                     $propname = "id"
                 }
@@ -252,27 +252,27 @@ try {
                 }
             }
         }
-        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "IdRanges" } | % { 
-            $_.GetEnumerator() | % {
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "IdRanges" } | ForEach-Object { 
+            $_.GetEnumerator() | ForEach-Object {
                 $appJson.idRanges += [ordered]@{
                     "from" = [Int]::Parse($_.MinObjectId)
                     "to" = [Int]::Parse($_.MaxObjectId)
                 }
             }
         }
-        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Features" } | % { 
-            $_.GetEnumerator() | % {
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Features" } | ForEach-Object { 
+            $_.GetEnumerator() | ForEach-Object {
                 $feature = $_.'#text'
-                'ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile' | % {
+                'ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile' | ForEach-Object {
                     if ($feature -eq $_) {
                         $appJson.features += $_
                     }
                 }
             }
         }
-        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "SupportedLocales" } | % { 
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "SupportedLocales" } | ForEach-Object { 
             $first = $true
-            $_.GetEnumerator() | % {
+            $_.GetEnumerator() | ForEach-Object {
                 if ($first) {
                     $appJson += @{ "supportedLocales" = @() }
                     $first = $false
@@ -282,13 +282,13 @@ try {
         }
         if ($runtime -ge [System.Version]"4.0")  {
             $first = $true
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | % { 
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | ForEach-Object { 
                 if ($first) {
                     $appJson += @{
                         "internalsVisibleTo" = @()
                     }
                 }
-                $_.GetEnumerator() | % {
+                $_.GetEnumerator() | ForEach-Object {
                     $appJson.internalsVisibleTo += [ordered]@{
                         "id" = $_.Id
                         "publisher" = $_.publisher
@@ -298,9 +298,9 @@ try {
             }
         }
         if ($runtime -ge [System.Version]"6.0") {
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | % { 
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | ForEach-Object { 
                 $first = $true
-                $_.GetEnumerator() | % {
+                $_.GetEnumerator() | ForEach-Object {
                     if ($first) {
                         $appJson += @{ "preprocessorSymbols" = @() }
                         $first = $false
@@ -309,8 +309,8 @@ try {
                 }
             }
             $appJson += @{ "keyVaultUrls" = @() }
-            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "KeyVaultUrls" } | % { 
-                $_.GetEnumerator() | % {
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "KeyVaultUrls" } | ForEach-Object { 
+                $_.GetEnumerator() | ForEach-Object {
                     $appJson.keyVaultUrls += @($_.Name)
                 }
             }
