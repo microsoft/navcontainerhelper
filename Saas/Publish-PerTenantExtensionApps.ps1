@@ -160,7 +160,9 @@ try {
                 if (!$existingApp) {
                     $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers (GetAuthHeaders)).value
                     Write-Host @newLine "."
+                    $extensionUpload | Out-Host
                     if ($extensionUpload -and $extensionUpload.systemId) {
+                        Write-Host "Patch $automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))"
                         $extensionUpload = Invoke-RestMethod `
                             -Method Patch `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))" `
@@ -168,6 +170,7 @@ try {
                             -Body ($body | ConvertTo-Json -Compress)
                     }
                     else {
+                        Write-Host "Post $automationApiUrl/companies($companyId)/extensionUpload"
                         $ExtensionUpload = Invoke-RestMethod `
                             -Method Post `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload" `
@@ -179,12 +182,14 @@ try {
                         throw "Unable to upload extension"
                     }
                     $fileBody = [System.IO.File]::ReadAllBytes($_)
+                    Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
                         -Body $fileBody | Out-Null
-                    Write-Host @newLine "."    
+                    Write-Host @newLine "."
+                    Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
