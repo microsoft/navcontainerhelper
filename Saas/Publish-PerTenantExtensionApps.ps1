@@ -194,11 +194,15 @@ try {
                         -Body $fileBody | Out-Null
                     Write-Host @newLine "."
                     Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
-                    Invoke-RestMethod `
-                        -Method Post `
-                        -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
-                        -Headers ((GetAuthHeaders) + $ifMatchHeader) `
-                        -ErrorAction SilentlyContinue | Out-Host
+                    try {
+                        Invoke-RestMethod `
+                            -Method Post `
+                            -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
+                            -Headers ((GetAuthHeaders) + $ifMatchHeader) | Out-Host
+                    }
+                    catch {
+                        Write-Host "Error uploading extension. Error was $($_.Exception.Message)"
+                    }
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
