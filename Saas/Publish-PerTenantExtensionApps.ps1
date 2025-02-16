@@ -181,13 +181,15 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
+                    Write-Host $_
                     $fileBody = [System.IO.File]::ReadAllBytes($_)
+                    0..50 | ForEach-Object {  ("0x{0:X2}" -f $fileBody[$_]) | Out-Host }
                     Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
-                        -Body $fileBody | Out-Null
+                        -Body $fileBody | Out-Host
                     Write-Host @newLine "."
                     Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
                     Invoke-RestMethod `
