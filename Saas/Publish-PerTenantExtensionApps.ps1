@@ -134,8 +134,9 @@ try {
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
-                Write-Host @newline "$([System.IO.Path]::GetFileName($_)) - "
-                $appJson = Get-AppJsonFromAppFile -appFile $_
+                $appFile = $_
+                Write-Host @newline "$([System.IO.Path]::GetFileName($appFile)) - "
+                $appJson = Get-AppJsonFromAppFile -appFile $appFile
                 $appJson | Out-Host
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
@@ -181,12 +182,13 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
-                    Write-Host $_
-                    $fileBody = [System.IO.File]::ReadAllBytes($_)
+                    Write-Host $appFile
+                    $fileBody = [System.IO.File]::ReadAllBytes($appFile)
+                    Write-Host $fileBody.Length
                     0..50 | ForEach-Object {  ("0x{0:X2}" -f $fileBody[$_]) | Out-Host }
                     Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
-                        -Method Patch `
+                        -Method Put `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
                         -Body $fileBody | Out-Host
