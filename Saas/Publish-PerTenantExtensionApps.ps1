@@ -188,17 +188,17 @@ try {
                     0..50 | ForEach-Object {  ("0x{0:X2}" -f $fileBody[$_]) | Out-Host }
                     Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
-                        -Method Put `
+                        -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
-                        -Body $fileBody | Out-Host
+                        -Body $fileBody | Out-Null
                     Write-Host @newLine "."
                     Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader) `
-                        -ErrorAction SilentlyContinue | Out-Null
+                        -ErrorAction SilentlyContinue | Out-Host
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
