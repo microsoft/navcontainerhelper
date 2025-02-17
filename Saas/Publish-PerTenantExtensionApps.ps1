@@ -184,25 +184,21 @@ try {
                     }
                     Write-Host $appFile
                     $fileBody = [System.IO.File]::ReadAllBytes($appFile)
-                    Write-Host $fileBody.Length
-                    0..50 | ForEach-Object {  ("0x{0:X2}" -f $fileBody[$_]) | Out-Host }
+                    $fileStream = [System.IO.File]::OpenRead($appFile)
                     Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
-                        -Body $fileBody | Out-Null
+                        -Body $fileStream | Out-Host
+                    $fileStream.Close()
                     Write-Host @newLine "."
                     Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
-                    try {
-                        Invoke-RestMethod `
-                            -Method Post `
-                            -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
-                            -Headers ((GetAuthHeaders) + $ifMatchHeader) | Out-Host
-                    }
-                    catch {
-                        Write-Host "Error uploading extension. Error was $($_.Exception.Message)"
-                    }
+                    Invoke-RestMethod `
+                        -Method Post `
+                        -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
+                        -Headers ((GetAuthHeaders) + $ifMatchHeader) `
+                        -ErrorAction SilentlyContinue | Out-Host
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
