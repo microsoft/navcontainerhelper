@@ -482,8 +482,7 @@ try {
                         }
                     }
                     if ($throw) {
-                        Write-Host "ERROR $($_.Exception.Message)"
-                        throw (GetExtendedErrorMessage $_)
+                        throw "Error downloading symbols for $symbolsName. Error was: $($_.Exception.Message)"
                     }
                 }
                 if (Test-Path -Path $symbolsFile) {
