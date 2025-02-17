@@ -709,7 +709,7 @@ try {
                 $alcParameters += @("/SourceCommit:$sourceCommit")
             }
             if ($buildBy) {
-                $alcParameters += @("/BuildBy:ALGo")
+                $alcParameters += @("/BuildBy:$($buildBy)")
             }
             if ($buildUrl) {
                 $alcParameters += @("/BuildUrl:$buildUrl")

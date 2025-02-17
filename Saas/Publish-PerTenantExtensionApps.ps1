@@ -58,7 +58,7 @@ try {
 
     $newLine = @{}
     if (!$useNewLine) {
-        #$newLine = @{ "NoNewLine" = $true }
+        $newLine = @{ "NoNewLine" = $true }
     }
 
     if ($PsCmdlet.ParameterSetName -eq "CC") {
@@ -137,7 +137,6 @@ try {
                 $appFile = $_
                 Write-Host @newline "$([System.IO.Path]::GetFileName($appFile)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $appFile
-                $appJson | Out-Host
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {
@@ -161,9 +160,7 @@ try {
                 if (!$existingApp) {
                     $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers (GetAuthHeaders)).value
                     Write-Host @newLine "."
-                    $extensionUpload | Out-Host
                     if ($extensionUpload -and $extensionUpload.systemId) {
-                        Write-Host "Patch $automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))"
                         $extensionUpload = Invoke-RestMethod `
                             -Method Patch `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))" `
@@ -171,7 +168,6 @@ try {
                             -Body ($body | ConvertTo-Json -Compress)
                     }
                     else {
-                        Write-Host "Post $automationApiUrl/companies($companyId)/extensionUpload"
                         $ExtensionUpload = Invoke-RestMethod `
                             -Method Post `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload" `
@@ -182,23 +178,20 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
-                    Write-Host $appFile
-                    $fileBody = [System.IO.File]::ReadAllBytes($appFile)
+                    # Use stream instead of reading the entire file into memory
                     $fileStream = [System.IO.File]::OpenRead($appFile)
-                    Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
-                        -Body $fileStream | Out-Host
+                        -Body $fileStream | Out-Null
                     $fileStream.Close()
                     Write-Host @newLine "."
-                    Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload"
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader) `
-                        -ErrorAction SilentlyContinue | Out-Host
+                        -ErrorAction SilentlyContinue | Out-Null
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
