@@ -488,11 +488,11 @@ function GetInstalledApps {
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
     elseif ($filesOnly) {
-        # Make sure container is created
+        # Make sure container has been created
         GetBuildContainer | Out-Null
         $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
             $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
-            @{
+            return @{
                 "AppId"                 = $appJson.id
                 "Name"                  = $appJson.name
                 "Publisher"             = $appJson.publisher
@@ -1460,9 +1460,7 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-if ($installedApps) {
-    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
-}
+$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1637,9 +1635,7 @@ Write-GroupEnd
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-if ($installedApps) {
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
-}
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1847,9 +1843,7 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-if ($installedApps) {
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
-}
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -2703,7 +2697,7 @@ $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -files
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps -and ($installedApps.Id -notcontains $id)) {
+    if ($installedApps.Id -notcontains $id) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
