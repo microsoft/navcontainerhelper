@@ -488,6 +488,8 @@ function GetInstalledApps {
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
     elseif ($filesOnly) {
+        # Make sure container has been created
+        GetBuildContainer | Out-Null
         $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
             $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
             return @{
