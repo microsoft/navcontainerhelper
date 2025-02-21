@@ -1,5 +1,7 @@
 6.0.35
 AL-Go issue 1288 Library apps are not installed if only referenced from test apps
+AL-Go issue 1330 CompilerFolder doesn't transfer installed Apps to NuGet resolution
+AL-Go issue 1268 Do not throw an un-understandable error during nuGet download
 Reworked AL Language extension handling (issue #3831). Download to folder $bcContainerHelperConfig.hostHelperFolder/alLanguageExtension. Sym-linked into compiler and cache folder.
 
 6.0.34

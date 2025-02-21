@@ -245,6 +245,10 @@ try {
                         $downloadIt = ($downloadDependencies -ne 'none')
                     }
                 }
+                # When downloading symbols, country will be symbols if no specific country is specified
+                if ($dependencyCountry -eq 'symbols') {
+                    $dependencyCountry = ''
+                }
                 if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                     # The NuGet package found isn't compatible with the installed application
                     Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
