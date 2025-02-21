@@ -46,7 +46,7 @@ try {
 
     # Read all app.json objects, populate $apps
     $apps = $()
-    $folders = @{}
+    $folders = @()
     $script:includeAppIds = @()
     $appFolders | ForEach-Object {
         $appFolder = "$baseFolder$_"
@@ -85,7 +85,7 @@ try {
                 }
             }
 
-            $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
+            $folders += @( "$($appJson.Id):$($appJson.Version)=$appFolder" )
             $apps += @($appJson)
             if ($selectSubordinates -contains $_) {
                 $script:includeAppIds += @($appJson.Id)
@@ -157,11 +157,13 @@ try {
     $apps | ForEach-Object { AddAnApp -AnApp $_ | Out-Null }
 
     $script:sortedApps | ForEach-Object {
-        ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
+        $key = "$($_.Id):$($_.Version)=*"
+        $folders | Where-Object { $_ -like $key } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
     }
     if ($skippedApps -and $selectSubordinates) {
         $skippedApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
-            ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
+            $key = "$($_.Id):$($_.Version)=*"
+            $folders | Where-Object { $_ -like $key } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
         }
     }
     if ($knownApps) {
