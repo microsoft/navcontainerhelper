@@ -1230,7 +1230,7 @@ function GetAlLanguageExtensionVersionAndUrl {
 	}
 
 	elseif ($vsixUri.Scheme -iin 'file') {
-		if ($vsixUri.AbsolutePath -imatch '(\d+\.\d+\.\d+\.*\d*)') {
+		if ($vsixUri.AbsolutePath -imatch '(\d+\.\d+\.\d+(?:\.+\d+)*)') {
 			$version = $Matches[1];
 			$result = $results | Where-Object { $_.version -ieq $version };
 		}
