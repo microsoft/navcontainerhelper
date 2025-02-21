@@ -703,16 +703,16 @@ try {
 
         if ($alcVersion -ge [System.Version]"12.0.12.41479") {
             if ($sourceRepositoryUrl) {
-                $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+                $alcParameters += @("/SourceRepositoryUrl:$sourceRepositoryUrl")
             }
             if ($sourceCommit) {
-                $alcParameters += @("/SourceCommit:""$sourceCommit""")
+                $alcParameters += @("/SourceCommit:$sourceCommit")
             }
             if ($buildBy) {
-                $alcParameters += @("/BuildBy:""$buildBy""")
+                $alcParameters += @("/BuildBy:$buildBy")
             }
             if ($buildUrl) {
-                $alcParameters += @("/BuildUrl:""$buildUrl""")
+                $alcParameters += @("/BuildUrl:$buildUrl")
             }
         }
 
