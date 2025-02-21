@@ -1896,6 +1896,7 @@ Write-Host -ForegroundColor Yellow @'
 
     $appJsonFile = Join-Path $folder "app.json"
     $appJsonChanges = $false
+    Write-Host $appJsonFile
     $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
 
     $prebuiltAppFileName = ''
