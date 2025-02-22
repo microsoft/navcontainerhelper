@@ -85,16 +85,8 @@ try {
                 }
             }
 
-            $key = "$($appJson.Id):$($appJson.Version)"
-            if ($folders.ContainsKey($key)) {
-                if ($folders."$key" -ne $appFolder) {
-                    throw "App $key exists in '$appFolder' and '$($folders."$key")'"
-                }
-            }
-            else {
-                $folders += @{ $key = $appFolder }
-                $apps += @($appJson)
-            }
+            $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
+            $apps += @($appJson)
             if ($selectSubordinates -contains $_) {
                 $script:includeAppIds += @($appJson.Id)
             }
