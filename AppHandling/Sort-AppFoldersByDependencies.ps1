@@ -157,13 +157,13 @@ try {
     $apps | ForEach-Object { AddAnApp -AnApp $_ | Out-Null }
 
     $script:sortedApps | ForEach-Object {
-        $key = "$($_.Id):$($_.Version)=*"
-        $folders | Where-Object { $_ -like $key } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
+        $key = "$($_.Id):$($_.Version)="
+        $folders | Where-Object { $_.StartsWith($key) } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
     }
     if ($skippedApps -and $selectSubordinates) {
         $skippedApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
-            $key = "$($_.Id):$($_.Version)=*"
-            $folders | Where-Object { $_ -like $key } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
+            $key = "$($_.Id):$($_.Version)="
+            $folders | Where-Object { $_.StartsWith($key) } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
         }
     }
     if ($knownApps) {
