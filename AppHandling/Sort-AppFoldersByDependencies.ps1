@@ -156,6 +156,7 @@ try {
     $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ | Out-Null }
     $apps | ForEach-Object { AddAnApp -AnApp $_ | Out-Null }
 
+    # Same ID:Version can be in multiple folder references, hence not using a hashtable
     $script:sortedApps | ForEach-Object {
         $key = "$($_.Id):$($_.Version)="
         $folders | Where-Object { $_.StartsWith($key) } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
