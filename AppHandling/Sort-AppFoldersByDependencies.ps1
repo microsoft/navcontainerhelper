@@ -46,7 +46,7 @@ try {
 
     # Read all app.json objects, populate $apps
     $apps = $()
-    $folders = @()
+    $folders = @{}
     $script:includeAppIds = @()
     $appFolders | ForEach-Object {
         $appFolder = "$baseFolder$_"
@@ -85,8 +85,16 @@ try {
                 }
             }
 
-            $folders += @( "$($appJson.Id):$($appJson.Version)=$appFolder" )
-            $apps += @($appJson)
+            $key = "$($appJson.Id):$($appJson.Version)"
+            if ($folders.ContainsKey($key)) {
+                if ($folders."$key" -ne $appFolder) {
+                    throw "App $key exists in '$appFolder' and '$($folders."$key")'"
+                }
+            }
+            else {
+                $folders += @{ $key = $appFolder }
+                $apps += @($appJson)
+            }
             if ($selectSubordinates -contains $_) {
                 $script:includeAppIds += @($appJson.Id)
             }
@@ -156,17 +164,12 @@ try {
     $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ | Out-Null }
     $apps | ForEach-Object { AddAnApp -AnApp $_ | Out-Null }
 
-    $folders | Out-Host
-
-    # Same ID:Version can be in multiple folder references, hence not using a hashtable
     $script:sortedApps | ForEach-Object {
-        $key = "$($_.Id):$($_.Version)="
-        $folders | Where-Object { $_.StartsWith($key) } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
+        ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
     }
     if ($skippedApps -and $selectSubordinates) {
         $skippedApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
-            $key = "$($_.Id):$($_.Version)="
-            $folders | Where-Object { $_.StartsWith($key) } | ForEach-Object { $_.Substring($key.Length+$baseFolder.Length) }
+            ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
         }
     }
     if ($knownApps) {
