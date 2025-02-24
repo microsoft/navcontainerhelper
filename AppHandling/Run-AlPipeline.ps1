@@ -489,6 +489,8 @@ function GetInstalledApps {
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
     elseif ($filesOnly) {
+        # Make sure container has been created
+        GetBuildContainer | Out-Null
         $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
             $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
             return @{
@@ -1426,6 +1428,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1611,6 +1615,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1815,6 +1821,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -2391,8 +2399,9 @@ Measure-Command {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
-        "upgrade" = $false
-    }
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
+}
     
     if ($bcAuthContext) {
         $Parameters += @{
@@ -2551,6 +2560,8 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
     }
 
     if ($bcAuthContext) {
