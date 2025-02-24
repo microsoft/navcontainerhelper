@@ -1427,6 +1427,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1612,6 +1614,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1816,6 +1820,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -2392,8 +2398,9 @@ Measure-Command {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
-        "upgrade" = $false
-    }
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
+}
     
     if ($bcAuthContext) {
         $Parameters += @{
@@ -2552,6 +2559,8 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
     }
 
     if ($bcAuthContext) {
