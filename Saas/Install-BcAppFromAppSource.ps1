@@ -1,4 +1,4 @@
-<#
+﻿<#
  .Synopsis
   Function for installing an AppSource App in an online Business Central environment
  .Description
