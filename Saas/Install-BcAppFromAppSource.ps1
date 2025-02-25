@@ -63,11 +63,7 @@ function Install-BcAppFromAppSource {
             Write-Host -ForegroundColor Green "App $($appExists.Name) from $($appExists.Publisher) version $($appExists.Version) is already installed"
         }
         else {
-            $deploymentUrl = "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
-            if ($applicationFamily -ne "BusinessCentral") {
-                $deploymentUrl = "https://$($applicationFamily).bc.dynamics.com/$($bcAuthContext.tenantID)/$($environment)/deployment/url"
-            }
-            $response = Invoke-RestMethod -Method Get -Uri $deploymentUrl
+            $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
             if ($response.status -ne 'Ready') {
                 throw "environment not ready, status is $($response.status)"
             }
