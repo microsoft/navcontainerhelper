@@ -403,7 +403,7 @@ function GetTestToolkitApps {
         }
         $appFiles = @()
         $apps | ForEach-Object {
-            $appFiles += @(get-childitem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app" | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing_*.*.*.*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER_*.*.*.*.app"} | ForEach-Object { $_.FullName })
+            $appFiles += @(get-childitem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app" | Where-Object { ($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing_*.*.*.*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER_*.*.*.*.app" } | ForEach-Object { $_.FullName })
         }
         $appFiles | Select-Object -Unique
     }
@@ -424,9 +424,10 @@ function GetTestToolkitApps {
     
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app', 'Microsoft_Library-NoTransactions.app', 'Microsoft_Library Outlook REST API.app', 'Microsoft_Prevent Metadata Updates.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
+                    $apps += gci "C:\Applications\*\Test Library" | gci -filter "*.app"
         
                     if (!$includeTestLibrariesOnly) {
                         # Add Tests
@@ -435,7 +436,7 @@ function GetTestToolkitApps {
                                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                             }
                         }
-                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse) | ? { $_.name -like "Microsoft_Tests-*.app" -or $_.FullName -match '\\Test\\.*[ _]Test(?:s?| Automations).app' } | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                     }
                 }
             }
@@ -457,6 +458,7 @@ function GetTestToolkitApps {
         } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
     }
 }
+
 
 function GetExtendedErrorMessage {
     Param(
