@@ -1,4 +1,4 @@
-﻿<#
+<#
  .Synopsis
   Function for installing an AppSource App in an online Business Central environment
  .Description
@@ -58,12 +58,16 @@ function Install-BcAppFromAppSource {
         if ($bcEnvironment.Type -eq 'Production' -and !$allowInstallationOnProduction) {
             throw "If you want to install an app in a production environment, you need to specify -allowInstallOnProduction"
         }
-        $appExists = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment -apiVersion $apiVersion | Where-Object { $_.id -eq $appid -and $_.state -eq "installed" }
+        $appExists = Get-BcPublishedApps -bcAuthContext $bcauthcontext -applicationFamily $applicationFamily -environment $environment -apiVersion $apiVersion | Where-Object { $_.id -eq $appid -and $_.state -eq "installed" }
         if ($appExists) {
             Write-Host -ForegroundColor Green "App $($appExists.Name) from $($appExists.Publisher) version $($appExists.Version) is already installed"
         }
         else {
-            $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
+            $deploymentUrl = "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
+            if ($applicationFamily -ne "BusinessCentral") {
+                $deploymentUrl = "https://$($applicationFamily).bc.dynamics.com/$($bcAuthContext.tenantID)/$($environment)/deployment/url"
+            }
+            $response = Invoke-RestMethod -Method Get -Uri $deploymentUrl
             if ($response.status -ne 'Ready') {
                 throw "environment not ready, status is $($response.status)"
             }
@@ -79,7 +83,8 @@ function Install-BcAppFromAppSource {
 
             Write-Host "Installing $appId $appVersion on $($environment)"
             try {
-                $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/BusinessCentral/environments/$environment/apps/$appId/install" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
+                $bcAuthContext, $headers, $installUri = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -apiVersion $apiVersion -endpoint "apps/$appId/install"
+                $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri $installUri -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
             }
             catch {
                 throw (GetExtendedErrorMessage $_)
@@ -94,7 +99,8 @@ function Install-BcAppFromAppSource {
                 while (-not $completed) {
                     Start-Sleep -Seconds 3
                     try {
-                        $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
+                        $bcAuthContext, $headers, $operationsUri = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -apiVersion $apiVersion -endpoint "apps/$appId/operations"
+                        $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri $operationsUri -UseBasicParsing
                         $appInstallStatus = (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id }
                         if ($status -ne $appInstallStatus.status) {
                             Write-Host
