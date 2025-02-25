@@ -200,11 +200,12 @@ try {
 	if ($vsixFile) {
         # If a vsix "file" was specified it is an already extracted path
         Write-Host "Using $vsixFile"
-		Remove-Item -Path $containerCompilerPath -Recurse -Force -ErrorAction SilentlyContinue;
+
+		DeletePathOrSymbolicLink -path $containerCompilerPath;
 		New-Item -Path $containerCompilerPath -ItemType SymbolicLink -Value $vsixFile | Out-Null;
 
 		if ($cacheFolder) {
-			Remove-Item -Path $compilerPath -Recurse -Force -ErrorAction SilentlyContinue;
+			DeletePathOrSymbolicLink -path $compilerPath;
 			New-Item -Path $compilerPath -ItemType SymbolicLink -Value $vsixFile | Out-Null;
 		}
 

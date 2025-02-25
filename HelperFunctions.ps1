@@ -1266,6 +1266,25 @@ function GetAlLanguageExtensionVersionAndUrl {
 	throw "Unable to locate $($vsixFile) AL Language Extension $(if ($allowPrerelease.IsPresent) { "prerelease " })from the VS Code Marketplace.";
 }
 
+function DeletePathOrSymbolicLink()
+{
+	param (
+		[string]$path
+	)
+
+	if (Test-Path -Path $path -PathType Container) {
+		$linkToDelete = Get-Item $path -Force -ErrorAction SilentlyContinue;
+		$isSymbolicLink = [bool]($linkToDelete.Attributes -band [System.IO.FileAttributes]::ReparsePoint);
+
+		if ($isSymbolicLink) {
+			$linkToDelete.Delete();
+		}
+		else {
+			Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue | Out-Null;
+		}
+	}
+}
+
 function CleanupOldAlLanguageExtensions() {
     param (
         [string] $path,
