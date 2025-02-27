@@ -424,7 +424,7 @@ function GetTestToolkitApps {
     
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app', 'Microsoft_Library-NoTransactions.app', 'Microsoft_Library Outlook REST API.app', 'Microsoft_Prevent Metadata Updates.app' | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app', 'Microsoft_Library Outlook REST API.app', 'Microsoft_Prevent Metadata Updates.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
                     $apps += gci "C:\Applications\*\Test Library" | gci -filter "*.app"
