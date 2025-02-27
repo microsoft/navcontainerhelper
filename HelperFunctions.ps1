@@ -1,4 +1,4 @@
-﻿if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
     if ($isPsCore) {
         $sslCallbackCode = @"
 using System.Net.Security;
@@ -448,13 +448,14 @@ function GetTestToolkitApps {
                 }
             }
     
-            $apps | ForEach-Object {
+            $apps = $apps | ForEach-Object {
                 $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app", "_*.app")
                 if (!($appFile)) {
                     $appFile = $_
                 }
                 $appFile.FullName
             }
+            $apps | Select-Object -Unique
         } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
     }
 }
