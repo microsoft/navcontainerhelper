@@ -241,6 +241,9 @@ try {
                         # Download if publisher isn't Microsoft (including if publisher is empty)
                         $downloadIt = ($dependencyPublisher -ne 'Microsoft')
                     }
+                    elseif ($dependencyId -match '^([^\.]+)\.([^\.]+)\.runtime\-[0-9]+\-[0-9]+\-[0-9]+\-[0-9]+$') {
+                        $downloadIt = $true
+                    }
                     else {
                         $downloadIt = ($downloadDependencies -ne 'none')
                     }
