@@ -76,7 +76,7 @@ function Invoke-IngestionApiRestMethod {
                 # 500 Internal Server Error
                 # 503 Service Unavailable
                 # 504 Gateway Timeout
-                if ($retries -gt 0 -and $statusCode -in @(500, 503, 504)) {}
+                if ($retries -gt 0 -and $statusCode -in @(500, 503, 504)) {
                     $retries--
                     Write-Host "$(GetExtendedErrorMessage $_)".TrimEnd()
                     Write-Host "...retrying in $waittime minute(s)"
