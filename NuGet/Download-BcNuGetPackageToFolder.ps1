@@ -226,7 +226,7 @@ try {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
                         }
                     }
-                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
+                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property Version -Descending | Select-Object -First 1
                     if ($installedApp) {
                         # Dependency is already installed, check version number
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
@@ -240,6 +240,9 @@ try {
                     elseif ($downloadDependencies -eq 'allButMicrosoft') {
                         # Download if publisher isn't Microsoft (including if publisher is empty)
                         $downloadIt = ($dependencyPublisher -ne 'Microsoft')
+                    }
+                    elseif ($dependencyId -match '^([^\.]+)\.([^\.]+)\.runtime\-[0-9]+\-[0-9]+\-[0-9]+\-[0-9]+$') {
+                        $downloadIt = $true
                     }
                     else {
                         $downloadIt = ($downloadDependencies -ne 'none')
