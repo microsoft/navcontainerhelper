@@ -176,6 +176,7 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
+  Use Get-LatestAlLanguageExtension to download and optionally extract the latest AL Language extension from Marketplace to a local folder.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
@@ -1271,24 +1272,7 @@ try {
         $parameters += "--env bakfile=""$bakFile"""
     }
 
-    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
-
-    if ($vsixFile) {
-        $vsixUrl = $vsixFile
-        if ($vsixUrl.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixUrl.StartsWith("http://", "OrdinalIgnoreCase")) {
-            $uri = [Uri]::new($vsixUrl)
-            $vsixFile = "$containerFolder\$($uri.Segments[$uri.Segments.Count-1]).vsix"
-            Download-File -sourceUrl $vsixUrl -destinationFile $vsixFile
-        }
-        elseif (Test-Path $vsixUrl -PathType Leaf) {
-            $vsixFile = "$containerFolder\$([System.IO.Path]::GetFileName($vsixUrl))"
-            Copy-Item -Path $vsixUrl -Destination $vsixFile
-        }
-        else {
-            $vsixFile = ""
-            throw "Unable to locate vsix file ($vsixUrl)"
-        }
-    }
+	$vsixFile = GetAlLanguageExtension -vsixFile $vsixFile;
 
     if (!$restoreBakFolder) {
         $ext = ''

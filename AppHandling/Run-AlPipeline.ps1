@@ -151,6 +151,7 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
+  Use Get-LatestAlLanguageExtension to download and optionally extract the latest AL Language extension from Marketplace to a local folder.
  .Parameter enableCodeCop
   Include this switch to include Code Cop Rules during compilation.
  .Parameter enableAppSourceCop
@@ -596,7 +597,7 @@ function GetBuildContainer {
             Write-Host "Reusing existing docker container"
         }
         else {
-            Write-Host "Creaing docker container"
+            Write-Host "Creating docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }
@@ -1066,7 +1067,7 @@ if ($installOnlyReferencedApps) {
     $installTestApps += @($installApps)
 }
 
-$vsixFile = DetermineVsixFile -vsixFile $vsixFile
+$vsixFile = GetAlLanguageExtension -vsixFile $vsixFile -extract;
 $compilerFolder = ''
 $createContainer = $true
 
