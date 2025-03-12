@@ -80,7 +80,7 @@ try {
             $ignoreBuildsAfter = [DateTime]::Today.AddDays(-[datetime]::Today.DayOfWeek)
         }
         if ($version -ne '' -or ($after) -or ($before)) {
-            throw 'You cannot specify version, before or after  when selecting Daily or Weekly build'
+            throw 'You cannot specify version, before or after when selecting Daily or Weekly build'
         }
         $current = Get-BCArtifactUrl -country $country -select Latest -doNotCheckPlatform:$doNotCheckPlatform
         Write-Verbose "Current build is $current"
