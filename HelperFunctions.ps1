@@ -1774,6 +1774,7 @@ function QueryArtifactsFromIndex {
         $countriesFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.countries.json"
         Download-File -sourceUrl $countriesUrl -destinationFile $countriesFile -Description "Countries index"
         $countries = [System.IO.File]::ReadAllText($countriesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $countries = $countries | Where-Object { $_ -ne "platform" }
         $sortIt = $true
     }
     else {
