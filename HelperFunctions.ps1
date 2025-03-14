@@ -1765,12 +1765,12 @@ function QueryArtifactsFromIndex {
         [bool] $doNotCheckPlatform = $false
     )
 
-    $indecesContainerUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/indeces"
+    $indexesContainerUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/indexes"
     $artifacts = @()
     $sortIt = $false
     if ($country -eq '') {
         # countries unsettled, get all countries
-        $countriesUrl = "$indecesContainerUrl/countries.json"
+        $countriesUrl = "$indexesContainerUrl/countries.json"
         $countriesFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.countries.json"
         Download-File -sourceUrl $countriesUrl -destinationFile $countriesFile -Description "Countries index"
         $countries = [System.IO.File]::ReadAllText($countriesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
@@ -1781,14 +1781,14 @@ function QueryArtifactsFromIndex {
     }
     if (-not $doNotCheckPlatform) {
         # Checking whether platform exists in the index for the country
-        $platformUrl = "$indecesContainerUrl/platform.json"
+        $platformUrl = "$indexesContainerUrl/platform.json"
         $platformFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.platform.json"
         Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
         $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
     }
     $countries | ForEach-Object {
         $country = $_
-        $countryUrl = "$indecesContainerUrl/$country.json"
+        $countryUrl = "$indexesContainerUrl/$country.json"
         $countryFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.$($country).json"
         Download-File -sourceUrl $countryUrl -destinationFile $countryFile -Description "$country index"
         $countryArtifacts = [System.IO.File]::ReadAllText($countryFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
