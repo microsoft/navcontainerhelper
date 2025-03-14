@@ -135,7 +135,7 @@ try {
         if (-not $storageAccount.Contains('.')) {
             $storageAccount += ".blob.core.windows.net"
         }
-        $BaseUrl = ReplaceCDN -sourceUrl "https://$storageAccount/$($Type.ToLowerInvariant())/" -useBlobUrl:($bcContainerHelperConfig.DoNotUseCdnForArtifacts)
+        $BaseUrl = ReplaceCDN -sourceUrl "https://$storageAccount/$($Type.ToLowerInvariant())/"
         $storageAccount = ReplaceCDN -sourceUrl $storageAccount -useBlobUrl
 
         if ($storageAccount -eq 'bcinsider.blob.core.windows.net' -and !$accept_insiderEULA) {
@@ -181,7 +181,7 @@ try {
             $artifactUrl
         }
         else {
-            $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/?comp=list&restype=container"
+            $versionPrefix = ''
             if ($select -eq 'SecondToLastMajor') {
                 if ($version) {
                     throw "You cannot specify a version when asking for the Second To Last Major version"
@@ -196,7 +196,7 @@ try {
                 if ($dots -ne 3 -or !([Version]::TryParse($version, [ref] $closestToVersion))) {
                     throw "Version number must be in the format 1.2.3.4 when you want to get the closest artifact Url"
                 }
-                $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
+                $versionPrefix = "$($closestToVersion.Major).$($closestToVersion.Minor)."
             }
             elseif (!([string]::IsNullOrEmpty($version))) {
                 $dots = ($version.ToCharArray() -eq '.').Count
@@ -204,130 +204,52 @@ try {
                     # avoid 14.1 returning 14.10, 14.11 etc.
                     $version = "$($version.TrimEnd('.'))."
                 }
-                $GetListUrl += "&prefix=$($Version)"
+                $versionPrefix = $Version
             }
-    
-            $Artifacts = @()
-            $nextMarker = ''
-            $currentMarker = ''
-            $downloadAttempt = 1
-            $downloadRetryAttempts = 10
-            do {
-                if ($currentMarker -ne $nextMarker)
-                {
-                    $currentMarker = $nextMarker
-                    $downloadAttempt = 1
-                }
-                Write-Verbose "Download String $GetListUrl$nextMarker"
-                try
-                {
-                    $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
-                    if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
-                        # Remove UTF8 BOM
-                        $response = $response.Substring(3)
-                    }
-                    if (([int]$Response[0]) -eq 65279) {
-                        # Remove Unicode BOM (PowerShell 7.4)
-                        $response = $response.Substring(1)
-                    }
-                    $enumerationResults = ([xml]$Response).EnumerationResults
-    
-                    if ($enumerationResults.Blobs) {
-                        if (($After) -or ($Before)) {
-                            $artifacts += $enumerationResults.Blobs.Blob | % {
-                                if ($after) {
-                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                    if ($before) {
-                                        if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
-                                            $_.Name
-                                        }
-                                    }
-                                    elseif ($blobModifiedDate -gt $after) {
-                                        $_.Name
-                                    }
-                                }
-                                else {
-                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                    if ($blobModifiedDate -lt $before) {
-                                        $_.Name
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            $artifacts += $enumerationResults.Blobs.Blob.Name
-                        }
-                    }
-                    $nextMarker = $enumerationResults.NextMarker
-                    if ($nextMarker) {
-                        $nextMarker = "&marker=$nextMarker"
-                    }
-                }
-                catch
-                {
-                    $downloadAttempt += 1
-                    Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
-                    Write-Host
-    
-                    if ($downloadAttempt -le $downloadRetryAttempts)
-                    {
-                        Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
-                        Write-Host
-                    }
-                    else
-                    {
-                        throw
-                    }                
-                }
-            } while ($nextMarker)
 
-            if (!([string]::IsNullOrEmpty($country))) {
-                # avoid confusion between base and se
-                $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-                if (!$countryArtifacts) {
-                    if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
-                        $country = $bcContainerHelperConfig.mapCountryCode."$country"
-                        $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-                    }
-                }
-                $Artifacts = $countryArtifacts
+            $parameters = @{
+                "storageAccount" = $storageAccount
+                "Type" = $Type
+                "VersionPrefix" = $versionPrefix
+                "Country" = $country
+                "doNotCheckPlatform" = $doNotCheckPlatform
+            }
+            if ($after) {
+                $parameters["after"] = $after
+            }
+            if ($before) {
+                $parameters["before"] = $before
+            }
+            if ($bcContainerHelperConfig.useIndexForArtifacts) {
+                $artifacts = QueryArtifactsFromIndex @parameters
             }
             else {
-                $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
+                $artifacts = QueryArtifactsFromStorage @parameters
             }
 
             switch ($Select) {
                 'All' {  
-                    $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.Split('/')[0]) }
+                    # Artifacts is sorted
                 }
                 'Latest' { 
-                    $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.Split('/')[0]) } |
-                        Select-Object -Last 1
+                    $Artifacts = $Artifacts | Select-Object -Last 1
                 }
                 'First' { 
-                    $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.Split('/')[0]) } |
-                        Select-Object -First 1
+                    $Artifacts = $Artifacts | Select-Object -First 1
                 }
                 'SecondToLastMajor' { 
-                    $Artifacts = $Artifacts |
-                        Sort-Object -Descending { [Version]($_.Split('/')[0]) }
-                    $latest = $Artifacts | Select-Object -First 1
+                    $latest = $Artifacts | Select-Object -Last 1
                     if ($latest) {
                         $latestversion = [Version]($latest.Split('/')[0])
                         $Artifacts = $Artifacts |
                             Where-Object { ([Version]($_.Split('/')[0])).Major -ne $latestversion.Major } |
-                            Select-Object -First 1
+                            Select-Object -Last 1
                     }
                     else {
                         $Artifacts = @()
                     }
                 }
                 'Closest' {
-                    $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.Split('/')[0]) }
                     $closest = $Artifacts |
                         Where-Object { [Version]($_.Split('/')[0]) -ge $closestToVersion } |
                         Select-Object -First 1

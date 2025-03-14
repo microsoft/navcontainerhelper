@@ -1,5 +1,6 @@
 6.0.36
 Add silent when installing bcreplay npm module
+Removed setting DoNotUseCdnForArtifacts as all download from artifacts store needs to go through FrontDoor
 
 6.0.35
 AL-Go issue 1288 Library apps are not installed if only referenced from test apps
