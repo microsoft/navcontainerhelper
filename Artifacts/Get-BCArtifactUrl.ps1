@@ -229,7 +229,7 @@ try {
 
             switch ($Select) {
                 'All' {  
-                    # Artifacts is sorted
+                    # Artifacts are sorted
                 }
                 'Latest' { 
                     $Artifacts = $Artifacts | Select-Object -Last 1
