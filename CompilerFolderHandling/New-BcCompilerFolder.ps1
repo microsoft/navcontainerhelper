@@ -239,7 +239,6 @@ try {
         if (Test-Path $alcExePath) {
             if (Test-Path $alToolExePath) {
                 # Set execute permissions on altool
-                Write-Host "Setting execute permissions on altool"
                 if ($isLinux) {
                     & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExePath"
                 } else {
@@ -247,7 +246,6 @@ try {
                 }
             }
             # Set execute permissions on alc
-            Write-Host "Setting execute permissions on alc"
             if ($isLinux) {
                 & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
             } else {
