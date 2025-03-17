@@ -226,16 +226,16 @@ try {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
                         }
                     }
-                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property Version -Descending | Select-Object -First 1
+                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } | Select-Object -First 1
                     if ($installedApp) {
                         # Dependency is already installed, check version number
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
-                            # The version installed ins't compatible with the NuGet package found
+                            # The version installed isn't compatible with the NuGet package found
                             $dependenciesErr = "Dependency $dependencyId is already installed with version $($installedApp.Version), which is not compatible with the version $dependencyVersion required by the NuGet package $packageId (version $packageVersion))"
                         }
                     }
                     elseif ($downloadDependencies -eq 'own') {
-                        $downloadIt = ($dependencyPublisher -eq $manifest.package.metadata.authors)
+                        $downloadIt = ($dependencyPublisher -eq [NugetFeed]::Normalize($manifest.package.metadata.authors))
                     }
                     elseif ($downloadDependencies -eq 'allButMicrosoft') {
                         # Download if publisher isn't Microsoft (including if publisher is empty)
