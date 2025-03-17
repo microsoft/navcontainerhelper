@@ -1,3 +1,8 @@
+6.0.37
+
+6.0.36
+Add silent when installing bcreplay npm module
+
 6.0.35
 AL-Go issue 1288 Library apps are not installed if only referenced from test apps
 AL-Go issue 1330 CompilerFolder doesn't transfer installed Apps to NuGet resolution
