@@ -226,7 +226,7 @@ try {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
                         }
                     }
-                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } | Select-Object -First 1
+                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } -Descending | Select-Object -First 1
                     if ($installedApp) {
                         # Dependency is already installed, check version number
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
