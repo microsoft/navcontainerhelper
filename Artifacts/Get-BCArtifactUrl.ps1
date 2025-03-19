@@ -208,10 +208,10 @@ try {
             }
 
             $parameters = @{
-                "storageAccount" = $storageAccount
-                "Type" = $Type
+                "storageAccount" = $storageAccount.ToLowerInvariant()
+                "Type" = $Type.ToLowerInvariant()
                 "VersionPrefix" = $versionPrefix
-                "Country" = $country
+                "Country" = $country.ToLowerInvariant()
                 "doNotCheckPlatform" = $doNotCheckPlatform
             }
             if ($after) {
