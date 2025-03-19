@@ -1,3 +1,5 @@
+6.0.37
+
 6.0.36
 Add silent when installing bcreplay npm module
 Removed setting DoNotUseCdnForArtifacts as all download from artifacts store needs to go through FrontDoor
