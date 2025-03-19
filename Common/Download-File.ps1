@@ -70,30 +70,20 @@ function Download-File {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
-            # Do not use CDN when configured or bcinsider
-            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
-            $timeout += $timeout
-        }
-        try {
-            DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
-        }
-        catch {
+        $waitTime = 2
+        $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+        while ($true) {
             try {
-                $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
-                if ($sourceUrl -eq $newSourceUrl) {
-                    Write-Host "Error downloading..., retrying in $waittime seconds..."
-                }
-                else {
-                    Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
-                    $timeout += $timeout
-                }
-                Start-Sleep -Seconds $waittime
-                DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+                DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+                break
             }
             catch {
-                throw (GetExtendedErrorMessage $_)
+                $waitTime += $waitTime
+                if ($_.Exception.Message -like '*404*' -or $waitTime -gt 60) {
+                    throw (GetExtendedErrorMessage $_)
+                }
+                Write-Host "Error downloading..., retrying in $waitTime seconds..."
+                Start-Sleep -Seconds $waitTime
             }
         }
     }
