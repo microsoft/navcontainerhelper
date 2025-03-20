@@ -1745,7 +1745,7 @@ function QueryArtifactsFromStorage {
         $Artifacts = $countryArtifacts
     }
     else {
-        $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
+        $Artifacts = $Artifacts | Where-Object { $_ -notlike 'indexes/*' -and !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
     }
     return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
 }
