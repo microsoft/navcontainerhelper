@@ -362,6 +362,22 @@ function Expand-7zipArchive {
     }
 }
 
+function GetSymbolFiles {
+    param (
+        [string] $path,
+        [string] $baseName
+    )
+
+    $filterName = @("$($baseName)_*.*.*.*.app", "$($baseName).app")
+    $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[0])
+
+    if (!$appFiles -or ($appFiles.Count -le 0)) {
+        $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[1])
+    }
+
+    return $appFiles
+}
+
 function GetTestToolkitApps {
     Param(
         [string] $containerName,
@@ -376,11 +392,8 @@ function GetTestToolkitApps {
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         # Add Test Framework
         $apps = @()
-        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
-
-        if (!$baseAppInfo) {
-            $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application*.app').FullName
-        }
+        $baseAppFile = GetSymbolFiles -path $symbolsFolder -baseName 'Microsoft_Base Application' | Select-Object -First 1
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile $baseAppFile.FullName
 
         $version = [Version]$baseAppInfo.version
         if ($version -ge [Version]"19.0.0.0") {
@@ -410,12 +423,7 @@ function GetTestToolkitApps {
         $appFiles = @()
 
         $apps | ForEach-Object {
-            $tempAppFiles = @(Get-ChildItem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app")
-            
-            if ($tempAppFiles.Count -le 0) {
-                $tempAppFiles += @(Get-ChildItem -Path $symbolsFolder -Filter "$($_).app")
-            }
-
+            $tempAppFiles = GetSymbolFiles -path $symbolsFolder -baseName $_
             $appFiles += @($tempAppFiles | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER*.app"} | ForEach-Object { $_.FullName })
         }
 
