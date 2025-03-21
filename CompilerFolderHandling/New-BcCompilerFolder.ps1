@@ -206,7 +206,11 @@ try {
             }
 
             elseif (Test-Path -Path $vsixFile -PathType Container) {
-                Copy-Item -Path $vsixFile -Destination $containerCompilerPath -Recurse -Force
+                if (!(Test-Path -Path $containerCompilerPath)) {
+                    New-Item $containerCompilerPath -ItemType Directory | Out-Null
+                }
+
+                Copy-Item -Path (Join-Path -Path $vsixFile -ChildPath '*') -Destination $containerCompilerPath -Recurse -Force
             }
 
             else {
