@@ -376,7 +376,12 @@ function GetTestToolkitApps {
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         # Add Test Framework
         $apps = @()
-        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application*.app').FullName
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+
+        if (!$baseAppInfo) {
+            $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application*.app').FullName
+        }
+
         $version = [Version]$baseAppInfo.version
         if ($version -ge [Version]"19.0.0.0") {
             $apps += @('Microsoft_Permissions Mock')
@@ -402,9 +407,9 @@ function GetTestToolkitApps {
             }
         }
 
-		$appFiles = @()
+        $appFiles = @()
 
-		$apps | ForEach-Object {
+        $apps | ForEach-Object {
             $tempAppFiles = @(Get-ChildItem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app")
             
             if ($tempAppFiles.Count -le 0) {
@@ -1153,7 +1158,7 @@ function GetAppInfo {
                         LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
                         LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
                         if (Test-Path (Join-Path $alcDllPath System.IO.Packaging.dll)) {
-        		            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
+                            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
                         }
                         LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
                         $assembliesAdded = $true
