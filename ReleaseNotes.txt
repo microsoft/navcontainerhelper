@@ -1,6 +1,7 @@
 6.1.0
 Use Artifact Index by default when using Get-BcArtifactUrl
 Allow vsixFile to be a local file for New-BCCompilerFolder (3831)
+Fixes issues determining test symbols for W1 and OnPrem artifacts not containing versions in their name (3839)
 
 6.0.37
 Removed setting DoNotUseCdnForArtifacts as all download from artifacts store needs to go through FrontDoor

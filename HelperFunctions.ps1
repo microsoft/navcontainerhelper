@@ -376,7 +376,7 @@ function GetTestToolkitApps {
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         # Add Test Framework
         $apps = @()
-        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application*.app').FullName
         $version = [Version]$baseAppInfo.version
         if ($version -ge [Version]"19.0.0.0") {
             $apps += @('Microsoft_Permissions Mock')
@@ -401,10 +401,19 @@ function GetTestToolkitApps {
                 $apps += @('Microsoft_Performance Toolkit *')
             }
         }
-        $appFiles = @()
-        $apps | ForEach-Object {
-            $appFiles += @(get-childitem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app" | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing_*.*.*.*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER_*.*.*.*.app"} | ForEach-Object { $_.FullName })
+
+		$appFiles = @()
+
+		$apps | ForEach-Object {
+            $tempAppFiles = @(Get-ChildItem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app")
+            
+            if ($tempAppFiles.Count -le 0) {
+                $tempAppFiles += @(Get-ChildItem -Path $symbolsFolder -Filter "$($_).app")
+            }
+
+            $appFiles += @($tempAppFiles | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER*.app"} | ForEach-Object { $_.FullName })
         }
+
         $appFiles | Select-Object -Unique
     }
     else {
@@ -1831,3 +1840,5 @@ function QueryArtifactsFromIndex {
         return $Artifacts
     }
 }
+
+GetTestToolkitApps -containerName LALA -compilerFolder "C:\ProgramData\BcContainerHelper\compiler\onprem-25.4.29661.29727" -includePerformanceToolkit;
