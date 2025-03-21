@@ -199,13 +199,32 @@ try {
     if ($vsixFile) {
         # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
-        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
-        Download-File -sourceUrl $vsixFile -destinationFile $tempZip
-        Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
+
+		if (Test-Path -Path $vsixFile) {
+			if (Test-Path -Path $vsixFile -PathType Leaf) {
+				Expand-7zipArchive -Path $vsixFile -DestinationPath $containerCompilerPath
+			}
+
+			elseif (Test-Path -Path $vsixFile -PathType Container) {
+				Copy-Item -Path $vsixFile -Destination $containerCompilerPath -Recurse -Force
+			}
+
+			else {
+				throw "An invalid vsix file was specified."
+			}
+		}
+		else {
+			$tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
+
+			Download-File -sourceUrl $vsixFile -destinationFile $tempZip
+			Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
+
+			Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
+		}
+
         if ($isWindows -and $newtonSoftDllPath) {
             Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
         }
-        Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
     }
 
     # If a cacheFolder was specified, the cache folder has been populated
