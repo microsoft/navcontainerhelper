@@ -1072,7 +1072,6 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'linux'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
             $alToolExists = $true
         }
@@ -1087,7 +1086,6 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'darwin'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & chmod +x $command
             $alToolExists = $true
         }
@@ -1314,7 +1312,6 @@ function RunAlTool {
     if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
@@ -1326,7 +1323,6 @@ function RunAlTool {
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & chmod +x $command
         }
         else {
@@ -1647,4 +1643,191 @@ function Write-PSCallStack {
     )
     Write-Host "PS CallStack $message :"
     Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName)) Line $($_.ScriptLineNumber))" }
+}
+
+function QueryArtifactsFromStorage {
+    Param(
+        [string] $storageAccount,
+        [string] $Type,
+        [string] $versionPrefix = '',
+        [string] $country = '',
+        [DateTime] $after,
+        [DateTime] $before,
+        [bool] $doNotCheckPlatform = $false
+    )
+
+    $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/?comp=list&restype=container"
+    if ($versionPrefix -ne '') {
+        $GetListUrl += "&prefix=$versionPrefix"
+    }
+
+    $Artifacts = @()
+    $nextMarker = ''
+    $currentMarker = ''
+    $downloadAttempt = 1
+    $downloadRetryAttempts = 10
+    do {
+        if ($currentMarker -ne $nextMarker)
+        {
+            $currentMarker = $nextMarker
+            $downloadAttempt = 1
+        }
+        Write-Verbose "Download String $GetListUrl$nextMarker"
+        try
+        {
+            $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
+            if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
+                # Remove UTF8 BOM
+                $response = $response.Substring(3)
+            }
+            if (([int]$Response[0]) -eq 65279) {
+                # Remove Unicode BOM (PowerShell 7.4)
+                $response = $response.Substring(1)
+            }
+            $enumerationResults = ([xml]$Response).EnumerationResults
+
+            if ($enumerationResults.Blobs) {
+                if (($After) -or ($Before)) {
+                    $artifacts += $enumerationResults.Blobs.Blob | % {
+                        if ($after) {
+                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                            if ($before) {
+                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                    $_.Name
+                                }
+                            }
+                            elseif ($blobModifiedDate -gt $after) {
+                                $_.Name
+                            }
+                        }
+                        else {
+                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                            if ($blobModifiedDate -lt $before) {
+                                $_.Name
+                            }
+                        }
+                    }
+                }
+                else {
+                    $artifacts += $enumerationResults.Blobs.Blob.Name
+                }
+            }
+            $nextMarker = $enumerationResults.NextMarker
+            if ($nextMarker) {
+                $nextMarker = "&marker=$nextMarker"
+            }
+        }
+        catch
+        {
+            $downloadAttempt += 1
+            Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
+            Write-Host
+
+            if ($downloadAttempt -le $downloadRetryAttempts) {
+                Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
+                Write-Host
+            }
+            else {
+                throw
+            }                
+        }
+    } while ($nextMarker)
+
+    if (!([string]::IsNullOrEmpty($country))) {
+        # avoid confusion between base and se
+        $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+        if (!$countryArtifacts) {
+            if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+                $country = $bcContainerHelperConfig.mapCountryCode."$country"
+                $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+            }
+        }
+        $Artifacts = $countryArtifacts
+    }
+    else {
+        $Artifacts = $Artifacts | Where-Object { $_ -notlike 'indexes/*' -and !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
+    }
+    return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
+}
+
+function QueryArtifactsFromIndex {
+    Param(
+        [string] $storageAccount,
+        [string] $Type,
+        [string] $versionPrefix = '',
+        [string] $country = '',
+        [DateTime] $after,
+        [DateTime] $before,
+        [bool] $doNotCheckPlatform = $false
+    )
+
+    $indexesContainerUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/indexes"
+    $artifacts = @()
+    $sortIt = $false
+    if ($country -eq '') {
+        # countries unsettled, get all countries
+        $countriesUrl = "$indexesContainerUrl/countries.json"
+        $countriesFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.countries.json"
+        Download-File -sourceUrl $countriesUrl -destinationFile $countriesFile -Description "Countries index"
+        $countries = [System.IO.File]::ReadAllText($countriesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $countries = $countries | Where-Object { $_ -ne "platform" }
+        $sortIt = $true
+    }
+    else {
+        $countries = @($country)
+    }
+    if (-not $doNotCheckPlatform) {
+        # Checking whether platform exists in the index for the country
+        $platformUrl = "$indexesContainerUrl/platform.json"
+        $platformFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.platform.json"
+        Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
+        $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
+    }
+    $countries | ForEach-Object {
+        $country = $_
+        $countryUrl = "$indexesContainerUrl/$country.json"
+        $countryFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.$($country).json"
+        Download-File -sourceUrl $countryUrl -destinationFile $countryFile -Description "$country index"
+        $countryArtifacts = [System.IO.File]::ReadAllText($countryFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $countryArtifacts = $countryArtifacts | Where-Object { $_.Version -like "$($versionPrefix)*" }
+        if ($doNotCheckPlatform -and (!$after) -and (!$before)) {
+            $artifacts += $countryArtifacts | ForEach-Object { "$($_.Version)/$country" }
+        }
+        else {
+            $artifacts += $countryArtifacts | ForEach-Object {
+                $platformOK = $doNotCheckPlatform
+                if (-not $doNotCheckPlatform) {
+                    $platformOK = $platformArtifacts.Contains($_.Version)
+                }
+                if ($platformOK) {
+                    if ($after) {
+                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
+                        if ($before) {
+                            if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                "$($_.Version)/$country"
+                            }
+                        }
+                        elseif ($blobModifiedDate -gt $after) {
+                            "$($_.Version)/$country"
+                        }
+                    }
+                    elseif ($before) {
+                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
+                        if ($blobModifiedDate -lt $before) {
+                            "$($_.Version)/$country"
+                        }
+                    }
+                    else {
+                        "$($_.Version)/$country"
+                    }
+                }
+            }
+        }
+    }
+    if ($sortIt) {
+        return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
+    }
+    else {
+        return $Artifacts
+    }
 }

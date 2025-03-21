@@ -1,3 +1,12 @@
+6.1.0
+Use Artifact Index by default when using Get-BcArtifactUrl
+
+6.0.37
+Removed setting DoNotUseCdnForArtifacts as all download from artifacts store needs to go through FrontDoor
+Add setting UseIndexForArtifacts while working on Artifacts indexing - this setting will be removed and always set to true when indexing functionality is done - please do not use!!!
+AL-Go issue 1519 Submitting to AppSource WARNING: AuthContext.Scopes is .. should be
+Get-BcArtifactUrl -type OnPrem -select all fails after index creation
+
 6.0.36
 Add silent when installing bcreplay npm module
 
