@@ -1840,5 +1840,3 @@ function QueryArtifactsFromIndex {
         return $Artifacts
     }
 }
-
-GetTestToolkitApps -containerName LALA -compilerFolder "C:\ProgramData\BcContainerHelper\compiler\onprem-25.4.29661.29727" -includePerformanceToolkit;
