@@ -2264,6 +2264,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "ignoreIfAppExists" = $true
             }
         }
 

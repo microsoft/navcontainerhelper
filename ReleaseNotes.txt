@@ -1,3 +1,6 @@
+6.1.1
+Issue 3873 get-bcartifactUrl failes for weekly with UseIndexForArtifacts on non US machines (v6.1)
+
 6.1.0
 Use Artifact Index by default when using Get-BcArtifactUrl
 
