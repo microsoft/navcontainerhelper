@@ -1800,21 +1800,27 @@ function QueryArtifactsFromIndex {
                     $platformOK = $platformArtifacts.Contains($_.Version)
                 }
                 if ($platformOK) {
-                    if ($after) {
-                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
-                        if ($before) {
-                            if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                    if ($after -or $before) {
+                        if ($_."CreationTime" -is [datetime]) {
+                            $blobModifiedDate = $_."CreationTime"
+                        }
+                        else {
+                            $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
+                        }
+                        if ($after) {
+                            if ($before) {
+                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                    "$($_.Version)/$country"
+                                }
+                            }
+                            elseif ($blobModifiedDate -gt $after) {
                                 "$($_.Version)/$country"
                             }
                         }
-                        elseif ($blobModifiedDate -gt $after) {
-                            "$($_.Version)/$country"
-                        }
-                    }
-                    elseif ($before) {
-                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
-                        if ($blobModifiedDate -lt $before) {
-                            "$($_.Version)/$country"
+                        else {
+                            if ($blobModifiedDate -lt $before) {
+                                "$($_.Version)/$country"
+                            }
                         }
                     }
                     else {
