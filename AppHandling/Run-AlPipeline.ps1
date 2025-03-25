@@ -2637,11 +2637,21 @@ Write-GroupStart -Message "Backing up databases"
 Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = (GetBuildContainer)}
 Write-GroupEnd
 }
-
+}
 
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
+
+Write-Host "---------------------------------------------------------------"
+Write-PSCallStack
+
+$testFolders | Out-Host
+$runTestApps | Out-Host
+$doNotRunTests | Out-Host
+
+
+
 if (!$doNotRunTests -and (($testFolders) -or ($runTestApps))) {
 Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
@@ -2941,7 +2951,6 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
     if (-not $treatTestFailuresAsWarnings) {
         throw "There are test failures!"
     }
-}
 }
 }
 
