@@ -1444,6 +1444,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1626,6 +1627,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1832,6 +1834,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -2264,7 +2267,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
-                "ignoreIfAppExists" = $true
+                "checkAlreadyInstalled" = $true
             }
         }
 
@@ -2407,6 +2410,7 @@ Measure-Command {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
     
@@ -2449,6 +2453,7 @@ Measure-Command {
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
                     "replacePackageId" = $true
+                    "checkAlreadyInstalled" = $true
                 }
             }
             if (!$doNotPublishApps) {
@@ -2521,6 +2526,7 @@ $apps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2568,6 +2574,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 

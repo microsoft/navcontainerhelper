@@ -1,3 +1,6 @@
+6.1.2
+Check if app is already installed when publishing to an online environment during CI/CD
+
 6.1.1
 Issue 3873 get-bcartifactUrl failes for weekly with UseIndexForArtifacts on non US machines (v6.1)
 
