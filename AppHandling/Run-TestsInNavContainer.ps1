@@ -258,8 +258,8 @@ try {
     }
 
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
-        if ($authContext.scopes -notlike "https://projectmadeira.com/*") {
-            Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://projectmaderia.com/.default' or 'https://projectmaderia.com/user_impersonation offline_access'"
+        if ($bcAuthContext.scopes -notlike "https://projectmadeira.com/*") {
+            Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($bcAuthContext.Scopes)', should have been 'https://projectmaderia.com/'"
         }
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
