@@ -257,12 +257,12 @@ try {
         } -argumentList $interactionTimeout.ToString()
     }
 
-    Write-Host "getting access token"
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
-        Write-Host "renew"
+        if ($authContext.scopes -notlike "https://projectmadeira.com/*") {
+            Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://projectmaderia.com/.default' or 'https://projectmaderia.com/user_impersonation offline_access'"
+        }
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
-        Write-Host $bcAuthContext.upn
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
@@ -349,7 +349,6 @@ try {
                 $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
     
                 if ($accessToken) {
-                    Write-Host "Set AAD"
                     $clientServicesCredentialType = "AAD"
                     $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
