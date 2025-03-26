@@ -209,7 +209,7 @@ try {
                         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $copyCompilerFolderApp.Application }
                     }
                 }
-                if (!($dependencies | where-Object { $_.Name -eq 'System'})) {
+                if (!($dependencies | where-Object { ($_.Name -eq "System") -and ($_.Publisher -eq "Microsoft") })) {
                     $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $copyCompilerFolderApp.Platform }
                 }
                 $addDependencies += $copyCompilerFolderApp.Dependencies
@@ -232,7 +232,7 @@ try {
         $depidx++
     }
 
-    $systemSymbolsApp = @($existingApps | Where-Object { $_.Name -eq "System" })
+        $systemSymbolsApp = @($existingApps | Where-Object { ($_.Name -eq "System") -and ($_.Publisher -eq "Microsoft") })
     if ($systemSymbolsApp.Count -ne 1) {
         throw "Unable to locate system symbols"
     }
@@ -277,7 +277,7 @@ try {
         }
         if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
             Write-Host "Platform Dependency $($appJsonObject.platform)"
-            $existingApps | Where-Object { $_.Name -eq "System" -and $_.Version -gt [System.Version]$appJsonObject.platform } | ForEach-Object {
+                $existingApps | Where-Object { $_.Name -eq "System" -and $_.Version -gt [System.Version]$appJsonObject.platform -and $_.Publisher -eq "Microsoft"} | ForEach-Object {
                 $appJsonObject.platform = "$($_.Version)"
                 Write-Host "- Set Platform dependency to $($_.Version)"
                 $changes = $true
@@ -423,16 +423,16 @@ try {
 
     if ($alcVersion -ge [System.Version]"12.0.12.41479") {
         if ($sourceRepositoryUrl) {
-            $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+            $alcParameters += @("/SourceRepositoryUrl:$sourceRepositoryUrl")
         }
         if ($sourceCommit) {
-            $alcParameters += @("/SourceCommit:""$sourceCommit""")
+            $alcParameters += @("/SourceCommit:$sourceCommit")
         }
         if ($buildBy) {
-            $alcParameters += @("/BuildBy:""$buildBy""")
+            $alcParameters += @("/BuildBy:$buildBy")
         }
         if ($buildUrl) {
-            $alcParameters += @("/BuildUrl:""$buildUrl""")
+            $alcParameters += @("/BuildUrl:$buildUrl")
         }
     }
 

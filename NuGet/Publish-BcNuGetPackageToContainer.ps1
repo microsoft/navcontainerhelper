@@ -90,8 +90,11 @@ Function Publish-BcNuGetPackageToContainer {
             }
             Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
         }
-        else {
+        elseif ($ErrorActionPreference -eq 'Stop') {
             throw "No apps to publish"
+        }
+        else {
+            Write-Host "No apps to publish"
         }
     }
     finally {

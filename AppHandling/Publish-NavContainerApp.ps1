@@ -314,14 +314,15 @@ try {
                         if ($packageType -eq "SymbolsOnly") {
                             $addArg = @{ "SymbolsOnly" = $true }
                         }
-                        $appInfo = (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version @addArg)
+                        $appInfo = (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher @addArg) | Where-Object { $_.Version -ge $navAppInfo.Version } | Sort-Object { $_.Version } | Select-Object -Last 1
                         if ($appInfo) {
                             $publishIt = $false
-                            Write-Host "$($navAppInfo.Name) is already published"
+                            Write-Host "$($navAppInfo.Name) version $($appInfo.Version) is already published"
                             if ($appInfo.IsInstalled) {
+                                $sync = ($appinfo.SyncState -ne "Synced")
                                 $install = $false
                                 $upgrade = $false
-                                Write-Host "$($navAppInfo.Name) is already installed"
+                                Write-Host "$($navAppInfo.Name) version $($appInfo.Version) is already installed"
                             }
                         }
                     }

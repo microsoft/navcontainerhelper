@@ -482,8 +482,7 @@ try {
                         }
                     }
                     if ($throw) {
-                        Write-Host "ERROR $($_.Exception.Message)"
-                        throw (GetExtendedErrorMessage $_)
+                        throw "Error downloading symbols for $symbolsName. Error was: $($_.Exception.Message)"
                     }
                 }
                 if (Test-Path -Path $symbolsFile) {
@@ -704,16 +703,16 @@ try {
 
         if ($alcVersion -ge [System.Version]"12.0.12.41479") {
             if ($sourceRepositoryUrl) {
-                $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+                $alcParameters += @("/SourceRepositoryUrl:$sourceRepositoryUrl")
             }
             if ($sourceCommit) {
-                $alcParameters += @("/SourceCommit:""$sourceCommit""")
+                $alcParameters += @("/SourceCommit:$sourceCommit")
             }
             if ($buildBy) {
-                $alcParameters += @("/BuildBy:""$buildBy""")
+                $alcParameters += @("/BuildBy:$buildBy")
             }
             if ($buildUrl) {
-                $alcParameters += @("/BuildUrl:""$buildUrl""")
+                $alcParameters += @("/BuildUrl:$buildUrl")
             }
         }
 

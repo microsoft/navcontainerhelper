@@ -474,7 +474,7 @@ function UpdateLaunchJson {
 
 }
 
-function GetInstalledAppIds {
+function GetInstalledApps {
     Param(
         [bool] $useCompilerFolder,
         [string] $packagesFolder,
@@ -488,11 +488,15 @@ function GetInstalledAppIds {
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
     elseif ($filesOnly) {
+        # Make sure container has been created
+        GetBuildContainer | Out-Null
         $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
             $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
             return @{
-                "appId"                 = $appJson.id
-                "name"                  = $appJson.name
+                "AppId"                 = $appJson.id
+                "Name"                  = $appJson.name
+                "Publisher"             = $appJson.publisher
+                "Version"               = $appJson.version
             }
         }
     }
@@ -506,7 +510,7 @@ function GetInstalledAppIds {
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
         Write-Host "- $($_.AppId):$($_.Name)"
-        "$($_.AppId)"
+        return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
     }
     Write-GroupEnd
 }
@@ -1056,6 +1060,12 @@ if ($pageScriptingTests) { $pageScriptingTests | ForEach-Object { Write-Host "- 
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
+$runTestApps = @($installTestApps)
+if ($installOnlyReferencedApps) {
+    # Some dependencies in installApps might be skipped due to missing references if InstallOnlyReferencedApps is specified
+    $installTestApps += @($installApps)
+}
+
 $vsixFile = DetermineVsixFile -vsixFile $vsixFile
 $compilerFolder = ''
 $createContainer = $true
@@ -1417,6 +1427,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1449,8 +1461,8 @@ Write-GroupEnd
 }
 
 if ($InstallMissingDependencies) {
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1476,6 +1488,8 @@ Measure-Command {
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $appSymbolsFolder
+        "installedApps" = $installedApps
+        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1492,7 +1506,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Write-Host "check $appSymbolsFolder"
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
-            Write-Host "Move $($_.Name)"
+            Write-Host "Move $($_.Name) to $packagesFolder"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
             $appsBeforeApps += @(Join-Path $packagesFolder $_.Name)
         }
@@ -1600,6 +1614,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1622,8 +1638,8 @@ Write-GroupEnd
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1649,6 +1665,8 @@ Measure-Command {
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $appSymbolsFolder
+        "installedApps" = $installedApps
+        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1802,6 +1820,8 @@ Measure-Command {
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
+            "upgrade" = $true
+            "ignoreIfAppExists" = $true
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
@@ -1828,8 +1848,8 @@ Measure-Command {
 Write-GroupEnd
 
 if ($InstallMissingDependencies) {
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -2244,6 +2264,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "ignoreIfAppExists" = $true
             }
         }
 
@@ -2378,8 +2399,9 @@ Measure-Command {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
-        "upgrade" = $false
-    }
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
+}
     
     if ($bcAuthContext) {
         $Parameters += @{
@@ -2460,13 +2482,13 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
 }
 
-$installedApps = @()
+$alreadyInstalledApps = @()
 if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
     }
-    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 }
 
 $upgradedApps = @()
@@ -2479,7 +2501,7 @@ $apps | ForEach-Object {
         $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
         $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
-        if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
+        if ($alreadyInstalledApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
             $installedApp = $true
         }
     }
@@ -2538,6 +2560,8 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
     }
 
     if ($bcAuthContext) {
@@ -2611,7 +2635,7 @@ Write-GroupEnd
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
-if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
+if (!$doNotRunTests -and (($testFolders) -or ($runTestApps))) {
 Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               _            _
@@ -2629,7 +2653,7 @@ if ($testCountry) {
 }
 
 $testAppIds = @{}
-$installTestApps | ForEach-Object {
+$runTestApps | ForEach-Object {
     $appId = [Guid]::Empty
     if ([Guid]::TryParse($_, [ref] $appId)) {
         if ($testAppIds.ContainsKey($appId)) {
@@ -2679,9 +2703,13 @@ $testFolders | ForEach-Object {
     }
 }
 
+$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
+    if ($installedApps.Id -notcontains $id) {
+        throw "App with $id is not installed, cannot run tests"
+    }
     $folder = $testAppIds."$id"
 
     if ($folder) {
@@ -2835,7 +2863,7 @@ if ($testCountry) {
 $containerName = (GetBuildContainer)
 
 # Install npm package for page scripting tests
-pwsh -command { npm i @microsoft/bc-replay --save }
+pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
 
 ${env:containerUsername} = $credential.UserName
 ${env:containerPassword} = $credential.Password | Get-PlainText

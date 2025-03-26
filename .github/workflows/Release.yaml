@@ -60,6 +60,10 @@ jobs:
             $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
             $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
 
+            $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+            Write-Host "Set latest generic tag version to $($labels.tag)"
+            Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
+
             $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
             $idx = $releaseNotes.IndexOf($version)
             if ($idx -lt 0) {

@@ -134,9 +134,9 @@ try {
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
-                Write-Host @newline "$([System.IO.Path]::GetFileName($_)) - "
-                $appJson = Get-AppJsonFromAppFile -appFile $_
-                
+                $appFile = $_
+                Write-Host @newline "$([System.IO.Path]::GetFileName($appFile)) - "
+                $appJson = Get-AppJsonFromAppFile -appFile $appFile
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {
@@ -178,13 +178,15 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
-                    $fileBody = [System.IO.File]::ReadAllBytes($_)
+                    # Use stream instead of reading the entire file into memory
+                    $fileStream = [System.IO.File]::OpenRead($appFile)
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                         -Headers ((GetAuthHeaders) + $ifMatchHeader + $streamHeader) `
-                        -Body $fileBody | Out-Null
-                    Write-Host @newLine "."    
+                        -Body $fileStream | Out-Null
+                    $fileStream.Close()
+                    Write-Host @newLine "."
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
