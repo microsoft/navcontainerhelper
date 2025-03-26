@@ -193,7 +193,7 @@ try {
         $uri = [Uri]::new($useUrl)
         $useUrl = $useUrl.Split('?')[0]
         $dict = [System.Web.HttpUtility]::ParseQueryString($uri.Query)
-        if ($dict['tenant']) { $tenant = "$($dict['tenant'])&tid=$($dict['tid'])" }
+        if ($dict['tenant']) { $tenant = $dict['tenant'] }
         if ($dict['testpage']) { $testpage = [int]$dict['testpage'] }
     }
     else {
