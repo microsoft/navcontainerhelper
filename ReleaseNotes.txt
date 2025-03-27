@@ -2,6 +2,7 @@
 Check if app is already installed when publishing to an online environment during CI/CD
 Ensure that tests are running even though a container hasn't been created
 Allow Run-Alpipeline with CompilerFolder to run tests on an online environment
+AL-Go issue 1542 The process cannot access the file - use runners temp path when running Get-BcArtifactUrl
 
 6.1.1
 Issue 3873 get-bcartifactUrl failes for weekly with UseIndexForArtifacts on non US machines (v6.1)
