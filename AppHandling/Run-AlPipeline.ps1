@@ -1444,6 +1444,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1626,6 +1627,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1832,6 +1834,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -2264,7 +2267,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
-                "ignoreIfAppExists" = $true
+                "checkAlreadyInstalled" = $true
             }
         }
 
@@ -2407,6 +2410,7 @@ Measure-Command {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
     
@@ -2449,6 +2453,7 @@ Measure-Command {
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
                     "replacePackageId" = $true
+                    "checkAlreadyInstalled" = $true
                 }
             }
             if (!$doNotPublishApps) {
@@ -2521,6 +2526,7 @@ $apps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2568,6 +2574,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2630,7 +2637,7 @@ Write-GroupStart -Message "Backing up databases"
 Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = (GetBuildContainer)}
 Write-GroupEnd
 }
-
+}
 
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
@@ -2934,7 +2941,6 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
     if (-not $treatTestFailuresAsWarnings) {
         throw "There are test failures!"
     }
-}
 }
 }
 
