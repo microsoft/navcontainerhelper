@@ -155,6 +155,7 @@ try {
         Copy-Item $testDlls -Destination $PsTestToolFolder -Force
         Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestToolFolder -Force
         Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $PsTestToolFolder -Force
+        $connectFromHost = $true
     }
     else {
         if (-not $containerName) {
@@ -551,13 +552,15 @@ try {
             if ($returnTrueIfAllPassed) {
                 $allPassed
             }
-            if (!$allPassed) {
+            if (!$allPassed -and $containerName) {
                 Remove-BcContainerSession -containerName $containerName
             }
             break
         }
         catch {
-            Remove-BcContainerSession $containerName
+            if ($containerName) {
+                Remove-BcContainerSession $containerName
+            }
             if ($restartContainerAndRetry) {
                 Write-Host -ForegroundColor Red $_.Exception.Message
                 Restart-BcContainer $containerName
