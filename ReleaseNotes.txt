@@ -1,5 +1,6 @@
 6.1.3
 Add setting ExcludeBuilds, which is an array of NuGet range specifications to exclude from Get-BcArtifactUrl. See more about range specification here: https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort#version-ranges
+AL-Go issue 1640 - compiler contains an invalid app template, which needs to be deleted
 
 6.1.2
 Check if app is already installed when publishing to an online environment during CI/CD
