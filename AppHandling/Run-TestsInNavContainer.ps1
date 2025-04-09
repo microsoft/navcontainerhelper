@@ -86,7 +86,7 @@
 #>
 function Run-TestsInBcContainer {
     Param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [string] $containerName = '',
         [string] $compilerFolder = '',
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
@@ -143,14 +143,7 @@ function Run-TestsInBcContainer {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($containerName) {
-        Write-Host "Using Container"
-        $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-        $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-        $version = [System.Version]($navversion.split('-')[0])
-        $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
-    }
-    elseif ($compilerFolder) {
+    if ($compilerFolder) {
         Write-Host "Using CompilerFolder"
         $customConfig = $null
         $symbolsFolder = Join-Path $compilerFolder "symbols"
@@ -164,7 +157,14 @@ try {
         Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $PsTestToolFolder -Force
     }
     else {
-        throw "You must specify either containerName or compilerFolder"
+        if (-not $containerName) {
+            $containerName = $bcContainerHelperConfig.defaultContainerName
+        }
+        Write-Host "Using Container"
+        $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+        $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+        $version = [System.Version]($navversion.split('-')[0])
+        $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
     }
 
     if ($bcAuthContext -and $environment) {
@@ -258,6 +258,9 @@ try {
     }
 
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
+        if ($bcAuthContext.scopes -notlike "https://projectmadeira.com/*") {
+            Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($bcAuthContext.Scopes)', should have been 'https://projectmaderia.com/'"
+        }
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
