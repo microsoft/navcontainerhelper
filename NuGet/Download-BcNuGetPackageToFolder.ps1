@@ -292,11 +292,18 @@ try {
                 $appFiles = Get-Item -Path (Join-Path $package "*.app")
             }
             foreach($appFile in $appFiles) {
-                Write-Host "Copying $($appFile.Name) to $folder"
-                Copy-Item $appFile.FullName -Destination $folder -Force
+                $TargetFolders = @($folder)
                 if ($copyInstalledAppsToFolder) {
-                    Write-Host "Copying $($appFile.Name) to $copyInstalledAppsToFolder"
-                    Copy-Item $appFile.FullName -Destination $copyInstalledAppsToFolder -Force
+                    $TargetFolders += $copyInstalledAppsToFolder
+                }
+                foreach ($CurrTargetFolder in $TargetFolders) {
+                    $TargetFile = [IO.FileInfo]::new([IO.Path]::Combine($CurrTargetFolder, $appFile.Name))
+                    if ($TargetFile.Exists) {
+                        $TargetFile = [IO.FileInfo]::new([IO.Path]::Combine($CurrTargetFolder, "$($appFile.BaseName).$($appId)$($appFile.Extension)"))
+                    }
+                    $TargetFile.Directory.Create()
+                    Write-Host "Copying $($appFile.Name) to $CurrTargetFolder"
+                    Copy-Item $appFile.FullName -Destination $TargetFile.FullName -Force
                 }
             }
             Remove-Item -Path $package -Recurse -Force
