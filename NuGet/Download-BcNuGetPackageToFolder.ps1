@@ -292,11 +292,17 @@ try {
                 $appFiles = Get-Item -Path (Join-Path $package "*.app")
             }
             foreach($appFile in $appFiles) {
-                Write-Host "Copying $($appFile.Name) to $folder"
-                Copy-Item $appFile.FullName -Destination $folder -Force
+                $destinationFileName = $appFile.Name
+                if ($appFile.BaseName -match '^[a-zA-Z]+$') {
+                    # Use a stronger file name in the case of a simple name pattern,
+                    # to avoid over-writting of *.app files with the same name and different content.
+                    $destinationFileName = "$($appFile.BaseName).$($appId)$($appFile.Extension)"
+                }
+                Write-Host "Copying $($destinationFileName) to $folder"
+                Copy-Item $appFile.FullName -Destination (Join-Path $folder $destinationFileName) -Force
                 if ($copyInstalledAppsToFolder) {
                     Write-Host "Copying $($appFile.Name) to $copyInstalledAppsToFolder"
-                    Copy-Item $appFile.FullName -Destination $copyInstalledAppsToFolder -Force
+                    Copy-Item $appFile.FullName -Destination (Join-Path $copyInstalledAppsToFolder $destinationFileName) -Force
                 }
             }
             Remove-Item -Path $package -Recurse -Force
