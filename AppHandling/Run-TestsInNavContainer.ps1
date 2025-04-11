@@ -143,8 +143,8 @@ function Run-TestsInBcContainer {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($compilerFolder) {
-        Write-Host "Using CompilerFolder"
+    if ($compilerFolder -and -not $containerName) {
+        Write-Host "Using CompilerFolder without Container"
         $customConfig = $null
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
