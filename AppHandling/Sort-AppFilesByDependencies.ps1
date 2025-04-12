@@ -33,7 +33,6 @@ function Sort-AppFilesByDependencies {
         [switch] $includeDependencyVersion
     )
 
-    Write-PSCallStack -Message "Sort-AppFilesByDependencies"
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
 
