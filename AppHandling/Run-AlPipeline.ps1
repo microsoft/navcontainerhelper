@@ -2527,7 +2527,6 @@ $apps | ForEach-Object {
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
             "checkAlreadyInstalled" = $true
-            "allowNewerVersion" = $false
         }
     }
 
