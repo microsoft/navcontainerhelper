@@ -170,6 +170,7 @@ function Sort-AppFilesByDependencies {
                 }
                 elseif ([System.Version]$app.Version -lt $installedApp.Version ) {
                     Write-DevOpsWarning -Message "$appName is already installed with a newer version"
+                    $app
                 }
                 else {
                     $app
