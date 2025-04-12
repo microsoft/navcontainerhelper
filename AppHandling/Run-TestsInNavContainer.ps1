@@ -33,6 +33,8 @@
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
  .Parameter ExtensionId
   Specifying an extensionId causes the test tool to run all tests in the app with this app id.
+ .Parameter appName
+  The app name of then extension with id extensionId.
  .Parameter TestRunnerCodeunitId
   Specifying a TestRunnerCodeunitId causes the test tool to switch to this test runner.
  .Parameter XUnitResultFileName
@@ -111,6 +113,7 @@ function Run-TestsInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $appName = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
@@ -390,6 +393,7 @@ try {
                               -TestCodeunitRange $testCodeunitRange `
                               -TestFunction $testFunction `
                               -ExtensionId $extensionId `
+                              -appName $appName `
                               -TestRunnerCodeunitId $testRunnerCodeunitId `
                               -DisabledTests $disabledtests `
                               -XUnitResultFileName $XUnitResultFileName `
@@ -431,7 +435,7 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh ($version.Major -ge 26) -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh ($version.Major -ge 26) -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $appName, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
                     $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                     if (!(Test-Path $newtonSoftDllPath)) {
@@ -512,6 +516,7 @@ try {
                                   -TestCodeunitRange $testCodeunitRange `
                                   -TestFunction $testFunction `
                                   -ExtensionId $extensionId `
+                                  -appName $appName `
                                   -TestRunnerCodeunitId $testRunnerCodeunitId `
                                   -DisabledTests $disabledtests `
                                   -XUnitResultFileName $XUnitResultFileName `
@@ -538,7 +543,7 @@ try {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testCodeunitRange, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests.IsPresent
+                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testCodeunitRange, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $appName, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests.IsPresent
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
