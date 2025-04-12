@@ -16,6 +16,8 @@ class NuGetFeed {
 
     [hashtable] $orgType = @{}
 
+    [hashtable] $searchResultsCache = @{}
+
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
@@ -83,7 +85,20 @@ class NuGetFeed {
     }
 
     [hashtable[]] Search([string] $packageName) {
-        if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
+        $useCache = $this.searchResultsCache.ContainsKey($packageName)
+        if ($useCache) {
+            # Clear cache older than 10 minutes
+            if ($this.searchResultsCache[$packageName].timestamp -lt (Get-Date).AddMinutes(-10)) {
+                $this.searchResultsCache.Remove($packageName)
+                $useCache = $false
+            }
+        }
+
+        if ($useCache) {
+            Write-Host "Search package using cache"
+            $matching = $this.searchResultsCache[$packageName].matching
+        } 
+        elseif ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
             # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
             # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
@@ -140,6 +155,13 @@ class NuGetFeed {
         }
         else {
             Write-Host "$($matching.count) matching packages found"
+        }
+        if (! $useCache) {
+            # Cache the search results
+            $this.searchResultsCache[$packageName] = @{
+                matching = $matching
+                timestamp = (Get-Date)
+            }
         }
         return $matching | ForEach-Object { Write-Host "- $($_.id)"; $_ }
     }

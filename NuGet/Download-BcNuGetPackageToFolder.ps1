@@ -144,11 +144,16 @@ try {
         }
         else {
             Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
-            $package = $feed.DownloadPackage($packageId, $packageVersion)
-            $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
+            $package = ''
+            $manifest = $feed.DownloadNuSpec($packageId, $packageVersion)
             Write-Verbose "NUSPEC:"
-            $nuspec | ForEach-Object { Write-Verbose $_ }
-            $manifest = [xml]$nuspec
+            $manifestStringWriter = New-Object System.IO.StringWriter
+            $manifestXmlWriter = [System.Xml.XmlWriter]::Create($manifestStringWriter, (New-Object System.Xml.XmlWriterSettings -Property @{ Indent = $true}))
+            $manifest.Save($manifestXmlWriter)
+            $manifestXmlWriter.Dispose()
+            $manifestStringWriter.ToString() -split [System.Environment]::NewLine | Write-Verbose
+            $manifestStringWriter.Dispose()
+
             $appId = ''
             if ($manifest.package.metadata.PSObject.Properties.Name -eq 'title') {
                 $appName = $manifest.package.metadata.title
@@ -180,6 +185,7 @@ try {
             else {
                 $dependencies = @()
             }
+            $dependenciesToDownload = @()
             foreach($dependency in $dependencies) {
                 if (-not $installedPlatform) {
                     $installedPlatform = $installedApps+$returnValue | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
@@ -267,19 +273,29 @@ try {
                     }
                 }
                 if ($downloadIt) {
-                    if ($dependencyVersion.StartsWith('[') -and $select -eq 'Exact') {
-                        # Downloading Microsoft packages for a specific version
-                        $dependencyVersion = $version
-                    }
-                    $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                    $dependenciesToDownload += @( $dependency )
                 }
             }
             if ($dependenciesErr) {
                 # If we are looking for the earliest/latest matching version, then we can try to find another version
                 $excludeVersions += $packageVersion
-                Remove-Item -Path $package -Recurse -Force
                 continue
             }
+            
+            # Download the package
+            $package = $feed.DownloadPackage($packageId, $packageVersion)
+
+            foreach ($dependency in $dependenciesToDownload) {
+                # Download the dependencies of the package
+                $dependencyVersion = $dependency.Version
+                $dependencyId = $dependency.Id
+                if ($dependencyVersion.StartsWith('[') -and $select -eq 'Exact') {
+                    # Downloading Microsoft packages for a specific version
+                    $dependencyVersion = $version
+                }
+                $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+            }
+
             if ($installedCountry -and (Test-Path (Join-Path $package $installedCountry) -PathType Container)) {
                 # NuGet packages of Runtime packages might exist in different versions for different countries
                 # The runtime package might contain C# invoke calls with different methodis for different countries
