@@ -158,6 +158,7 @@ try {
         Copy-Item $testDlls -Destination $PsTestToolFolder -Force
         Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestToolFolder -Force
         Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $PsTestToolFolder -Force
+        $connectFromHost = $true
     }
     else {
         if (-not $containerName) {
@@ -556,27 +557,29 @@ try {
             if ($returnTrueIfAllPassed) {
                 $allPassed
             }
-            if (!$allPassed) {
+            if (!$allPassed -and $containerName) {
                 Remove-BcContainerSession -containerName $containerName
             }
             break
         }
         catch {
-            Remove-BcContainerSession $containerName
-            if ($restartContainerAndRetry) {
-                Write-Host -ForegroundColor Red $_.Exception.Message
-                Restart-BcContainer $containerName
-                if ($useTraefik) {
-                    Write-Host "Waiting for 30 seconds to allow Traefik to pickup restarted container"
-                    Start-Sleep -Seconds 30
+            if ($containerName) {
+                Remove-BcContainerSession $containerName
+                if ($restartContainerAndRetry) {
+                    Write-Host -ForegroundColor Red $_.Exception.Message
+                    Restart-BcContainer $containerName
+                    if ($useTraefik) {
+                        Write-Host "Waiting for 30 seconds to allow Traefik to pickup restarted container"
+                        Start-Sleep -Seconds 30
+                    }
+                    $restartContainerAndRetry = $false
                 }
-                $restartContainerAndRetry = $false
-            }
-            else {
-                if ($debugMode) {
-                    Write-host $_.ScriptStackTrace
+                else {
+                    if ($debugMode) {
+                        Write-host $_.ScriptStackTrace
+                    }
+                    throw $_.Exception.Message
                 }
-                throw $_.Exception.Message
             }
         }
     }
