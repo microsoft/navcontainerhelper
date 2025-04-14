@@ -257,7 +257,7 @@ try {
                             }
                         }
                         $ad1DLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
-                        $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                        $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\*\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
                         if ((Test-Path $ad1DLL) -and (Test-Path $ad2DLL)) {
                             if ((Get-Item $ad1DLL).Length -ne (Get-Item $ad2DLL).Length) {
                                 Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $ad1DLL"
