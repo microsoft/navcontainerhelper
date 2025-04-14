@@ -2714,7 +2714,8 @@ $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -files
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps.Id -notcontains $id) {
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
@@ -2742,6 +2743,7 @@ $testAppIds.Keys | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
+        "appName" = $installedApp.Name
         "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
