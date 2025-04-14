@@ -556,7 +556,7 @@ function CopyAppFilesToFolder {
                     $destFileName = [System.IO.Path]::GetFileName($appFile)
                     $destFile = Join-Path $folder $destFileName
                     if ((Test-Path $destFile) -and ((Get-FileHash -Path $appFile).Hash -ne (Get-FileHash -Path $destFile).Hash)) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                        Write-DevOpsWarning -Message "$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                     }
                     Copy-Item -Path $appFile -Destination $destFile -Force
                     $destFile
@@ -582,7 +582,7 @@ function CopyAppFilesToFolder {
             }
         }
         else {
-            Write-Host -ForegroundColor Red "::WARNING::File not found: $appFile"
+            Write-DevOpsWarning -Message "File not found: $appFile"
         }
     }
 }
@@ -1406,6 +1406,28 @@ function Write-GroupEnd {
      switch ($true) {
         $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
         $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
+}
+
+function Write-DevOpsWarning {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::warning::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=warning]$Message"; break }
+        Default { Write-Host -ForegroundColor Yellow $Message }
+    }
+}
+
+function Write-DevOpsError {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::error::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=error]$Message"; break }
+        Default { Write-Host -ForegroundColor Red $Message }
     }
 }
 
