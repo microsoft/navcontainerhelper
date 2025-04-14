@@ -504,8 +504,9 @@ function GetInstalledApps {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
             "tenant" = $tenant
+            "tenantSpecificProperties" = $true
         }
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { -not $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -2492,8 +2493,9 @@ if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
+        "tenantSpecificProperties" = $true
     }
-    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { -not $_.IsInstalled })
 }
 
 $upgradedApps = @()
