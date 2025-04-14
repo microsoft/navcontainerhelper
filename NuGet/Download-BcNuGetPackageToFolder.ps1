@@ -293,23 +293,20 @@ try {
             }
 
             foreach($appFile in $appFiles) {
-                $TargetFolders = @($folder)
+                $targetFolders = @($folder)
                 if ($copyInstalledAppsToFolder) {
-                    $TargetFolders += @($copyInstalledAppsToFolder)
+                    $targetFolders += @($copyInstalledAppsToFolder)
                 }
                 $manifest = Get-AppJsonFromAppFile -appFile $appFile.FullName
                 Write-Host "Found app file for package $($manifest.Name)"
-                foreach ($CurrTargetFolder in $TargetFolders) {
-                    if (-not (Test-Path -Path $CurrTargetFolder -PathType Container))
-                    {
-                        New-Item -Path $CurrTargetFolder -ItemType Directory | Out-Null
+                foreach ($currTargetFolder in $targetFolders) {
+                    if (-not (Test-Path -Path $currTargetFolder -PathType Container)) {
+                        New-Item -Path $currTargetFolder -ItemType Directory | Out-Null
                     }
-                    $appFileName = "$($manifest.Publisher)_$($manifest.Name)_$($manifest.Version)"
-                    $appFileName = $appFileName.Split([System.IO.Path]::GetInvalidFileNameChars()) -join "_"
-                    $TargetFilePath = Join-Path -Path $CurrTargetFolder -ChildPath "$($appFileName).app"
-
-                    Write-Host "Copying $($appFileName) to $CurrTargetFolder"
-                    Copy-Item $appFile.FullName -Destination $TargetFilePath -Force
+                    $appFileName = "$($manifest.Publisher)_$($manifest.Name)_$($manifest.Version)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+                    $targetFilePath = Join-Path -Path $currTargetFolder -ChildPath "$($appFileName).app"
+                    Write-Host "Copying $($appFileName) to $currTargetFolder"
+                    Copy-Item $appFile.FullName -Destination $targetFilePath -Force
                 }
             }
             Remove-Item -Path $package -Recurse -Force
