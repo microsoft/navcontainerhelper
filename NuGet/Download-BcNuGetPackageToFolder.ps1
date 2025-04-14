@@ -291,12 +291,22 @@ try {
             else {
                 $appFiles = Get-Item -Path (Join-Path $package "*.app")
             }
+
             foreach($appFile in $appFiles) {
-                Write-Host "Copying $($appFile.Name) to $folder"
-                Copy-Item $appFile.FullName -Destination $folder -Force
+                $targetFolders = @($folder)
                 if ($copyInstalledAppsToFolder) {
-                    Write-Host "Copying $($appFile.Name) to $copyInstalledAppsToFolder"
-                    Copy-Item $appFile.FullName -Destination $copyInstalledAppsToFolder -Force
+                    $targetFolders += @($copyInstalledAppsToFolder)
+                }
+                $manifest = Get-AppJsonFromAppFile -appFile $appFile.FullName
+                Write-Host "Found app file for package $($manifest.Name)"
+                foreach ($currTargetFolder in $targetFolders) {
+                    if (-not (Test-Path -Path $currTargetFolder -PathType Container)) {
+                        New-Item -Path $currTargetFolder -ItemType Directory | Out-Null
+                    }
+                    $appFileName = "$($manifest.Publisher)_$($manifest.Name)_$($manifest.Version)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+                    $targetFilePath = Join-Path -Path $currTargetFolder -ChildPath "$($appFileName).app"
+                    Write-Host "Copying $($appFileName) to $currTargetFolder"
+                    Copy-Item $appFile.FullName -Destination $targetFilePath -Force
                 }
             }
             Remove-Item -Path $package -Recurse -Force
