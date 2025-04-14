@@ -3,6 +3,7 @@ Issue 3882 Run-AlPipeline with CompilerFolder and Container defined fails when r
 Allow running tests in online sandboxes, using CompilerFolder (and ConnectFromHost)
 Add parameter appName to Run-TestsInBcContainer to specify the name of an app in Test Results, if not specified when running against online sandboxes, the appid will be used.
 During Run-AlPipeline, apps which are only published are reported as being installed, which leads to error 1530 in AL-Go repository
+Use standard app filename for app instead of the app name inside the nuget package
 
 6.1.3
 Add setting ExcludeBuilds, which is an array of NuGet range specifications to exclude from Get-BcArtifactUrl. See more about range specification here: https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort#version-ranges
