@@ -305,6 +305,11 @@ try {
     if ($cacheFolder) {
         Write-Host "Copying symbols cache"
         Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
+        $templatesFolder = Join-Path $cacheFolder "compiler\extension\templates"
+        if (Test-Path $templatesFolder) {
+            Write-Host "Removing Templatest Folder"
+            Remove-Item $templatesFolder -Recurse -Force
+        }
     }
     $compilerFolder
 }

@@ -578,7 +578,7 @@ function CopyAppFilesToFolder {
                     $destFileName = [System.IO.Path]::GetFileName($appFile)
                     $destFile = Join-Path $folder $destFileName
                     if ((Test-Path $destFile) -and ((Get-FileHash -Path $appFile).Hash -ne (Get-FileHash -Path $destFile).Hash)) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                        Write-DevOpsWarning -Message "$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                     }
                     Copy-Item -Path $appFile -Destination $destFile -Force
                     $destFile
@@ -604,7 +604,7 @@ function CopyAppFilesToFolder {
             }
         }
         else {
-            Write-Host -ForegroundColor Red "::WARNING::File not found: $appFile"
+            Write-DevOpsWarning -Message "File not found: $appFile"
         }
     }
 }
@@ -1431,6 +1431,28 @@ function Write-GroupEnd {
     }
 }
 
+function Write-DevOpsWarning {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::warning::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=warning]$Message"; break }
+        Default { Write-Host -ForegroundColor Yellow $Message }
+    }
+}
+
+function Write-DevOpsError {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::error::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=error]$Message"; break }
+        Default { Write-Host -ForegroundColor Red $Message }
+    }
+}
+
 function CopySymbolsFromContainer {
     Param(
         [string] $containerName,
@@ -1772,6 +1794,21 @@ function QueryArtifactsFromStorage {
     return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
 }
 
+function GetTempRunnerPath {
+    if ($ENV:RUNNER_TEMP) {
+        # GitHub Actions temp directory
+        return $ENV:RUNNER_TEMP
+    }
+    elseif ($ENV:AGENT_TEMPDIRECTORY) {
+        # Azure DevOps temp directory
+        return $ENV:AGENT_TEMPDIRECTORY
+    }
+    else {
+        # Machine temp directory
+        return ([System.IO.Path]::GetTempPath())
+    }
+}
+
 function QueryArtifactsFromIndex {
     Param(
         [string] $storageAccount,
@@ -1789,7 +1826,7 @@ function QueryArtifactsFromIndex {
     if ($country -eq '') {
         # countries unsettled, get all countries
         $countriesUrl = "$indexesContainerUrl/countries.json"
-        $countriesFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.countries.json"
+        $countriesFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.countries.json"
         Download-File -sourceUrl $countriesUrl -destinationFile $countriesFile -Description "Countries index"
         $countries = [System.IO.File]::ReadAllText($countriesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
         $countries = $countries | Where-Object { $_ -ne "platform" }
@@ -1801,14 +1838,14 @@ function QueryArtifactsFromIndex {
     if (-not $doNotCheckPlatform) {
         # Checking whether platform exists in the index for the country
         $platformUrl = "$indexesContainerUrl/platform.json"
-        $platformFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.platform.json"
+        $platformFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.platform.json"
         Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
         $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
     }
     $countries | ForEach-Object {
         $country = $_
         $countryUrl = "$indexesContainerUrl/$country.json"
-        $countryFile = Join-Path ([System.IO.Path]::GetTempPath()) "bcContainerHelper.$($country).json"
+        $countryFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.$($country).json"
         Download-File -sourceUrl $countryUrl -destinationFile $countryFile -Description "$country index"
         $countryArtifacts = [System.IO.File]::ReadAllText($countryFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
         $countryArtifacts = $countryArtifacts | Where-Object { $_.Version -like "$($versionPrefix)*" }
@@ -1822,21 +1859,27 @@ function QueryArtifactsFromIndex {
                     $platformOK = $platformArtifacts.Contains($_.Version)
                 }
                 if ($platformOK) {
-                    if ($after) {
-                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
-                        if ($before) {
-                            if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                    if ($after -or $before) {
+                        if ($_."CreationTime" -is [datetime]) {
+                            $blobModifiedDate = $_."CreationTime"
+                        }
+                        else {
+                            $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
+                        }
+                        if ($after) {
+                            if ($before) {
+                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                    "$($_.Version)/$country"
+                                }
+                            }
+                            elseif ($blobModifiedDate -gt $after) {
                                 "$($_.Version)/$country"
                             }
                         }
-                        elseif ($blobModifiedDate -gt $after) {
-                            "$($_.Version)/$country"
-                        }
-                    }
-                    elseif ($before) {
-                        $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
-                        if ($blobModifiedDate -lt $before) {
-                            "$($_.Version)/$country"
+                        else {
+                            if ($blobModifiedDate -lt $before) {
+                                "$($_.Version)/$country"
+                            }
                         }
                     }
                     else {

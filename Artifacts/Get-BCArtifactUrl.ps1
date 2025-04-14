@@ -220,11 +220,17 @@ try {
             if ($before) {
                 $parameters["before"] = $before
             }
+
             if ($bcContainerHelperConfig.useIndexForArtifacts) {
                 $artifacts = QueryArtifactsFromIndex @parameters
             }
             else {
                 $artifacts = QueryArtifactsFromStorage @parameters
+            }
+
+            foreach($excludebuilds in $bccontainerHelperConfig.ExcludeBuilds) {
+                . (Join-Path $PSScriptRoot "../NuGet/NuGetFeedClass.ps1")
+                $artifacts = $artifacts | Where-Object { if ([nugetFeed]::IsVersionIncludedInRange($_.Split('/')[0], $excludebuilds)) { Write-Host "Excluding $_"; return $false } else { return $true } }
             }
 
             switch ($Select) {

@@ -1444,6 +1444,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1626,6 +1627,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1832,6 +1834,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -2264,6 +2267,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
 
@@ -2406,6 +2410,7 @@ Measure-Command {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
     
@@ -2448,6 +2453,7 @@ Measure-Command {
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
                     "replacePackageId" = $true
+                    "checkAlreadyInstalled" = $true
                 }
             }
             if (!$doNotPublishApps) {
@@ -2520,6 +2526,7 @@ $apps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2567,6 +2574,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2629,7 +2637,7 @@ Write-GroupStart -Message "Backing up databases"
 Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = (GetBuildContainer)}
 Write-GroupEnd
 }
-
+}
 
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
@@ -2706,7 +2714,8 @@ $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -files
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps.Id -notcontains $id) {
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
@@ -2734,6 +2743,7 @@ $testAppIds.Keys | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
+        "appName" = $installedApp.Name
         "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
@@ -2933,7 +2943,6 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
     if (-not $treatTestFailuresAsWarnings) {
         throw "There are test failures!"
     }
-}
 }
 }
 
