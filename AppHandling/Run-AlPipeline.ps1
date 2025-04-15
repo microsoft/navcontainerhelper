@@ -1464,7 +1464,7 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-if ($null -ne $installedApps -and $installedApps.Count -gt 0) {
+if ($installedApps) {
     $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
 if ($missingAppDependencies) {
@@ -1644,7 +1644,7 @@ Write-GroupEnd
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-if ($null -ne $installedApps -and $installedApps.Count -gt 0) {
+if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
 if ($missingTestAppDependencies) {
@@ -1857,7 +1857,7 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-if ($null -ne $installedApps -and $installedApps.Count -gt 0) {
+if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
 if ($missingTestAppDependencies) {
