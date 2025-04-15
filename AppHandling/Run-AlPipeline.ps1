@@ -1501,6 +1501,13 @@ Measure-Command {
             "tenant" = $tenant
         }
     }
+
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+        }
+    }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
             "CopyInstalledAppsToFolder" = $dependenciesFolder
