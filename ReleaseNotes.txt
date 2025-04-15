@@ -2,6 +2,8 @@
 Issue 3882 Run-AlPipeline with CompilerFolder and Container defined fails when running tests
 Allow running tests in online sandboxes, using CompilerFolder (and ConnectFromHost)
 Add parameter appName to Run-TestsInBcContainer to specify the name of an app in Test Results, if not specified when running against online sandboxes, the appid will be used.
+During Run-AlPipeline, apps which are only published are reported as being installed, which leads to error 1530 in AL-Go repository
+Use standard app filename for app instead of the app name inside the nuget package
 Allow vsixFile to be a local file for New-BCCompilerFolder (3831)
 Fixes issues determining test symbols for W1 and OnPrem artifacts not containing versions in their name (3839)
 

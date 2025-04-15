@@ -510,7 +510,13 @@ try {
                 RobocopyFiles -source "$platformArtifactPath" -destination "$navDvdPath" -e
         
                 if (!$skipDatabase) {
-                    $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
+                    $CommonData = "CommonData"
+                    if ($appManifest.version -lt [Version]"27.0.0.0")
+                    {
+                        $CommonData = "CommonAppData"
+                    }
+
+                    $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\$CommonData\Microsoft\Microsoft Dynamics NAV\ver\Database"
                     New-Item $dbPath -ItemType Directory | Out-Null
                     if (($databaseBackupPath) -and (Test-Path $databaseBackupPath -PathType Leaf))
                     {

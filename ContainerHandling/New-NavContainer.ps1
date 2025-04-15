@@ -954,7 +954,7 @@ try {
             $navVersion = $dvdVersion
         }
         else {
-            $navversion = (Get-Item -Path "$dvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+            $navversion = (Get-Item -Path "$dvdPath\ServiceTier\*\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
         }
         $navtag = Get-NavVersionFromVersionInfo -VersionInfo $navversion
         if ("$navtag" -eq "" -and "$dvdPlatform" -eq "") {

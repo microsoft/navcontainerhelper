@@ -84,7 +84,7 @@ try {
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
-        $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
+        $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\*\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
     }
 
     # IncludeAL will populate folder with AL files (like New-BcContainer)
@@ -115,14 +115,14 @@ try {
         New-Item $compilerPath -ItemType Directory | Out-Null
         New-Item $dllsPath -ItemType Directory | Out-Null
         # Enumerate subfolders to ensure we support different casings in folder structure
-        $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment"
+        $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\*\Microsoft Dynamics NAV\*\AL Development Environment"
         $modernDevFolder = Get-ChildItem -Recurse -Directory -Path $platformArtifactPath | Where-Object { $_.FullName -like $modernDevFolder } | ForEach-Object { $_.FullName }
         Copy-Item -Path (Join-Path $modernDevFolder 'System.app') -Destination $symbolsPath
         if ($cacheFolder -or !$vsixFile) {
             # Only unpack the artifact vsix file if we are populating a cache folder - or no vsixFile was specified
             Expand-7zipArchive -Path (Join-Path $modernDevFolder 'ALLanguage.vsix') -DestinationPath $compilerPath
         }
-        $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service" -Resolve
+        $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\*\Microsoft Dynamics NAV\*\Service" -Resolve
         Copy-Item -Path $serviceTierFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $newtonSoftDllPath = Join-Path $dllsPath "Newtonsoft.Json.dll"
         Remove-Item -Path (Join-Path $dllsPath 'Service\Management') -Recurse -Force -ErrorAction SilentlyContinue

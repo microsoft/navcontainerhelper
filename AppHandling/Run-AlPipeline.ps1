@@ -504,8 +504,9 @@ function GetInstalledApps {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
             "tenant" = $tenant
+            "tenantSpecificProperties" = $true
         }
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -1463,7 +1464,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1641,7 +1644,9 @@ Write-GroupEnd
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1852,7 +1857,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -2492,8 +2499,9 @@ if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
+        "tenantSpecificProperties" = $true
     }
-    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
 }
 
 $upgradedApps = @()
