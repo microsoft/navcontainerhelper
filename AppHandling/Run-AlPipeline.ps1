@@ -1464,7 +1464,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1642,7 +1644,9 @@ Write-GroupEnd
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1853,7 +1857,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
