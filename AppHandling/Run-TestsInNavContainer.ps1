@@ -150,7 +150,9 @@ try {
         Write-Host "Using CompilerFolder without Container"
         $customConfig = $null
         $symbolsFolder = Join-Path $compilerFolder "symbols"
-        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+        $baseAppFile = GetSymbolFiles -path $symbolsFolder -baseName 'Microsoft_Base Application' | Select-Object -First 1
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile $baseAppFile.FullName
+
         $version = [Version]$baseAppInfo.version
         $PsTestToolFolder = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
         New-Item $PsTestToolFolder -ItemType Directory | Out-Null
