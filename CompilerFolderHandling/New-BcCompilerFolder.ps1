@@ -200,7 +200,7 @@ try {
         # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
 
-        if (Test-Path -Path $vsixFile) {
+        if ($vsixFile -notlike 'https://*') {
             if (Test-Path -Path $vsixFile -PathType Leaf) {
                 Expand-7zipArchive -Path $vsixFile -DestinationPath $containerCompilerPath
             }

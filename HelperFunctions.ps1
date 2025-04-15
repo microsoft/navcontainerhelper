@@ -371,7 +371,7 @@ function GetSymbolFiles {
     $filterName = @("$($baseName)_*.*.*.*.app", "$($baseName).app")
     $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[0])
 
-    if (!$appFiles -or ($appFiles.Count -le 0)) {
+    if (!$appFiles) {
         $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[1])
     }
 
