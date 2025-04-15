@@ -504,8 +504,9 @@ function GetInstalledApps {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
             "tenant" = $tenant
+            "tenantSpecificProperties" = $true
         }
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -2492,8 +2493,9 @@ if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
+        "tenantSpecificProperties" = $true
     }
-    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
 }
 
 $upgradedApps = @()
@@ -2714,7 +2716,8 @@ $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -files
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps.Id -notcontains $id) {
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
@@ -2742,6 +2745,7 @@ $testAppIds.Keys | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
+        "appName" = $installedApp.Name
         "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
