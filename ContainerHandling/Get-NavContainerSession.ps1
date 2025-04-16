@@ -74,12 +74,16 @@ function Get-BcContainerSession {
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
                     if ($bcContainerHelperConfig.debugMode) {
-                        Write-Host "Creating session using ContainerId"
+                        Write-Host "Creating $configurationName session using ContainerId"
                     }
                     $containerId = Get-BcContainerId -containerName $containerName
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
-                catch {}
+                catch {
+                    if ($bcContainerHelperConfig.debugMode) {
+                        Write-Host "Error creating session using ContainerId. Error was $($_.Exception.Message)"
+                    }
+                }
             }
             if (!$session) {
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
