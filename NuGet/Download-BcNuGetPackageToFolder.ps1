@@ -146,13 +146,16 @@ try {
             Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
             $package = ''
             $manifest = $feed.DownloadNuSpec($packageId, $packageVersion)
-            Write-Verbose "NUSPEC:"
-            $manifestStringWriter = New-Object System.IO.StringWriter
-            $manifestXmlWriter = [System.Xml.XmlWriter]::Create($manifestStringWriter, (New-Object System.Xml.XmlWriterSettings -Property @{ Indent = $true}))
-            $manifest.Save($manifestXmlWriter)
-            $manifestXmlWriter.Dispose()
-            $manifestStringWriter.ToString() -split [System.Environment]::NewLine | Write-Verbose
-            $manifestStringWriter.Dispose()
+            
+            if ($VerbosePreference -ne 'SilentlyContinue') {
+                Write-Verbose "NUSPEC:"
+                $manifestStringWriter = New-Object System.IO.StringWriter
+                $manifestXmlWriter = [System.Xml.XmlWriter]::Create($manifestStringWriter, (New-Object System.Xml.XmlWriterSettings -Property @{ Indent = $true}))
+                $manifest.Save($manifestXmlWriter)
+                $manifestXmlWriter.Dispose()
+                $manifestStringWriter.ToString() -split [System.Environment]::NewLine | Write-Verbose
+                $manifestStringWriter.Dispose()
+            }
 
             $appId = ''
             if ($manifest.package.metadata.PSObject.Properties.Name -eq 'title') {

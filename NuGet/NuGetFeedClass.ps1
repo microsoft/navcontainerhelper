@@ -85,16 +85,31 @@ class NuGetFeed {
     }
 
     [hashtable[]] Search([string] $packageName) {
-        $useCache = $this.searchResultsCache.ContainsKey($packageName)
-        if ($useCache) {
-            # Clear cache older than 10 minutes
-            if ($this.searchResultsCache[$packageName].timestamp -lt (Get-Date).AddMinutes(-10)) {
+        $cacheRetentionPeriod = 600 # 10 minutes
+        if ($script:bcContainerHelperConfig) {
+            $cacheRetentionPeriod = $script:bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
+        }
+        return $this.Search($packageName, $cacheRetentionPeriod)
+    }
+
+    [hashtable[]] Search([string] $packageName, [int]$cacheRetentionPeriod) {
+        $useCache = $cacheRetentionPeriod -gt 0
+        $hasCache = $this.searchResultsCache.ContainsKey($packageName)
+        if ($hasCache) {
+            if ($useCache) {
+                # Clear cache older than the retention period
+                $clearCache = $this.searchResultsCache[$packageName].timestamp.AddSeconds($cacheRetentionPeriod) -lt (Get-Date)
+            } else {
+                # Clear cache if we are not using it
+                $clearCache = $true
+            }
+            if ($clearCache) {
                 $this.searchResultsCache.Remove($packageName)
-                $useCache = $false
+                $hasCache = $false
             }
         }
 
-        if ($useCache) {
+        if ($useCache -and $hasCache) { 
             Write-Host "Search package using cache"
             $matching = $this.searchResultsCache[$packageName].matching
         } 
@@ -156,13 +171,15 @@ class NuGetFeed {
         else {
             Write-Host "$($matching.count) matching packages found"
         }
-        if (! $useCache) {
+
+        if ($useCache -and !$hasCache) {
             # Cache the search results
             $this.searchResultsCache[$packageName] = @{
                 matching = $matching
                 timestamp = (Get-Date)
             }
         }
+
         return $matching | ForEach-Object { Write-Host "- $($_.id)"; $_ }
     }
 
@@ -393,6 +410,11 @@ class NuGetFeed {
         try {
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
             Write-Host -ForegroundColor Green "NuGet package successfully submitted"
+
+            # Clear matching search results caches
+            @( $this.searchResultsCache.Keys ) | 
+                Where-Object { $package -like "*$($_)*" } | 
+                ForEach-Object { $this.searchResultsCache.Remove($_) }
         }
         catch [System.Net.WebException] {
             if ($_.Exception.Status -eq "ProtocolError" -and $_.Exception.Response -is [System.Net.HttpWebResponse]) {
