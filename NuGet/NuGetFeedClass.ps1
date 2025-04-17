@@ -17,6 +17,7 @@ class NuGetFeed {
     [hashtable] $orgType = @{}
 
     [hashtable] $searchResultsCache = @{}
+    [int]       $searchResultsCacheRetentionPeriod = $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
 
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
@@ -85,20 +86,12 @@ class NuGetFeed {
     }
 
     [hashtable[]] Search([string] $packageName) {
-        $cacheRetentionPeriod = 600 # 10 minutes
-        if ($script:bcContainerHelperConfig) {
-            $cacheRetentionPeriod = $script:bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
-        }
-        return $this.Search($packageName, $cacheRetentionPeriod)
-    }
-
-    [hashtable[]] Search([string] $packageName, [int]$cacheRetentionPeriod) {
-        $useCache = $cacheRetentionPeriod -gt 0
+        $useCache = $this.searchResultsCacheRetentionPeriod -gt 0
         $hasCache = $this.searchResultsCache.ContainsKey($packageName)
         if ($hasCache) {
             if ($useCache) {
                 # Clear cache older than the retention period
-                $clearCache = $this.searchResultsCache[$packageName].timestamp.AddSeconds($cacheRetentionPeriod) -lt (Get-Date)
+                $clearCache = $this.searchResultsCache[$packageName].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)
             } else {
                 # Clear cache if we are not using it
                 $clearCache = $true
