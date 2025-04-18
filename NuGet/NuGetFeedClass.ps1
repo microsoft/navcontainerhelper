@@ -16,6 +16,9 @@ class NuGetFeed {
 
     [hashtable] $orgType = @{}
 
+    [hashtable] $searchResultsCache = @{}
+    [int]       $searchResultsCacheRetentionPeriod = $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
+
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
@@ -83,7 +86,27 @@ class NuGetFeed {
     }
 
     [hashtable[]] Search([string] $packageName) {
-        if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
+        $useCache = $this.searchResultsCacheRetentionPeriod -gt 0
+        $hasCache = $this.searchResultsCache.ContainsKey($packageName)
+        if ($hasCache) {
+            if ($useCache) {
+                # Clear cache older than the retention period
+                $clearCache = $this.searchResultsCache[$packageName].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)
+            } else {
+                # Clear cache if we are not using it
+                $clearCache = $true
+            }
+            if ($clearCache) {
+                $this.searchResultsCache.Remove($packageName)
+                $hasCache = $false
+            }
+        }
+
+        if ($useCache -and $hasCache) { 
+            Write-Host "Search package using cache"
+            $matching = $this.searchResultsCache[$packageName].matching
+        } 
+        elseif ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
             # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
             # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
@@ -141,6 +164,15 @@ class NuGetFeed {
         else {
             Write-Host "$($matching.count) matching packages found"
         }
+
+        if ($useCache -and !$hasCache) {
+            # Cache the search results
+            $this.searchResultsCache[$packageName] = @{
+                matching = $matching
+                timestamp = (Get-Date)
+            }
+        }
+
         return $matching | ForEach-Object { Write-Host "- $($_.id)"; $_ }
     }
 
@@ -371,6 +403,11 @@ class NuGetFeed {
         try {
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
             Write-Host -ForegroundColor Green "NuGet package successfully submitted"
+
+            # Clear matching search results caches
+            @( $this.searchResultsCache.Keys ) | 
+                Where-Object { $package -like "*$($_)*" } | 
+                ForEach-Object { $this.searchResultsCache.Remove($_) }
         }
         catch [System.Net.WebException] {
             if ($_.Exception.Status -eq "ProtocolError" -and $_.Exception.Response -is [System.Net.HttpWebResponse]) {
