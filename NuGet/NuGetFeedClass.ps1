@@ -474,7 +474,7 @@ class NuGetFeed {
 
             # Clear matching search results caches
             @( $this.searchResultsCache.Keys ) | 
-                Where-Object { $package -like "*$($_)*" -or $package -like 'GitHubPackages:*' } | 
+                Where-Object { $package -like "*$($_)*" -or $_ -like 'GitHubPackages:*' } | 
                 ForEach-Object { $this.searchResultsCache.Remove($_) }
         }
         catch [System.Net.WebException] {
