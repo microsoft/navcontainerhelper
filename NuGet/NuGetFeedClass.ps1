@@ -135,7 +135,7 @@ class NuGetFeed {
             $matching = @()
             while ($true) {
                 Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
-                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
+                $result = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$queryUrl$page"
                 Write-Host "$($result.Count) packages found"
                 $result | ConvertTo-Json -Depth 99 | Out-Host
                 if ($result.Count -eq 0) {
