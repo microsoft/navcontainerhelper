@@ -129,16 +129,20 @@ class NuGetFeed {
                     $this.orgType[$organization] = 'users'
                 }
             }
-            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=100&page="
+            $per_page = 100
+            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
             $page = 1
-            Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
             $matching = @()
             while ($true) {
+                Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
                 $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
                 if ($result.Count -eq 0) {
                     break
                 }
                 $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
+                if ($result.Count -ne $per_page) {
+                    break
+                }
                 $page++
             }
         }
@@ -322,24 +326,69 @@ class NuGetFeed {
         return ''
     }
 
-    [xml] DownloadNuSpec([string] $packageId, [string] $version) {
+    # Download the nuspec for the package with id = packageId and version = version
+    # The following properties are returned:
+    # - id: the package id
+    # - name: the package name (either title, description or id from the nuspec)
+    # - version: the package version
+    # - authors: the package authors
+    # - dependencies: the package dependencies (id and version range)
+    [PSCustomObject] DownloadPackageSpec([string] $packageId, [string] $version) {
         if (!$this.IsTrusted($packageId)) {
             throw "Package $packageId is not trusted on $($this.url)"
         }
-        $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
-        try {
-            Write-Host "Download nuspec using $queryUrl"
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
-            Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
-            $nuspec = Get-Content -Path $tmpfile -Encoding UTF8 -Raw
-            Remove-Item -Path $tmpFile -Force
-            $global:ProgressPreference = $prev
+        if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
+            $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
+            $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+            $content = $response.Content | ConvertFrom-Json
+            if (!($content.PSObject.Properties.Name -eq 'catalogEntry') -or ($null -eq $content.catalogEntry)) {
+                throw "Package $packageId version $version not found on"
+            }
+            return @{
+                "id" = $content.catalogEntry.id
+                "name" = $content.catalogEntry.description
+                "version" = $content.catalogEntry.version
+                "authors" = $content.catalogEntry.authors
+                "dependencies" = $content.catalogEntry.dependencyGroups | ForEach-Object { $_.dependencies | ForEach-Object { @{"id" = $_.id; "version" = $_.range.replace(' ','') } } }
+            }
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
+        else {
+            $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
+            try {
+                Write-Host "Download nuspec using $queryUrl"
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
+                Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
+                $nuspec = [xml](Get-Content -Path $tmpfile -Encoding UTF8 -Raw)
+                Remove-Item -Path $tmpFile -Force
+                $global:ProgressPreference = $prev
+            }
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'title') {
+                $appName = $nuspec.package.metadata.title
+            }
+            elseif ($nuspec.package.metadata.PSObject.Properties.Name -eq 'description') {
+                $appName = $nuspec.package.metadata.description
+            }
+            else {
+                $appName = $nuspec.package.metadata.id
+            }
+            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
+                $dependencies = @($nuspec.package.metadata.Dependencies.GetEnumerator() | ForEach-Object { @{"id" = $_.id; "version" = $_.version } })
+            }
+            else {
+                $dependencies = @()
+            }
+            return @{
+                "id" = $nuspec.package.metadata.id
+                "name" = $appName
+                "version" = $nuspec.package.metadata.version
+                "authors" = $nuspec.package.metadata.authors
+                "dependencies" = $dependencies
+            }
         }
-        return [xml]$nuspec
     }
 
     [string] DownloadPackage([string] $packageId, [string] $version) {
