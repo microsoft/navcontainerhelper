@@ -77,11 +77,7 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $checkLocalVersion
     )
 
-# Dump all parameters to the host
-Write-Host "Parameters:"
-$PSBoundParameters.GetEnumerator() | ForEach-Object {
-    Write-Host "$($_.Key) = $($_.Value)"
-}
+$PSBoundParameters | ConvertTo-Json | Out-Host
 
 try {
     $findSelect = $select
