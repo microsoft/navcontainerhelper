@@ -131,9 +131,11 @@ class NuGetFeed {
                 }
             }
             $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
+            Write-Host "CACHE KEY: $cacheKey"
             $matching = @()
             if ($this.searchResultsCache.ContainsKey($cacheKey)) {
                 if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
+                    Write-Host "Cache expired, removing cache"
                     $this.searchResultsCache.Remove($cacheKey)
                 }
                 else {
