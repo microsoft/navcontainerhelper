@@ -206,10 +206,7 @@ class NuGetFeed {
         if (!$this.IsTrusted($package.id)) {
             throw "Package $($package.id) is not trusted on $($this.url)"
         }
-        if ($package.versions.count -ne 0) {
-            $versionsArr = $package.versions
-        }
-        else {
+        if ($package.versions.count -eq 0) {
             $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($package.Id.ToLowerInvariant())/index.json"
             try {
                 Write-Host -ForegroundColor Yellow "Get versions using $queryUrl"
@@ -220,9 +217,9 @@ class NuGetFeed {
             catch {
                 throw (GetExtendedErrorMessage $_)
             }
-            $versionsArr = @($versions.versions)
-    
+            $package.versions = @($versions.versions)
         }
+        $versionsArr = $package.versions
         Write-Host "$($versionsArr.count) versions found"
         $versionsArr = @($versionsArr | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
         Write-Host "First version is $($versionsArr[0])"

@@ -217,7 +217,7 @@ try {
                         }
                         if ($Matches[5]) {
                             # If the dependencyId ends in a GUID (AppID) then use the AppId for the dependencyId
-                            $dependency.Id = "$($matches[5])"
+                            $dependencyId = "$($matches[5])"
                         }
                     }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } -Descending | Select-Object -First 1
@@ -261,7 +261,7 @@ try {
                     }
                 }
                 if ($downloadIt) {
-                    $dependenciesToDownload += @( $dependency )
+                    $dependenciesToDownload += @( @{ "id" = $dependencyId; "version" = $dependencyVersion } )
                 }
             }
             if ($dependenciesErr) {
