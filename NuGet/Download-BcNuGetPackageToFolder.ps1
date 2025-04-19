@@ -209,11 +209,15 @@ try {
                 }
                 else {
                     $dependencyPublisher = ''
-                    if ($dependencyId -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
+                    if ($dependencyId -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?\.?([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
                         # Matches publisher.name[.country][.symbols][.appId] format (country section is only for microsoft apps)
                         $dependencyPublisher = $matches[1]
                         if ($dependencyPublisher -eq 'microsoft') {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
+                        }
+                        if ($Matches[5]) {
+                            # If the dependencyId ends in a GUID (AppID) then use the AppId for the dependencyId
+                            $dependency.Id = "$($matches[5])"
                         }
                     }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } -Descending | Select-Object -First 1

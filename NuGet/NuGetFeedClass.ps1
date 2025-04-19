@@ -116,7 +116,6 @@ class NuGetFeed {
                 "X-GitHub-Api-Version" = "2022-11-28"
             }
             if ($this.token) {
-                Write-Host "Add auth token"
                 $headers += @{
                     "Authorization" = "Bearer $($this.token)"
                 }
@@ -132,7 +131,7 @@ class NuGetFeed {
             }
             $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
             $matching = @()
-            if ($this.searchResultsCache.ContainsKey($cacheKey)) {
+            if ($this.searchResultsCacheRetentionPeriod -gt 0 -and $this.searchResultsCache.ContainsKey($cacheKey)) {
                 if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
                     Write-Host "Cache expired, removing cache $cacheKey"
                     $this.searchResultsCache.Remove($cacheKey)
@@ -478,7 +477,7 @@ class NuGetFeed {
 
             # Clear matching search results caches
             @( $this.searchResultsCache.Keys ) | 
-                Where-Object { $package -like "*$($_)*" } | 
+                Where-Object { $package -like "*$($_)*" -or $package -like 'GitHubPackages:*' } | 
                 ForEach-Object { $this.searchResultsCache.Remove($_) }
         }
         catch [System.Net.WebException] {
