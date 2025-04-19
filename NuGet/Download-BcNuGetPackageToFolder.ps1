@@ -77,7 +77,7 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $checkLocalVersion
     )
 
-$PSBoundParameters | ConvertTo-Json | Out-Host
+$PSBoundParameters | ConvertTo-Json -Depth 99 | Out-Host
 
 try {
     $findSelect = $select
