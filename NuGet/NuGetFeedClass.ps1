@@ -129,7 +129,7 @@ class NuGetFeed {
                     $this.orgType[$organization] = 'users'
                 }
             }
-            $per_page = 100
+            $per_page = 50
             $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
             $page = 1
             $matching = @()
@@ -142,9 +142,9 @@ class NuGetFeed {
                     break
                 }
                 $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
-                if ($result.Count -ne $per_page) {
-                    break
-                }
+#                if ($result.Count -ne $per_page) {
+#                    break
+#                }
                 $page++
             }
         }
