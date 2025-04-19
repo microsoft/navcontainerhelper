@@ -116,6 +116,7 @@ class NuGetFeed {
                 "X-GitHub-Api-Version" = "2022-11-28"
             }
             if ($this.token) {
+                Write-Host "Add auth token"
                 $headers += @{
                     "Authorization" = "Bearer $($this.token)"
                 }
@@ -129,24 +130,44 @@ class NuGetFeed {
                     $this.orgType[$organization] = 'users'
                 }
             }
-            $per_page = 50
-            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
-            $page = 1
+            $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
             $matching = @()
-            while ($true) {
-                Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
-                $result = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$queryUrl$page"
-                Write-Host "$($result.Count) packages found"
-                $result | ConvertTo-Json -Depth 99 | Out-Host
-                if ($result.Count -eq 0) {
-                    break
+            if ($this.searchResultsCache.ContainsKey($cacheKey)) {
+                if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
+                    $this.searchResultsCache.Remove($cacheKey)
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
-#                if ($result.Count -ne $per_page) {
-#                    break
-#                }
-                $page++
+                else {
+                    Write-Host "Search available packages using cache"
+                    $matching = $this.searchResultsCache[$cacheKey].matching
+                    Write-Host "$($matching.Count) packages found"
+                }
             }
+            if (-not $matching) {
+                $per_page = 50
+                $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
+                $page = 1
+                $matching = @()
+                while ($true) {
+                    Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
+                    $result = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$queryUrl$page"
+                    Write-Host "$($result.Count) packages found"
+                    $result | ConvertTo-Json -Depth 99 | Out-Host
+                    if ($result.Count -eq 0) {
+                        break
+                    }
+                    $matching += @($result)
+                    if ($result.Count -ne $per_page) {
+                        break
+                    }
+                    $page++
+                }
+                Write-Host "Total of $($matching.Count) packages found"
+                $this.searchResultsCache[$cacheKey] = @{
+                    matching = $matching
+                    timestamp = (Get-Date)
+                }
+            }
+            $matching = @($matching | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
         }
         else {
             $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName&take=50"
