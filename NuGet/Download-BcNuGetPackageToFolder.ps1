@@ -77,6 +77,12 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $checkLocalVersion
     )
 
+# Dump all parameters to the host
+Write-Host "Parameters:"
+$PSBoundParameters.GetEnumerator() | ForEach-Object {
+    Write-Host "$($_.Key) = $($_.Value)"
+}
+
 try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
