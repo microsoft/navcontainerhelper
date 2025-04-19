@@ -131,15 +131,14 @@ class NuGetFeed {
                 }
             }
             $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
-            Write-Host "CACHE KEY: $cacheKey"
             $matching = @()
             if ($this.searchResultsCache.ContainsKey($cacheKey)) {
                 if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
-                    Write-Host "Cache expired, removing cache"
+                    Write-Host "Cache expired, removing cache $cacheKey"
                     $this.searchResultsCache.Remove($cacheKey)
                 }
                 else {
-                    Write-Host "Search available packages using cache"
+                    Write-Host "Search available packages using cache $cacheKey"
                     $matching = $this.searchResultsCache[$cacheKey].matching
                     Write-Host "$($matching.Count) packages found"
                 }
@@ -153,7 +152,6 @@ class NuGetFeed {
                     Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
                     $result = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$queryUrl$page"
                     Write-Host "$($result.Count) packages found"
-                    $result | ConvertTo-Json -Depth 99 | Out-Host
                     if ($result.Count -eq 0) {
                         break
                     }
