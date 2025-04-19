@@ -345,7 +345,7 @@ class NuGetFeed {
         return ''
     }
 
-    # Download the nuspec for the package with id = packageId and version = version
+    # Download the specs for the package with id = packageId and version = version
     # The following properties are returned:
     # - id: the package id
     # - name: the package name (either title, description or id from the nuspec)
