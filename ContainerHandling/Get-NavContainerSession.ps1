@@ -43,28 +43,47 @@ function Get-BcContainerSession {
         }
         $cacheName = "$containerName-$configurationName"
         if ($sessions.ContainsKey($cacheName)) {
+            if ($bcContainerHelperConfig.debugMode) {
+                Write-Host "Session $cacheName found in cache"
+            }
             $session = $sessions[$cacheName]
             try {
                 Invoke-Command -Session $session -ScriptBlock { $PID } | Out-Null
                 if (!$reinit) {
+                    if ($bcContainerHelperConfig.debugMode) {
+                        Write-Host "Session $cacheName is still valid"
+                    }
                     return $session
                 }
             }
             catch {
+                if ($bcContainerHelperConfig.debugMode) {
+                    Write-Host "Session $cacheName is not valid anymore"
+                }
                 $sessions.Remove($cacheName)
                 $session = $null
             }
         }
         if (!$session) {
             if ($isInsideContainer) {
+                if ($bcContainerHelperConfig.debugMode) {
+                    Write-Host "Creating session from inside container"
+                }
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
+                    if ($bcContainerHelperConfig.debugMode) {
+                        Write-Host "Creating $configurationName session using ContainerId"
+                    }
                     $containerId = Get-BcContainerId -containerName $containerName
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
-                catch {}
+                catch {
+                    if ($bcContainerHelperConfig.debugMode) {
+                        Write-Host "Error creating session using ContainerId. Error was $($_.Exception.Message)"
+                    }
+                }
             }
             if (!$session) {
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
@@ -72,6 +91,9 @@ function Get-BcContainerSession {
 
                 }
                 $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
+                if ($bcContainerHelperConfig.debugMode) {
+                    Write-Host "Creating session using WinRm, useSSL=$useSSL"
+                }
                 $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
                 if ($useSSL) {
@@ -117,6 +139,9 @@ function Get-BcContainerSession {
             Set-Location $runPath
         } -ArgumentList $silent
         if ($newsession) {
+            if ($bcContainerHelperConfig.debugMode) {
+                Write-Host "Session $cacheName created"
+            }
             $sessions.Add($cacheName, $session)
         }
         return $session

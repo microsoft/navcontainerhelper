@@ -55,6 +55,9 @@ function Invoke-ScriptInBcContainer {
         }
     }
     if ($useSession) {
+        if ($bcContainerHelperConfig.debugMode) {
+            Write-Host "Invoke script using remote session"
+        }
         $startTime = [DateTime]::Now
         try {
             Invoke-Command -Session $session -ScriptBlock { param($a) $WarningPreference = $a } -ArgumentList $bcContainerHelperConfig.WarningPreference
@@ -113,6 +116,9 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
+        if ($bcContainerHelperConfig.debugMode) {
+            Write-Host "Invoke script using docker exec"
+        }
         if ($file -eq '') {
             $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
             $containerFile = Get-BcContainerPath -containerName $containerName -path $file

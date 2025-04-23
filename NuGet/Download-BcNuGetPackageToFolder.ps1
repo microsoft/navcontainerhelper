@@ -144,43 +144,33 @@ try {
         }
         else {
             Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
-            $package = $feed.DownloadPackage($packageId, $packageVersion)
-            $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
-            Write-Verbose "NUSPEC:"
-            $nuspec | ForEach-Object { Write-Verbose $_ }
-            $manifest = [xml]$nuspec
+            $package = ''
+            $packageSpec = $feed.DownloadPackageSpec($packageId, $packageVersion)
+            
+            if ($VerbosePreference -ne 'SilentlyContinue') {
+                Write-Verbose "Package spec:"
+                $packageSpec | ConvertTo-Json -Depth 10 | Write-Verbose
+            }
+
             $appId = ''
-            if ($manifest.package.metadata.PSObject.Properties.Name -eq 'title') {
-                $appName = $manifest.package.metadata.title
-            }
-            elseif ($manifest.package.metadata.PSObject.Properties.Name -eq 'description') {
-                $appName = $manifest.package.metadata.description
-            }
-            else {
-                $appName = $manifest.package.metadata.id
-            }
-            if ($manifest.package.metadata.id -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
+            $appName = $packageSpec.name
+            if ($packageSpec.id -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
                 # If packageId ends in a GUID (AppID) then use the AppId for the packageId
                 $appId = "$($matches[1])"
             }
-            elseif ($manifest.package.metadata.id -like 'Microsoft.Platform*') {
+            elseif ($packageSpec.id -like 'Microsoft.Platform*') {
                 # If packageId starts with Microsoft.Platform then use the packageId for the packageId
                 $appName = 'Platform'
             }
             $returnValue = @([PSCustomObject]@{
-                "Publisher" = $manifest.package.metadata.authors
+                "Publisher" = $packageSpec.authors
                 "Name" = $appName
                 "id" = $appId
-                "Version" = $manifest.package.metadata.version
+                "Version" = $packageSpec.version
             })
             $dependenciesErr = ''
-            if ($manifest.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
-                $dependencies = $manifest.package.metadata.Dependencies.GetEnumerator()
-            }
-            else {
-                $dependencies = @()
-            }
-            foreach($dependency in $dependencies) {
+            $dependenciesToDownload = @()
+            foreach($dependency in $packageSpec.dependencies) {
                 if (-not $installedPlatform) {
                     $installedPlatform = $installedApps+$returnValue | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
                 }
@@ -219,11 +209,15 @@ try {
                 }
                 else {
                     $dependencyPublisher = ''
-                    if ($dependencyId -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
+                    if ($dependencyId -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?\.?([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
                         # Matches publisher.name[.country][.symbols][.appId] format (country section is only for microsoft apps)
                         $dependencyPublisher = $matches[1]
                         if ($dependencyPublisher -eq 'microsoft') {
                             $dependencyCountry = "$($matches[3])".TrimStart('.')
+                        }
+                        if ($Matches[5]) {
+                            # If the dependencyId ends in a GUID (AppID) then use the AppId for the dependencyId
+                            $dependencyId = "$($matches[5])"
                         }
                     }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }  | Sort-Object -Property @{ "Expression" = "[System.Version]Version" } -Descending | Select-Object -First 1
@@ -235,7 +229,7 @@ try {
                         }
                     }
                     elseif ($downloadDependencies -eq 'own') {
-                        $downloadIt = ($dependencyPublisher -eq [NugetFeed]::Normalize($manifest.package.metadata.authors))
+                        $downloadIt = ($dependencyPublisher -eq [NugetFeed]::Normalize($packageSpec.authors))
                     }
                     elseif ($downloadDependencies -eq 'allButMicrosoft') {
                         # Download if publisher isn't Microsoft (including if publisher is empty)
@@ -267,19 +261,29 @@ try {
                     }
                 }
                 if ($downloadIt) {
-                    if ($dependencyVersion.StartsWith('[') -and $select -eq 'Exact') {
-                        # Downloading Microsoft packages for a specific version
-                        $dependencyVersion = $version
-                    }
-                    $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                    $dependenciesToDownload += @( @{ "id" = $dependencyId; "version" = $dependencyVersion } )
                 }
             }
             if ($dependenciesErr) {
                 # If we are looking for the earliest/latest matching version, then we can try to find another version
                 $excludeVersions += $packageVersion
-                Remove-Item -Path $package -Recurse -Force
                 continue
             }
+            
+            # Download the package
+            $package = $feed.DownloadPackage($packageId, $packageVersion)
+
+            foreach ($dependency in $dependenciesToDownload) {
+                # Download the dependencies of the package
+                $dependencyVersion = $dependency.Version
+                $dependencyId = $dependency.Id
+                if ($dependencyVersion.StartsWith('[') -and $select -eq 'Exact') {
+                    # Downloading Microsoft packages for a specific version
+                    $dependencyVersion = $version
+                }
+                $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+            }
+
             if ($installedCountry -and (Test-Path (Join-Path $package $installedCountry) -PathType Container)) {
                 # NuGet packages of Runtime packages might exist in different versions for different countries
                 # The runtime package might contain C# invoke calls with different methodis for different countries

@@ -16,6 +16,9 @@ class NuGetFeed {
 
     [hashtable] $orgType = @{}
 
+    [hashtable] $searchResultsCache = @{}
+    [int]       $searchResultsCacheRetentionPeriod = $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
+
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
@@ -83,7 +86,27 @@ class NuGetFeed {
     }
 
     [hashtable[]] Search([string] $packageName) {
-        if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
+        $useCache = $this.searchResultsCacheRetentionPeriod -gt 0
+        $hasCache = $this.searchResultsCache.ContainsKey($packageName)
+        if ($hasCache) {
+            if ($useCache) {
+                # Clear cache older than the retention period
+                $clearCache = $this.searchResultsCache[$packageName].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)
+            } else {
+                # Clear cache if we are not using it
+                $clearCache = $true
+            }
+            if ($clearCache) {
+                $this.searchResultsCache.Remove($packageName)
+                $hasCache = $false
+            }
+        }
+
+        if ($useCache -and $hasCache) { 
+            Write-Host "Search package using cache"
+            $matching = $this.searchResultsCache[$packageName].matching
+        } 
+        elseif ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
             # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
             # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
@@ -106,18 +129,44 @@ class NuGetFeed {
                     $this.orgType[$organization] = 'users'
                 }
             }
-            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=100&page="
-            $page = 1
-            Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
+            $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
             $matching = @()
-            while ($true) {
-                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
-                if ($result.Count -eq 0) {
-                    break
+            if ($this.searchResultsCacheRetentionPeriod -gt 0 -and $this.searchResultsCache.ContainsKey($cacheKey)) {
+                if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
+                    Write-Host "Cache expired, removing cache $cacheKey"
+                    $this.searchResultsCache.Remove($cacheKey)
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
-                $page++
+                else {
+                    Write-Host "Search available packages using cache $cacheKey"
+                    $matching = $this.searchResultsCache[$cacheKey].matching
+                    Write-Host "$($matching.Count) packages found"
+                }
             }
+            if (-not $matching) {
+                $per_page = 50
+                $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
+                $page = 1
+                $matching = @()
+                while ($true) {
+                    Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
+                    $result = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$queryUrl$page"
+                    Write-Host "$($result.Count) packages found"
+                    if ($result.Count -eq 0) {
+                        break
+                    }
+                    $matching += @($result)
+                    if ($result.Count -ne $per_page) {
+                        break
+                    }
+                    $page++
+                }
+                Write-Host "Total of $($matching.Count) packages found"
+                $this.searchResultsCache[$cacheKey] = @{
+                    matching = $matching
+                    timestamp = (Get-Date)
+                }
+            }
+            $matching = @($matching | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
         }
         else {
             $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName&take=50"
@@ -141,6 +190,15 @@ class NuGetFeed {
         else {
             Write-Host "$($matching.count) matching packages found"
         }
+
+        if ($useCache -and !$hasCache) {
+            # Cache the search results
+            $this.searchResultsCache[$packageName] = @{
+                matching = $matching
+                timestamp = (Get-Date)
+            }
+        }
+
         return $matching | ForEach-Object { Write-Host "- $($_.id)"; $_ }
     }
 
@@ -148,10 +206,7 @@ class NuGetFeed {
         if (!$this.IsTrusted($package.id)) {
             throw "Package $($package.id) is not trusted on $($this.url)"
         }
-        if ($package.versions.count -ne 0) {
-            $versionsArr = $package.versions
-        }
-        else {
+        if ($package.versions.count -eq 0) {
             $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($package.Id.ToLowerInvariant())/index.json"
             try {
                 Write-Host -ForegroundColor Yellow "Get versions using $queryUrl"
@@ -162,9 +217,9 @@ class NuGetFeed {
             catch {
                 throw (GetExtendedErrorMessage $_)
             }
-            $versionsArr = @($versions.versions)
-    
+            $package.versions = @($versions.versions)
         }
+        $versionsArr = $package.versions
         Write-Host "$($versionsArr.count) versions found"
         $versionsArr = @($versionsArr | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
         Write-Host "First version is $($versionsArr[0])"
@@ -290,24 +345,69 @@ class NuGetFeed {
         return ''
     }
 
-    [xml] DownloadNuSpec([string] $packageId, [string] $version) {
+    # Download the specs for the package with id = packageId and version = version
+    # The following properties are returned:
+    # - id: the package id
+    # - name: the package name (either title, description or id from the nuspec)
+    # - version: the package version
+    # - authors: the package authors
+    # - dependencies: the package dependencies (id and version range)
+    [PSCustomObject] DownloadPackageSpec([string] $packageId, [string] $version) {
         if (!$this.IsTrusted($packageId)) {
             throw "Package $packageId is not trusted on $($this.url)"
         }
-        $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
-        try {
-            Write-Host "Download nuspec using $queryUrl"
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
-            Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
-            $nuspec = Get-Content -Path $tmpfile -Encoding UTF8 -Raw
-            Remove-Item -Path $tmpFile -Force
-            $global:ProgressPreference = $prev
+        if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
+            $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
+            $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+            $content = $response.Content | ConvertFrom-Json
+            if (!($content.PSObject.Properties.Name -eq 'catalogEntry') -or ($null -eq $content.catalogEntry)) {
+                throw "Package $packageId version $version not found on"
+            }
+            return @{
+                "id" = $content.catalogEntry.id
+                "name" = $content.catalogEntry.description
+                "version" = $content.catalogEntry.version
+                "authors" = $content.catalogEntry.authors
+                "dependencies" = $content.catalogEntry.dependencyGroups | ForEach-Object { $_.dependencies | ForEach-Object { @{"id" = $_.id; "version" = $_.range.replace(' ','') } } }
+            }
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
+        else {
+            $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
+            try {
+                Write-Host "Download nuspec using $queryUrl"
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
+                Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
+                $nuspec = [xml](Get-Content -Path $tmpfile -Encoding UTF8 -Raw)
+                Remove-Item -Path $tmpFile -Force
+                $global:ProgressPreference = $prev
+            }
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'title') {
+                $appName = $nuspec.package.metadata.title
+            }
+            elseif ($nuspec.package.metadata.PSObject.Properties.Name -eq 'description') {
+                $appName = $nuspec.package.metadata.description
+            }
+            else {
+                $appName = $nuspec.package.metadata.id
+            }
+            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
+                $dependencies = @($nuspec.package.metadata.Dependencies.GetEnumerator() | ForEach-Object { @{"id" = $_.id; "version" = $_.version } })
+            }
+            else {
+                $dependencies = @()
+            }
+            return @{
+                "id" = $nuspec.package.metadata.id
+                "name" = $appName
+                "version" = $nuspec.package.metadata.version
+                "authors" = $nuspec.package.metadata.authors
+                "dependencies" = $dependencies
+            }
         }
-        return [xml]$nuspec
     }
 
     [string] DownloadPackage([string] $packageId, [string] $version) {
@@ -371,6 +471,11 @@ class NuGetFeed {
         try {
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
             Write-Host -ForegroundColor Green "NuGet package successfully submitted"
+
+            # Clear matching search results caches
+            @( $this.searchResultsCache.Keys ) | 
+                Where-Object { $package -like "*$($_)*" -or $_ -like 'GitHubPackages:*' } | 
+                ForEach-Object { $this.searchResultsCache.Remove($_) }
         }
         catch [System.Net.WebException] {
             if ($_.Exception.Status -eq "ProtocolError" -and $_.Exception.Response -is [System.Net.HttpWebResponse]) {
