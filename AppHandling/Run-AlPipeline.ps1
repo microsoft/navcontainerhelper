@@ -476,11 +476,20 @@ function UpdateLaunchJson {
 
 function GetInstalledApps {
     Param(
+        [hashtable] $bcAuthContext,
+        [string] $environment,
         [bool] $useCompilerFolder,
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($useCompilerFolder) {
+    if ($bcAuthContext -and $environment) {
+        # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
+        $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
+        $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
+            @{ "AppId" = $_.id; "Publisher" = $_.publisher; "Name" = $_.displayName; "Version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+        }
+    }
+    elseif ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
         $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
@@ -1463,7 +1472,7 @@ Write-GroupEnd
 }
 
 if ($InstallMissingDependencies) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
 if ($installedApps) {
     $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
@@ -1650,7 +1659,7 @@ Write-GroupEnd
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
@@ -1863,7 +1872,7 @@ Measure-Command {
 Write-GroupEnd
 
 if ($InstallMissingDependencies) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
@@ -2725,7 +2734,7 @@ $testFolders | ForEach-Object {
     }
 }
 
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
