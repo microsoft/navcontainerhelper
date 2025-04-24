@@ -510,8 +510,8 @@ try {
                 RobocopyFiles -source "$platformArtifactPath" -destination "$navDvdPath" -e
         
                 if (!$skipDatabase) {
-                    $CommonData = "CommonData"
-                    if ($appManifest.version -lt [Version]"27.0.0.0")
+                    $CommonData = "CommApp"
+                    if ($appManifest.version -lt [Version]"27.0.33344.0")
                     {
                         $CommonData = "CommonAppData"
                     }
