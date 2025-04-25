@@ -875,10 +875,12 @@ if ($updateLaunchJson) {
 
 if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
-    if (Test-Path $packagesFolder) {
-        Remove-Item $packagesFolder -Recurse -Force
+    if (!($bcContainerHelperConfig.doNotRemovePackagesFolderIfExists)) {
+        if (Test-Path $packagesFolder) {
+            Remove-Item $packagesFolder -Recurse -Force
+        }
     }
-    New-Item $packagesFolder -ItemType Directory | Out-Null
+    New-Item $packagesFolder -ItemType Directory -Force | Out-Null 
 }
 
 if ($useDevEndpoint) {

@@ -122,6 +122,7 @@ function Get-ContainerHelperConfig {
             "useApproximateVersion" = $false
             "useSqlServerModule" = $false
             "NuGetSearchResultsCacheRetentionPeriod" = 600 # 10 minutes
+            "doNotRemovePackagesFolderIfExists" = $false
         }
 
         if ($isInsider) {
