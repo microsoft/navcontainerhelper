@@ -139,7 +139,12 @@ try {
     }
 
     if ($os.BuildNumber -eq 26100) {
-        $hostOs = "24H2"
+        if ($isServerHost) {
+            $hostOs = "ltsc2025"
+        }
+        else {
+            $hostOs = "24H2"
+        }
     }
     elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
