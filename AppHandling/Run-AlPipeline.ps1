@@ -504,8 +504,9 @@ function GetInstalledApps {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
             "tenant" = $tenant
+            "tenantSpecificProperties" = $true
         }
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -874,10 +875,12 @@ if ($updateLaunchJson) {
 
 if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
-    if (Test-Path $packagesFolder) {
-        Remove-Item $packagesFolder -Recurse -Force
+    if (!($bcContainerHelperConfig.doNotRemovePackagesFolderIfExists)) {
+        if (Test-Path $packagesFolder) {
+            Remove-Item $packagesFolder -Recurse -Force
+        }
     }
-    New-Item $packagesFolder -ItemType Directory | Out-Null
+    New-Item $packagesFolder -ItemType Directory -Force | Out-Null 
 }
 
 if ($useDevEndpoint) {
@@ -1463,7 +1466,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1641,7 +1646,9 @@ Write-GroupEnd
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1852,7 +1859,9 @@ Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -2492,8 +2501,9 @@ if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
+        "tenantSpecificProperties" = $true
     }
-    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
 }
 
 $upgradedApps = @()
@@ -2714,7 +2724,8 @@ $installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -files
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps.Id -notcontains $id) {
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
@@ -2742,6 +2753,7 @@ $testAppIds.Keys | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
+        "appName" = $installedApp.Name
         "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"

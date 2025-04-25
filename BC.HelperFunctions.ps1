@@ -121,6 +121,8 @@ function Get-ContainerHelperConfig {
             "IsGitLab" = ($env:GITLAB_CI -eq "true")
             "useApproximateVersion" = $false
             "useSqlServerModule" = $false
+            "NuGetSearchResultsCacheRetentionPeriod" = 600 # 10 minutes
+            "doNotRemovePackagesFolderIfExists" = $false
         }
 
         if ($isInsider) {
