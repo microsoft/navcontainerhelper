@@ -11,6 +11,8 @@ Add new setting NuGetSearchResultsCacheRetentionPeriod (default: 600) to set the
 Download-BcNuGetPackageToFolder checks all direct dependency versions of a package based on the NuSpec before downloading the whole package and its dependencies
 New Option doNotRemovePackagesFolderIfExists to prevent Run-ALPipeline from deleting the packages folder, if it already exists. Default is false
 Add support for Windows 2025 Containers
+NuGet packageId naming fixes. If a publisher name or app name consists of only UTF8 characters, we would issue an error.
+NuGet packageId naming fixes. If a package id ended up having a minus in front of a period (-.), nuGet would fail on publishing.
 
 6.1.3
 Add setting ExcludeBuilds, which is an array of NuGet range specifications to exclude from Get-BcArtifactUrl. See more about range specification here: https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort#version-ranges
