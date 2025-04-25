@@ -9,6 +9,8 @@ Fixes issues determining test symbols for W1 and OnPrem artifacts not containing
 Add cache for search results of a NuGet feed
 Add new setting NuGetSearchResultsCacheRetentionPeriod (default: 600) to set the retention period (in seconds) for the search result cache of NuGet feeds (0 to disable the cache)
 Download-BcNuGetPackageToFolder checks all direct dependency versions of a package based on the NuSpec before downloading the whole package and its dependencies
+New Option doNotRemovePackagesFolderIfExists to prevent Run-ALPipeline from deleting the packages folder, if it already exists. Default is false
+Add support for Windows 2025 Containers
 Include AuthContext and Environment in Parameters for InstallMissingDependencies when called from Run-AlPipeline
 
 6.1.3
