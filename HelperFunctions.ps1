@@ -1602,6 +1602,9 @@ function GetContainerOs {
     elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
         $containerOs = "ltsc2022"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.26100.')) {
+        $containerOs = "ltsc2025"
+    }
     else {
         $containerOs = "unknown"
     }
@@ -1618,7 +1621,12 @@ function GetHostOs {
 
     $hostOs = "Unknown/Insider build"
     if ($os.BuildNumber -eq 26100) {
-        $hostOs = "24H2"
+        if ($isServerHost) {
+            $hostOs = "ltsc2025"
+        }
+        else {
+            $hostOs = "24H2"
+        }
     }
     elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
