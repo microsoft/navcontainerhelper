@@ -71,7 +71,7 @@ Function Publish-BcNuGetPackageToContainer {
         $envInfo = Get-BcEnvironments -bcAuthContext $bcAuthContext -environment $environment
         $installedPlatform = [System.Version]$envInfo.platformVersion
         $installedCountry = $envInfo.countryCode.ToLowerInvariant()
-        $installedApps = @(Get-BcEnvironmentInstalledExtensions -bcAuthContext $authContext -environment $environment | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.displayName; "Id" = $_.Id; "Version" = [System.Version]::new($_.VersionMajor, $_.VersionMinor, $_.VersionBuild, $_.VersionRevision) } })
+        $installedApps = @(Get-BcEnvironmentInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.displayName; "Id" = $_.Id; "Version" = [System.Version]::new($_.VersionMajor, $_.VersionMinor, $_.VersionBuild, $_.VersionRevision) } })
     }
     else {
         $installedApps = @(Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.Name; "Id" = "$($_.AppId)"; "Version" = $_.Version } } )
