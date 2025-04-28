@@ -482,7 +482,7 @@ function GetInstalledApps {
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($bcAuthContext -and $environment) {
+    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
         # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
         $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
