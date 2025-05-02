@@ -56,7 +56,9 @@ try {
         }
         else {
             $appJson =[System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-            
+            if (-not $appJson) {
+                throw "$appJsonFile isn't a valid json file."
+            }
             # replace id with appid
             if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {
                 if ($appJson.dependencies) {
