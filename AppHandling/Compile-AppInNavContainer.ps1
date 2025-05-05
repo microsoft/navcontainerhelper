@@ -648,6 +648,15 @@ try {
         if ($GenerateReportLayoutParam) {
             $alcParameters += @($GenerateReportLayoutParam)
         }
+
+        # Microsoft.Dynamics.Nav.Analyzers.Common.dll needs to referenced first, as this is how the analyzers are loaded
+        if ($EnableCodeCop -or $EnableAppSourceCop -or $EnablePerTenantExtensionCop -or $EnableUICop) {
+            $analyzersCommonDLLPath = Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll'
+            if (Test-Path $analyzersCommonDLLPath) {
+                $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll')")
+            }
+        }
+
         if ($EnableCodeCop) {
             $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
         }

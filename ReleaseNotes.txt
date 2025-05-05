@@ -1,6 +1,7 @@
 6.1.5
 Include AuthContext and Environment in Parameters for InstallMissingDependencies when called from Run-AlPipeline
 AL-Go issue 1695 Fail early if app.json cannot be read
+Issue with BC artifact 27.0.33668.0: app compilation fails because of analyzers not being loaded properly
 
 6.1.4
 Issue 3882 Run-AlPipeline with CompilerFolder and Container defined fails when running tests
@@ -102,7 +103,7 @@ Include AI Toolkit when copying symbols from container
 Issue 3714 Download-BcNuGetPackageToFolder - throws error when use "-select Exact"
 Issue 3621 New-AadAppsForBc shows "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead." but includeOtherServicesAadApp us not setting email permissions
 Issue 3718 Business Central Web Client Fails to Load After Updating to Windows 24H2
-Issue #3703 Missing Function Download-BcEnvironmentInstalledExtensionToFolder    
+Issue #3703 Missing Function Download-BcEnvironmentInstalledExtensionToFolder
 Fix for issue 1262 in AL-Go for GitHub
 Fix instabilities during Publish-PerTenantExtensionApps
 
