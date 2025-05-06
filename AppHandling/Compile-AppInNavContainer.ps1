@@ -188,7 +188,7 @@ try {
                     }
 
                     $assemblyProbingPaths += """$dotnetAssembliesFolder"""
-                    $assemblyProbingPaths = """C:\Program Files\dotnet\shared"",$assemblyProbingPaths"
+                    $assemblyProbingPaths = """C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled"",""C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled"",$assemblyProbingPaths"
                 }
                 else {
                     $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"""
