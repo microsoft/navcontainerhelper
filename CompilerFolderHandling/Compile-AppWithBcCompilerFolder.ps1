@@ -301,7 +301,6 @@ try {
         $probingPaths += @((Join-Path $dllsPath "Service"),(Join-Path $dllsPath "Mock Assemblies"))
     }
 
-    $dotNetRuntimeVersionInstalled = $dotNetRuntimeVersionsInstalled | Where-Object { $_ -lt [System.Version]$bcContainerHelperConfig.AvoidDotNetRuntimeVersionStr } | Sort-Object -Descending | Select-Object -First 1
     $sharedFolder = Join-Path $dllsPath "shared"
     if (Test-Path $sharedFolder) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), $sharedFolder) + $probingPaths

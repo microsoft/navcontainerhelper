@@ -111,7 +111,6 @@ function Get-ContainerHelperConfig {
             "UseIndexForArtifacts" = $true
             "ExcludeBuilds" = @()
             "MinimumDotNetRuntimeVersionStr" = "6.0.16"
-            "AvoidDotNetRuntimeVersionStr" = "9.0.0"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "MSSymbolsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSymbols/nuget/v3/index.json'
             "MSAppsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json'
