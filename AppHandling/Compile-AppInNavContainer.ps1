@@ -156,7 +156,7 @@ try {
     $containerFolder = Get-BcContainerPath -containerName $containerName -path (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName")
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion, $dotNetRuntimeVersionInstalled)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -187,6 +187,24 @@ try {
                         Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
                     }
 
+                    $dotNetRuntimeVersionInstalled = ""
+                    $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
+                    if (Test-Path $dotNetSharedFolder) {
+                        $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
+                        if (Test-Path $netCoreAppFolder) {
+                            $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object {
+                                try {
+                                    if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
+                                        [System.Version] $_.Name
+                                    }
+                                }
+                                catch {
+                                }
+                            }
+                            $dotNetRuntimeVersionInstalled = $versions | Where-Object { $_.Major -ne 9 } | Sort-Object -Descending | Select-Object -First 1
+                        }
+                    }
+
                     $assemblyProbingPaths += """$dotnetAssembliesFolder"""
                     $assemblyProbingPaths = """C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled"",""C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled"",$assemblyProbingPaths"
                 }
@@ -199,7 +217,7 @@ try {
                     }
                 }
                 $assemblyProbingPaths
-            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion, $dotNetRuntimeVersionInstalled
+            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion
         }
     }
 
