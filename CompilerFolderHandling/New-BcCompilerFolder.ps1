@@ -177,6 +177,7 @@ try {
         }
     }
 
+    $dotNetRuntimeVersionInstalled = $dotNetRuntimeVersionsInstalled | Where-Object { $_ -lt [System.Version]$bcContainerHelperConfig.AvoidDotNetRuntimeVersionStr } | Sort-Object -Descending | Select-Object -First 1
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
     if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)) {
         if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {

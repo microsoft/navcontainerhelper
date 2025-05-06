@@ -44,13 +44,13 @@ if (!$silent) {
 }
 $isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersion -like "*-preview*"
 
-$dotNetRuntimeVersionInstalled = [System.Version]::new(0,0,0)
+$dotNetRuntimeVersionsInstalled = @()
 if ($isWindows) {
     $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
     if (Test-Path $dotNetSharedFolder) {
         $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
         if (Test-Path $netCoreAppFolder) {
-            $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
+            $dotNetRuntimeVersionsInstalled = @(Get-ChildItem $netCoreAppFolder | ForEach-Object { 
                 try {
                     if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
                         [System.Version]$_.Name
@@ -58,8 +58,7 @@ if ($isWindows) {
                 }
                 catch {
                 }
-            }
-            $dotNetRuntimeVersionInstalled = $versions | Sort-Object -Descending | Select-Object -First 1
+            })
         }
     }
 }
