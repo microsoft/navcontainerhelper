@@ -156,7 +156,7 @@ try {
     $containerFolder = Get-BcContainerPath -containerName $containerName -path (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName")
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion, $dotNetRuntimeVersionInstalled)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -199,7 +199,7 @@ try {
                     }
                 }
                 $assemblyProbingPaths
-            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion
+            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion, $dotNetRuntimeVersionInstalled
         }
     }
 
