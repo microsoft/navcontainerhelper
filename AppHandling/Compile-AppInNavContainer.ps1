@@ -188,20 +188,26 @@ try {
                     }
 
                     $dotNetRuntimeVersionInstalled = ""
-                    $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
-                    if (Test-Path $dotNetSharedFolder) {
-                        $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
-                        if (Test-Path $netCoreAppFolder) {
-                            $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object {
-                                try {
-                                    if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
-                                        [System.Version] $_.Name
+
+                    if ($platformversion.Major -ge 27) {
+                        # A change in the compiler in version 27 and later requires dotnet, used for assembly probing paths, to be version 8 (but not 9 or later)
+                        $dotnetRequiredMajorVersion = 8
+
+                        $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
+                        if (Test-Path $dotNetSharedFolder) {
+                            $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
+                            if (Test-Path $netCoreAppFolder) {
+                                $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object {
+                                    try {
+                                        if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
+                                            [System.Version] $_.Name
+                                        }
+                                    }
+                                    catch {
                                     }
                                 }
-                                catch {
-                                }
+                                $dotNetRuntimeVersionInstalled = $versions | Where-Object { $_.Major -eq $dotnetRequiredMajorVersion } | Sort-Object -Descending | Select-Object -First 1
                             }
-                            $dotNetRuntimeVersionInstalled = $versions | Where-Object { $_.Major -ne 9 } | Sort-Object -Descending | Select-Object -First 1
                         }
                     }
 
