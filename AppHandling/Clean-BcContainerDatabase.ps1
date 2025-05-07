@@ -86,9 +86,14 @@ try {
             $SystemApplicationFile = ""
         }
         else {
-            $SystemSymbolsFile = ":" + (Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
-                (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app").FullName
-            })
+            if ($platformversion.Major -lt 27) {
+                $SystemSymbolsFile = ":" + (Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+                    (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app").FullName
+                })
+            }
+            else {
+                $SystemSymbolsFile = ""
+            }
             $SystemApplicationFile = ":C:\Applications\System Application\Source\Microsoft_System Application.app"
         }
 
@@ -170,8 +175,10 @@ try {
         Write-Host "Importing license file"
         Import-BcContainerLicense -containerName $containerName -licenseFile $licenseFile[0].FullName
         
-        Write-Host "Publishing System Symbols"
-        Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification -ignoreIfAppExists
+        if ($SystemSymbolsFile) {
+            Write-Host "Publishing System Symbols"
+            Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification -ignoreIfAppExists
+        }
 
         Write-Host "Creating Company"
         New-CompanyInBcContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
