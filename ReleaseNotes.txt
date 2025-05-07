@@ -3,6 +3,7 @@ Include AuthContext and Environment in Parameters for InstallMissingDependencies
 AL-Go issue 1695 Fail early if app.json cannot be read
 Issue with BC artifact 27.0.33668.0: app compilation fails because of analyzers not being loaded properly
 Avoid using dotnet 9 for assemblyProbingPaths (for now)
+SymbolsOnly flag is no longer supported in BC27 (issue 1713 on AL-Go for GitHub)
 
 6.1.4
 Issue 3882 Run-AlPipeline with CompilerFolder and Container defined fails when running tests
