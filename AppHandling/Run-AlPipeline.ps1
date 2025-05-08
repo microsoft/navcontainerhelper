@@ -349,7 +349,7 @@ Param(
     [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
     [switch] $gitLab = $bcContainerHelperConfig.IsGitLab,
     [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
-    [ValidateSet('none','error','warning')]
+    [ValidateSet('none','error','warning','newWarning')]
     [string] $failOn = "none",
     [switch] $treatTestFailuresAsWarnings,
     [switch] $useDevEndpoint,

@@ -110,7 +110,7 @@ function Compile-AppInBcContainer {
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
         [switch] $EnableUICop,
-        [ValidateSet('none','error','warning')]
+        [ValidateSet('none','error','warning','newWarning')]
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
