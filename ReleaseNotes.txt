@@ -1,3 +1,5 @@
+6.1.6
+
 6.1.5
 Include AuthContext and Environment in Parameters for InstallMissingDependencies when called from Run-AlPipeline
 AL-Go issue 1695 Fail early if app.json cannot be read
