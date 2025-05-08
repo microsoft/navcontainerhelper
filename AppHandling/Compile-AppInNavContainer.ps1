@@ -344,7 +344,7 @@ try {
     if ($customConfig.ServerInstance) {
         $publishedApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenant)
             Get-NavAppInfo -ServerInstance $ServerInstance -tenant $tenant
-            Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly
+            Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly -ErrorAction SilentlyContinue
         } -ArgumentList $tenant | Where-Object { $_ -isnot [System.String] }
     }
 
