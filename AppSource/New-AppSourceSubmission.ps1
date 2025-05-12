@@ -213,7 +213,8 @@ try {
             $prevVersion = [System.Version]"0.0.0.0"
             if ([System.Version]::TryParse($property.appVersion, [ref] $prevVersion)) {
                 if ($prevVersion -gt $appVersionNumber) {
-                    throw "The new version number is lower than the existing version number in Partner Center"
+                    # This error message is used in the Federated credentials test in AL-Go for GitHub to determine the next version number for a submission
+                    throw "The new version number ($appVersionNumber) is lower than the existing version number ($prevVersion) in Partner Center"
                 }
             }
         }
