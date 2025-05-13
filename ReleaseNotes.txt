@@ -1,5 +1,8 @@
 6.1.6
 Added a new outcome to failOn = newWarning. For BcContainerHelper it will work as error - in AL-Go for GitHub it will have a meaning.
+Remove support for querying artifacts storage accounts
+Remove setting useIndexForArtifacts - it is always true
+Issue 3938 country code mapping stopped working
 
 6.1.5
 Include AuthContext and Environment in Parameters for InstallMissingDependencies when called from Run-AlPipeline
