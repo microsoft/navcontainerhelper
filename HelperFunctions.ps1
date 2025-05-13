@@ -1841,6 +1841,9 @@ function QueryArtifactsFromIndex {
         $sortIt = $true
     }
     else {
+        if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+            $country = $bcContainerHelperConfig.mapCountryCode."$country"
+        }
         $countries = @($country)
     }
     if (-not $doNotCheckPlatform) {
