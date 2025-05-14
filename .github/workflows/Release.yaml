@@ -108,9 +108,8 @@ jobs:
             New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
             Compress-Archive -path $path -DestinationPath "$($path).zip"
-            $cacheDurationSeconds = 3600 # 1 hour
             Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
-            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Properties @{"CacheControl" = "max-age=$cacheDurationSeconds"} -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Properties @{"CacheControl" = "no-cache"} -Force | Out-Null
             
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
