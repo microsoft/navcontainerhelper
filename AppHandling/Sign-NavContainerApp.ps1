@@ -119,11 +119,11 @@ try {
     
             if (!(Test-Path "C:\Windows\System32\msvcr120.dll")) {
                 Write-Host "Downloading vcredist_x86"
-                (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts.blob.core.windows.net/prerequisites/vcredist_x86.exe','c:\run\install\vcredist_x86.exe')
+                (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/vcredist_x86.exe','c:\run\install\vcredist_x86.exe')
                 Write-Host "Installing vcredist_x86"
                 start-process -Wait -FilePath c:\run\install\vcredist_x86.exe -ArgumentList /q, /norestart
                 Write-Host "Downloading vcredist_x64"
-                (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts.blob.core.windows.net/prerequisites/vcredist_x64.exe','c:\run\install\vcredist_x64.exe')
+                (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/vcredist_x64.exe','c:\run\install\vcredist_x64.exe')
                 Write-Host "Installing vcredist_x64"
                 start-process -Wait -FilePath c:\run\install\vcredist_x64.exe -ArgumentList /q, /norestart
             }
@@ -140,7 +140,7 @@ try {
             } else {
                 Write-Host "Downloading Signing Tools"
                 $winSdkSetupExe = "c:\run\install\winsdksetup.exe"
-                $winSdkSetupUrl = "https://bcartifacts.blob.core.windows.net/prerequisites/winsdksetup.exe"
+                $winSdkSetupUrl = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/winsdksetup.exe"
                 (New-Object System.Net.WebClient).DownloadFile($winSdkSetupUrl,$winSdkSetupExe)
                 Write-Host "Installing Signing Tools"
                 Start-Process $winSdkSetupExe -ArgumentList "/features OptionId.SigningTools /q" -Wait
