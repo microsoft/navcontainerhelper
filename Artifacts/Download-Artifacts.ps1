@@ -154,7 +154,7 @@ try {
                 # Patch wrong license file in ONPREM AU version 20.5.45456.45889
                 if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
                     Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
-                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
+                    Download-File -sourceUrl 'https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
                 }
                 
                 $cuFixMapping = @{
