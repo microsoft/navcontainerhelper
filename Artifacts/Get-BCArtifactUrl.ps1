@@ -221,12 +221,7 @@ try {
                 $parameters["before"] = $before
             }
 
-            if ($bcContainerHelperConfig.useIndexForArtifacts) {
-                $artifacts = QueryArtifactsFromIndex @parameters
-            }
-            else {
-                $artifacts = QueryArtifactsFromStorage @parameters
-            }
+            $artifacts = QueryArtifactsFromIndex @parameters
 
             foreach($excludebuilds in $bccontainerHelperConfig.ExcludeBuilds) {
                 . (Join-Path $PSScriptRoot "../NuGet/NuGetFeedClass.ps1")

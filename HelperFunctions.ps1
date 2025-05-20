@@ -1697,111 +1697,6 @@ function Write-PSCallStack {
     Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName)) Line $($_.ScriptLineNumber))" }
 }
 
-function QueryArtifactsFromStorage {
-    Param(
-        [string] $storageAccount,
-        [string] $Type,
-        [string] $versionPrefix = '',
-        [string] $country = '',
-        [DateTime] $after,
-        [DateTime] $before,
-        [bool] $doNotCheckPlatform = $false
-    )
-
-    $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/?comp=list&restype=container"
-    if ($versionPrefix -ne '') {
-        $GetListUrl += "&prefix=$versionPrefix"
-    }
-
-    $Artifacts = @()
-    $nextMarker = ''
-    $currentMarker = ''
-    $downloadAttempt = 1
-    $downloadRetryAttempts = 10
-    do {
-        if ($currentMarker -ne $nextMarker)
-        {
-            $currentMarker = $nextMarker
-            $downloadAttempt = 1
-        }
-        Write-Verbose "Download String $GetListUrl$nextMarker"
-        try
-        {
-            $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
-            if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
-                # Remove UTF8 BOM
-                $response = $response.Substring(3)
-            }
-            if (([int]$Response[0]) -eq 65279) {
-                # Remove Unicode BOM (PowerShell 7.4)
-                $response = $response.Substring(1)
-            }
-            $enumerationResults = ([xml]$Response).EnumerationResults
-
-            if ($enumerationResults.Blobs) {
-                if (($After) -or ($Before)) {
-                    $artifacts += $enumerationResults.Blobs.Blob | % {
-                        if ($after) {
-                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                            if ($before) {
-                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
-                                    $_.Name
-                                }
-                            }
-                            elseif ($blobModifiedDate -gt $after) {
-                                $_.Name
-                            }
-                        }
-                        else {
-                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                            if ($blobModifiedDate -lt $before) {
-                                $_.Name
-                            }
-                        }
-                    }
-                }
-                else {
-                    $artifacts += $enumerationResults.Blobs.Blob.Name
-                }
-            }
-            $nextMarker = $enumerationResults.NextMarker
-            if ($nextMarker) {
-                $nextMarker = "&marker=$nextMarker"
-            }
-        }
-        catch
-        {
-            $downloadAttempt += 1
-            Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
-            Write-Host
-
-            if ($downloadAttempt -le $downloadRetryAttempts) {
-                Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
-                Write-Host
-            }
-            else {
-                throw
-            }                
-        }
-    } while ($nextMarker)
-
-    if (!([string]::IsNullOrEmpty($country))) {
-        # avoid confusion between base and se
-        $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-        if (!$countryArtifacts) {
-            if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
-                $country = $bcContainerHelperConfig.mapCountryCode."$country"
-                $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-            }
-        }
-        $Artifacts = $countryArtifacts
-    }
-    else {
-        $Artifacts = $Artifacts | Where-Object { $_ -notlike 'indexes/*' -and !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
-    }
-    return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
-}
-
 function GetTempRunnerPath {
     if ($ENV:RUNNER_TEMP) {
         # GitHub Actions temp directory
@@ -1841,6 +1736,9 @@ function QueryArtifactsFromIndex {
         $sortIt = $true
     }
     else {
+        if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+            $country = $bcContainerHelperConfig.mapCountryCode."$country"
+        }
         $countries = @($country)
     }
     if (-not $doNotCheckPlatform) {
