@@ -1,3 +1,5 @@
+6.1.7
+
 6.1.6
 Added a new outcome to failOn = newWarning. For BcContainerHelper it will work as error - in AL-Go for GitHub it will have a meaning.
 Remove support for querying artifacts storage accounts
