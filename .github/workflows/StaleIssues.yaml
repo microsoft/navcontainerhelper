@@ -1,6 +1,7 @@
 name: Mark stale issues
 
 on:
+  workflow_dispatch:
   schedule:
   - cron: '44 5 * * 1' # Monday, 5:44
 
