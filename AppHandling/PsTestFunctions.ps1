@@ -106,6 +106,22 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestType
+(
+    [ValidateSet('UnitTest','IntegrationTest','Uncategorized')]
+    [string] $TestType,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if ($debugMode) {
+        Write-Host "Setting Test Type $TestType"
+    }
+    $testTypeControl = $ClientContext.GetControlByName($Form, "TestType")
+    $ClientContext.SaveValue($testTypeControl, $TestType)
+}
+
 function Set-TestCodeunitRange
 (
     [string] $testCodeunitRange,
@@ -333,6 +349,7 @@ function Get-Tests {
         [string] $testCodeunit = "*",
         [string] $testCodeunitRange = "",
         [string] $extensionId = "",
+        [string] $testType = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
         [switch] $debugMode,
@@ -373,6 +390,9 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($testType)) {
+            Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
@@ -525,6 +545,7 @@ function Run-Tests {
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $testType = "",
         [string] $appName = "",
         [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
@@ -589,6 +610,9 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($testType)) {
+            Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
