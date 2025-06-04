@@ -3,7 +3,7 @@ name: Mark stale issues
 on:
   workflow_dispatch:
   schedule:
-  - cron: '44 5 * * 1' # Monday, 5:44
+  - cron: '44 5 * * 1' # Monday, 5:44 (UTC)
 
 jobs:
   stale:
@@ -12,7 +12,7 @@ jobs:
       issues: write
 
     steps:
-    - uses: actions/stale@v9.1.0
+    - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
       with:
         stale-issue-label: 'stale'
         days-before-issue-stale: 180
