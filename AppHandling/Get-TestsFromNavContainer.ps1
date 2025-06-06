@@ -19,9 +19,9 @@
  .Parameter testSuite
   Name of test suite to get. Default is DEFAULT.
  .Parameter ExtensionId
-  Specifying an extensionId causes the test tool to run all tests in the app with this app id.
+  Specify an extensionId to get all tests in the app.
  .Parameter testType
-  Specify the type of tests to run. This is used to filter the tests that are run.
+  Specify the type of tests to get. Get all tests if not specified.
  .Parameter testCodeunit
   Name or ID of test codeunit to get. Wildcards (? and *) are supported. Default is *.
   This parameter will not populate the test suite with the specified codeunit. This is used as a filter on the tests that are already present
