@@ -118,8 +118,14 @@ function Set-TestType
     if ($debugMode) {
         Write-Host "Setting Test Type $TestType"
     }
+
+    $TypeValues = @{
+        UnitTest = 1
+        IntegrationTest = 2
+        Uncategorized = 3
+    }
     $testTypeControl = $ClientContext.GetControlByName($Form, "TestType")
-    $ClientContext.SaveValue($testTypeControl, $TestType)
+    $ClientContext.SaveValue($testTypeControl, $TypeValues[$TestType])
 }
 
 function Set-TestCodeunitRange
