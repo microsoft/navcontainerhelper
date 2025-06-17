@@ -458,9 +458,19 @@ function GetTestToolkitApps {
                                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                             }
                         }
-                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse) | ? { $_.name -like "Microsoft_Tests-*.app" -or $_.FullName -match '\\Test\\.*[ _]Test(?:s?| Automations).app' } | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse) | ? { $_.name -like "Microsoft_Tests-*.app" -or $_.FullName -match '\\Test\\.*[ _]Test(?:s?| Automations).app' } | Where-Object { ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) }
                     }
                 }
+                # Always exclude these apps
+                $apps = $apps `
+                | Where-Object { $_.name -notlike "Microsoft_E-Document Connector - Avalara Tests.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_E-Document Connector - B2Brouter Tests.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_E-Document Connector - Logiq Tests.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_E-Document Connector - Pagero Tests.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_E-Document Connector - SignUp Tests.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_Service Declaration Tests.app" } `
+                | Where-Object { $_.name -notlike "*Field Service Integration*.app" } `
+                | Where-Object { $_.name -notlike "Microsoft_Tests-SINGLESERVER.app" } 
             }
     
             if ($includePerformanceToolkit) {
