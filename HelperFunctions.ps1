@@ -1,4 +1,4 @@
-if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+﻿if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
     if ($isPsCore) {
         $sslCallbackCode = @"
 using System.Net.Security;
@@ -362,6 +362,22 @@ function Expand-7zipArchive {
     }
 }
 
+function GetSymbolFiles {
+    param (
+        [string] $path,
+        [string] $baseName
+    )
+
+    $filterName = @("$($baseName)_*.*.*.*.app", "$($baseName).app")
+    $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[0])
+
+    if (!$appFiles) {
+        $appFiles = @(Get-ChildItem -Path $path -Filter $filterName[1])
+    }
+
+    return $appFiles
+}
+
 function GetTestToolkitApps {
     Param(
         [string] $containerName,
@@ -376,7 +392,9 @@ function GetTestToolkitApps {
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         # Add Test Framework
         $apps = @()
-        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+        $baseAppFile = GetSymbolFiles -path $symbolsFolder -baseName 'Microsoft_Base Application' | Select-Object -First 1
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile $baseAppFile.FullName
+
         $version = [Version]$baseAppInfo.version
         if ($version -ge [Version]"19.0.0.0") {
             $apps += @('Microsoft_Permissions Mock')
@@ -401,10 +419,14 @@ function GetTestToolkitApps {
                 $apps += @('Microsoft_Performance Toolkit *')
             }
         }
+
         $appFiles = @()
+
         $apps | ForEach-Object {
-            $appFiles += @(get-childitem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app" | Where-Object { ($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing_*.*.*.*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER_*.*.*.*.app" } | ForEach-Object { $_.FullName })
+            $tempAppFiles = GetSymbolFiles -path $symbolsFolder -baseName $_
+            $appFiles += @($tempAppFiles | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER*.app"} | ForEach-Object { $_.FullName })
         }
+
         $appFiles | Select-Object -Unique
     }
     else {
@@ -540,7 +562,7 @@ function CopyAppFilesToFolder {
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-            $appFile = Join-Path $appFileFolder ([Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl.Split('?')[0])))
+            $appFile = Join-Path $appFileFolder ([Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl.Split('?')[0].TrimEnd('/'))))
             Download-File -sourceUrl $appUrl -destinationFile $appFile
             CopyAppFilesToFolder -appFile $appFile -folder $folder
             if (Test-Path $appFileFolder) {
@@ -559,7 +581,7 @@ function CopyAppFilesToFolder {
                     $destFileName = [System.IO.Path]::GetFileName($appFile)
                     $destFile = Join-Path $folder $destFileName
                     if ((Test-Path $destFile) -and ((Get-FileHash -Path $appFile).Hash -ne (Get-FileHash -Path $destFile).Hash)) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                        Write-DevOpsWarning -Message "$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                     }
                     Copy-Item -Path $appFile -Destination $destFile -Force
                     $destFile
@@ -585,7 +607,7 @@ function CopyAppFilesToFolder {
             }
         }
         else {
-            Write-Host -ForegroundColor Red "::WARNING::File not found: $appFile"
+            Write-DevOpsWarning -Message "File not found: $appFile"
         }
     }
 }
@@ -1075,7 +1097,6 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'linux'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
             $alToolExists = $true
         }
@@ -1090,7 +1111,6 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'darwin'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & chmod +x $command
             $alToolExists = $true
         }
@@ -1149,7 +1169,7 @@ function GetAppInfo {
                         LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
                         LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
                         if (Test-Path (Join-Path $alcDllPath System.IO.Packaging.dll)) {
-        		            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
+                            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
                         }
                         LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
                         $assembliesAdded = $true
@@ -1317,7 +1337,6 @@ function RunAlTool {
     if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
@@ -1329,7 +1348,6 @@ function RunAlTool {
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
         if (Test-Path $command) {
-            Write-Host "Setting execute permissions on altool"
             & chmod +x $command
         }
         else {
@@ -1413,6 +1431,28 @@ function Write-GroupEnd {
      switch ($true) {
         $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
         $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
+}
+
+function Write-DevOpsWarning {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::warning::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=warning]$Message"; break }
+        Default { Write-Host -ForegroundColor Yellow $Message }
+    }
+}
+
+function Write-DevOpsError {
+    Param(
+        [string] $Message
+    )
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::error::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##vso[task.logissue type=error]$Message"; break }
+        Default { Write-Host -ForegroundColor Red $Message }
     }
 }
 
@@ -1565,6 +1605,9 @@ function GetContainerOs {
     elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
         $containerOs = "ltsc2022"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.26100.')) {
+        $containerOs = "ltsc2025"
+    }
     else {
         $containerOs = "unknown"
     }
@@ -1581,7 +1624,12 @@ function GetHostOs {
 
     $hostOs = "Unknown/Insider build"
     if ($os.BuildNumber -eq 26100) {
-        $hostOs = "24H2"
+        if ($isServerHost) {
+            $hostOs = "ltsc2025"
+        }
+        else {
+            $hostOs = "24H2"
+        }
     }
     elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
@@ -1650,4 +1698,110 @@ function Write-PSCallStack {
     )
     Write-Host "PS CallStack $message :"
     Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName)) Line $($_.ScriptLineNumber))" }
+}
+
+function GetTempRunnerPath {
+    if ($ENV:RUNNER_TEMP) {
+        # GitHub Actions temp directory
+        return $ENV:RUNNER_TEMP
+    }
+    elseif ($ENV:AGENT_TEMPDIRECTORY) {
+        # Azure DevOps temp directory
+        return $ENV:AGENT_TEMPDIRECTORY
+    }
+    else {
+        # Machine temp directory
+        return ([System.IO.Path]::GetTempPath())
+    }
+}
+
+function QueryArtifactsFromIndex {
+    Param(
+        [string] $storageAccount,
+        [string] $Type,
+        [string] $versionPrefix = '',
+        [string] $country = '',
+        [DateTime] $after,
+        [DateTime] $before,
+        [bool] $doNotCheckPlatform = $false
+    )
+
+    $indexesContainerUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/indexes"
+    $artifacts = @()
+    $sortIt = $false
+    if ($country -eq '') {
+        # countries unsettled, get all countries
+        $countriesUrl = "$indexesContainerUrl/countries.json"
+        $countriesFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.countries.json"
+        Download-File -sourceUrl $countriesUrl -destinationFile $countriesFile -Description "Countries index"
+        $countries = [System.IO.File]::ReadAllText($countriesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $countries = $countries | Where-Object { $_ -ne "platform" }
+        $sortIt = $true
+    }
+    else {
+        if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+            $country = $bcContainerHelperConfig.mapCountryCode."$country"
+        }
+        $countries = @($country)
+    }
+    if (-not $doNotCheckPlatform) {
+        # Checking whether platform exists in the index for the country
+        $platformUrl = "$indexesContainerUrl/platform.json"
+        $platformFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.platform.json"
+        Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
+        $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
+    }
+    $countries | ForEach-Object {
+        $country = $_
+        $countryUrl = "$indexesContainerUrl/$country.json"
+        $countryFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.$($country).json"
+        Download-File -sourceUrl $countryUrl -destinationFile $countryFile -Description "$country index"
+        $countryArtifacts = [System.IO.File]::ReadAllText($countryFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $countryArtifacts = $countryArtifacts | Where-Object { $_.Version -like "$($versionPrefix)*" }
+        if ($doNotCheckPlatform -and (!$after) -and (!$before)) {
+            $artifacts += $countryArtifacts | ForEach-Object { "$($_.Version)/$country" }
+        }
+        else {
+            $artifacts += $countryArtifacts | ForEach-Object {
+                $platformOK = $doNotCheckPlatform
+                if (-not $doNotCheckPlatform) {
+                    $platformOK = $platformArtifacts.Contains($_.Version)
+                }
+                if ($platformOK) {
+                    if ($after -or $before) {
+                        if ($_."CreationTime" -is [datetime]) {
+                            $blobModifiedDate = $_."CreationTime"
+                        }
+                        else {
+                            $blobModifiedDate = [DateTime]::Parse($_."CreationTime")
+                        }
+                        if ($after) {
+                            if ($before) {
+                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                    "$($_.Version)/$country"
+                                }
+                            }
+                            elseif ($blobModifiedDate -gt $after) {
+                                "$($_.Version)/$country"
+                            }
+                        }
+                        else {
+                            if ($blobModifiedDate -lt $before) {
+                                "$($_.Version)/$country"
+                            }
+                        }
+                    }
+                    else {
+                        "$($_.Version)/$country"
+                    }
+                }
+            }
+        }
+    }
+    if ($sortIt) {
+        return $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
+    }
+    else {
+        return $Artifacts
+    }
 }

@@ -40,9 +40,13 @@ try {
         # Everything before Windows Server 2022 uses ltsc2019
         $ltscVersion = 'ltsc2019'
     }
-    else {
+    elseif ("$hostOsVersion" -lt [System.Version]"10.0.26100.0") {
         # Default is ltsc2022
         $ltscVersion = 'ltsc2022'
+    }
+    else {
+        # Default is ltsc2025
+        $ltscVersion = 'ltsc2025'
     }
 
     if ($filesOnly) {

@@ -139,7 +139,12 @@ try {
     }
 
     if ($os.BuildNumber -eq 26100) {
-        $hostOs = "24H2"
+        if ($isServerHost) {
+            $hostOs = "ltsc2025"
+        }
+        else {
+            $hostOs = "24H2"
+        }
     }
     elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
@@ -510,7 +515,13 @@ try {
                 RobocopyFiles -source "$platformArtifactPath" -destination "$navDvdPath" -e
         
                 if (!$skipDatabase) {
-                    $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
+                    $CommonData = "CommApp"
+                    if ($appManifest.version -lt [Version]"27.0.33344.0")
+                    {
+                        $CommonData = "CommonAppData"
+                    }
+
+                    $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\$CommonData\Microsoft\Microsoft Dynamics NAV\ver\Database"
                     New-Item $dbPath -ItemType Directory | Out-Null
                     if (($databaseBackupPath) -and (Test-Path $databaseBackupPath -PathType Leaf))
                     {

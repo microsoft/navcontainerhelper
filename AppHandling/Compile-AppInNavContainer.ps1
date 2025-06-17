@@ -110,7 +110,7 @@ function Compile-AppInBcContainer {
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
         [switch] $EnableUICop,
-        [ValidateSet('none','error','warning')]
+        [ValidateSet('none','error','warning','newWarning')]
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
@@ -344,7 +344,7 @@ try {
     if ($customConfig.ServerInstance) {
         $publishedApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenant)
             Get-NavAppInfo -ServerInstance $ServerInstance -tenant $tenant
-            Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly
+            Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly -ErrorAction SilentlyContinue
         } -ArgumentList $tenant | Where-Object { $_ -isnot [System.String] }
     }
 
@@ -648,6 +648,15 @@ try {
         if ($GenerateReportLayoutParam) {
             $alcParameters += @($GenerateReportLayoutParam)
         }
+
+        # Microsoft.Dynamics.Nav.Analyzers.Common.dll needs to referenced first, as this is how the analyzers are loaded
+        if ($EnableCodeCop -or $EnableAppSourceCop -or $EnablePerTenantExtensionCop -or $EnableUICop) {
+            $analyzersCommonDLLPath = Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll'
+            if (Test-Path $analyzersCommonDLLPath) {
+                $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll')")
+            }
+        }
+
         if ($EnableCodeCop) {
             $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
         }

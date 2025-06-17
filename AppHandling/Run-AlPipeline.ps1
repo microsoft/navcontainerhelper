@@ -349,7 +349,7 @@ Param(
     [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
     [switch] $gitLab = $bcContainerHelperConfig.IsGitLab,
     [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
-    [ValidateSet('none','error','warning')]
+    [ValidateSet('none','error','warning','newWarning')]
     [string] $failOn = "none",
     [switch] $treatTestFailuresAsWarnings,
     [switch] $useDevEndpoint,
@@ -476,11 +476,20 @@ function UpdateLaunchJson {
 
 function GetInstalledApps {
     Param(
+        [hashtable] $bcAuthContext,
+        [string] $environment,
         [bool] $useCompilerFolder,
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($useCompilerFolder) {
+    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
+        # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
+        $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
+        $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
+            @{ "AppId" = $_.id; "Publisher" = $_.publisher; "Name" = $_.displayName; "Version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+        }
+    }
+    elseif ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
         $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
@@ -504,8 +513,9 @@ function GetInstalledApps {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
             "tenant" = $tenant
+            "tenantSpecificProperties" = $true
         }
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -874,10 +884,12 @@ if ($updateLaunchJson) {
 
 if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
-    if (Test-Path $packagesFolder) {
-        Remove-Item $packagesFolder -Recurse -Force
+    if (!($bcContainerHelperConfig.doNotRemovePackagesFolderIfExists)) {
+        if (Test-Path $packagesFolder) {
+            Remove-Item $packagesFolder -Recurse -Force
+        }
     }
-    New-Item $packagesFolder -ItemType Directory | Out-Null
+    New-Item $packagesFolder -ItemType Directory -Force | Out-Null 
 }
 
 if ($useDevEndpoint) {
@@ -1444,6 +1456,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1461,8 +1474,10 @@ Write-GroupEnd
 }
 
 if ($InstallMissingDependencies) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+if ($installedApps) {
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1495,6 +1510,13 @@ Measure-Command {
         $Parameters += @{
             "containerName" = (GetBuildcontainer)
             "tenant" = $tenant
+        }
+    }
+
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
         }
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
@@ -1626,6 +1648,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1638,8 +1661,10 @@ Write-GroupEnd
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -1832,6 +1857,7 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
         if (!$doNotPublishApps) {
@@ -1848,8 +1874,10 @@ Measure-Command {
 Write-GroupEnd
 
 if ($InstallMissingDependencies) {
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
-$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
+if ($installedApps) {
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
+}
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
@@ -2264,6 +2292,7 @@ Write-Host -ForegroundColor Yellow @'
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "checkAlreadyInstalled" = $true
             }
         }
 
@@ -2406,6 +2435,7 @@ Measure-Command {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
     
@@ -2448,6 +2478,7 @@ Measure-Command {
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
                     "replacePackageId" = $true
+                    "checkAlreadyInstalled" = $true
                 }
             }
             if (!$doNotPublishApps) {
@@ -2486,8 +2517,9 @@ if (!($bcAuthContext)) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
+        "tenantSpecificProperties" = $true
     }
-    $alreadyInstalledApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $alreadyInstalledApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
 }
 
 $upgradedApps = @()
@@ -2520,6 +2552,7 @@ $apps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2567,6 +2600,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "checkAlreadyInstalled" = $true
         }
     }
 
@@ -2629,7 +2663,7 @@ Write-GroupStart -Message "Backing up databases"
 Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = (GetBuildContainer)}
 Write-GroupEnd
 }
-
+}
 
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
@@ -2702,11 +2736,12 @@ $testFolders | ForEach-Object {
     }
 }
 
-$installedApps = @(GetInstalledApps -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    if ($installedApps.Id -notcontains $id) {
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
     $folder = $testAppIds."$id"
@@ -2734,6 +2769,7 @@ $testAppIds.Keys | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
+        "appName" = $installedApp.Name
         "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
@@ -2862,7 +2898,7 @@ if ($testCountry) {
 $containerName = (GetBuildContainer)
 
 # Install npm package for page scripting tests
-pwsh -command { npm i @microsoft/bc-replay --save }
+pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
 
 ${env:containerUsername} = $credential.UserName
 ${env:containerPassword} = $credential.Password | Get-PlainText
@@ -2933,7 +2969,6 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
     if (-not $treatTestFailuresAsWarnings) {
         throw "There are test failures!"
     }
-}
 }
 }
 

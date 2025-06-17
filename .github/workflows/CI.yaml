@@ -252,7 +252,7 @@ jobs:
           
             Compress-Archive -path $path -DestinationPath "$($path).zip"
             Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Properties @{"CacheControl" = "no-cache"} -Force | Out-Null
           
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags

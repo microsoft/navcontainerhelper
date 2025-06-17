@@ -5,8 +5,8 @@ function New-ALGoAppSourceContext {
         [switch] $skipTest
     )
 
-    if ($authContext.scopes -ne "https://api.partner.microsoft.com/.default" -and $authContext.scopes -ne "https://api.partner.microsoft.com/") {
-        Write-Host -ForegroundColor Red "AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://api.partner.microsoft.com/.default'"
+    if ($authContext.scopes -ne "https://api.partner.microsoft.com/.default" -and $authContext.scopes -ne "https://api.partner.microsoft.com/" -and $authContext.scopes -ne "https://api.partner.microsoft.com/user_impersonation offline_access") {
+        Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://api.partner.microsoft.com/.default' or 'https://api.partner.microsoft.com/user_impersonation offline_access'"
     }
 
     if ($authContext.ClientSecret) {

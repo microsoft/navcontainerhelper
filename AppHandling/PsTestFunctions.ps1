@@ -106,6 +106,28 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestType
+(
+    [ValidateSet('UnitTest','IntegrationTest','Uncategorized')]
+    [string] $TestType,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if ($debugMode) {
+        Write-Host "Setting Test Type $TestType"
+    }
+
+    $TypeValues = @{
+        UnitTest = 1
+        IntegrationTest = 2
+        Uncategorized = 3
+    }
+    $testTypeControl = $ClientContext.GetControlByName($Form, "TestType")
+    $ClientContext.SaveValue($testTypeControl, $TypeValues[$TestType])
+}
+
 function Set-TestCodeunitRange
 (
     [string] $testCodeunitRange,
@@ -333,6 +355,7 @@ function Get-Tests {
         [string] $testCodeunit = "*",
         [string] $testCodeunitRange = "",
         [string] $extensionId = "",
+        [string] $testType = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
         [switch] $debugMode,
@@ -373,6 +396,9 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($testType)) {
+            Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
@@ -525,6 +551,8 @@ function Run-Tests {
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $testType = "",
+        [string] $appName = "",
         [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
         [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
@@ -588,6 +616,9 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($testType)) {
+            Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
@@ -736,6 +767,16 @@ function Run-Tests {
                     $property.SetAttribute("name","extensionid")
                     $property.SetAttribute("value", $extensionId)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+
+                    if (-not $appName -and $process) {
+                        $appName = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
+                    }
+                    if ($appName) {
+                        $property = $JUnitDoc.CreateElement("property")
+                        $property.SetAttribute("name","appName")
+                        $property.SetAttribute("value", $appName)
+                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                    }
                 }
 
                 if ($process) {
@@ -743,16 +784,6 @@ function Run-Tests {
                     $property.SetAttribute("name","processinfo.start")
                     $property.SetAttribute("value", $processinfostart)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-
-                    if ($extensionid) {
-                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
-                        if ($appname) {
-                            $property = $JUnitDoc.CreateElement("property")
-                            $property.SetAttribute("name","appName")
-                            $property.SetAttribute("value", $appName)
-                            $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-                        }
-                    }
 
                     if ($dumpAppsToTestOutput) {
                         $versionInfo = (Get-Item -Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo

@@ -26,7 +26,7 @@ Function Convert-AlcOutputToDevOps {
         [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         $AlcOutput,
         [Parameter(Position=1)]
-        [ValidateSet('none','error','warning')]
+        [ValidateSet('none','error','warning','newWarning')]
         [string] $FailOn,
         [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $doNotWriteToHost,

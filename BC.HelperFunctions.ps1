@@ -108,7 +108,7 @@ function Get-ContainerHelperConfig {
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
-            "DoNotUseCdnForArtifacts" = $false
+            "ExcludeBuilds" = @()
             "MinimumDotNetRuntimeVersionStr" = "6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "MSSymbolsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSymbols/nuget/v3/index.json'
@@ -120,6 +120,8 @@ function Get-ContainerHelperConfig {
             "IsGitLab" = ($env:GITLAB_CI -eq "true")
             "useApproximateVersion" = $false
             "useSqlServerModule" = $false
+            "NuGetSearchResultsCacheRetentionPeriod" = 600 # 10 minutes
+            "doNotRemovePackagesFolderIfExists" = $false
         }
 
         if ($isInsider) {

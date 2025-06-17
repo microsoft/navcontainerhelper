@@ -154,7 +154,7 @@ try {
                 # Patch wrong license file in ONPREM AU version 20.5.45456.45889
                 if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
                     Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
-                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
+                    Download-File -sourceUrl 'https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
                 }
                 
                 $cuFixMapping = @{
@@ -257,7 +257,7 @@ try {
                             }
                         }
                         $ad1DLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
-                        $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                        $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\*\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
                         if ((Test-Path $ad1DLL) -and (Test-Path $ad2DLL)) {
                             if ((Get-Item $ad1DLL).Length -ne (Get-Item $ad2DLL).Length) {
                                 Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $ad1DLL"
