@@ -1,5 +1,6 @@
 6.1.7
 Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
+Add support for TestType field when running tests
 
 6.1.6
 Added a new outcome to failOn = newWarning. For BcContainerHelper it will work as error - in AL-Go for GitHub it will have a meaning.
