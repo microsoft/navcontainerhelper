@@ -492,7 +492,6 @@ function GetTestToolkitApps {
     }
 }
 
-
 function GetExtendedErrorMessage {
     Param(
         $errorRecord
