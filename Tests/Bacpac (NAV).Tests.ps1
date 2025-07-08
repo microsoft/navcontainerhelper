@@ -12,7 +12,8 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-Describe 'Bacpac' {
+# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
+Describe 'Bacpac' -Skip {
 
     It 'Backup-NavContainerDatabases' {
 
@@ -23,7 +24,7 @@ Describe 'Bacpac' {
                                      -bakFolder $bakFolder
 
         $bakFile | Should -Exist
-                
+
         New-NavContainer -accept_eula `
                          -accept_outdated `
                          -artifactUrl $navArtifactUrl `

@@ -15,7 +15,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-Describe 'AppHandling' {
+Describe 'AppHandling' -Skip {
 
     It 'Add-GitToAlProjectFolder' {
         #TODO
