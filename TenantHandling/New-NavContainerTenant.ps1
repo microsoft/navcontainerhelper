@@ -36,7 +36,7 @@ function New-BcContainerTenant {
         [string[]] $alternateId = @(),
         [switch] $allowAppDatabaseWrite,
         [switch] $doNotCopyDatabase,
-        [string] $applicationInsightsKey = ""
+        [string] $applicationInsightsKey = "",
         [string] $aadTenantId = ""
     )
 
