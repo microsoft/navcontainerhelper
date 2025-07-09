@@ -17,7 +17,8 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-Describe 'ObjectHandling' {
+# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
+Describe 'ObjectHandling' -Skip {
 
     It 'Import-ObjectsToNavContainer (.txt)' {
         Import-ObjectsToNavContainer -containerName $navContainerName `

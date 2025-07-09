@@ -16,7 +16,8 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-Describe 'AppHandling' {
+# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
+Describe 'AppHandling' -Skip {
 
     It 'Get/RunTests' {
         $artifactUrl = Get-BCArtifactUrl -type OnPrem -version "$runTestsInVersion" -country "w1" -select Latest
@@ -38,7 +39,7 @@ Describe 'AppHandling' {
 
         $tests = (Get-TestsFromNavContainer -containerName $navContainerName -credential $credential).Codeunits
         $tests.Count | Should -be 2
-    
+
         $first = $true
         $resultsFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$navContainerName\result.xml"
         $tests | % {
