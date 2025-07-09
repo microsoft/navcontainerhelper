@@ -19,6 +19,8 @@
   Include this switch if the tenant should have AllowAppDatabaseWrite set
  .Parameter doNotCopyDatabase
   Mount the database specified in destinationDatabase. Do not copy source database.
+ .Parameter aadTenantId
+  Specify a AADTenantId for service 2 service connections
  .Example
   New-BcContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -34,7 +36,8 @@ function New-BcContainerTenant {
         [string[]] $alternateId = @(),
         [switch] $allowAppDatabaseWrite,
         [switch] $doNotCopyDatabase,
-        [string] $applicationInsightsKey = ""
+        [string] $applicationInsightsKey = "",
+        [string] $aadTenantId = ""
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -73,6 +76,9 @@ try {
         }
         if ($applicationInsightsKey) {
             $Params += @{ "applicationInsightsInstrumentationKey" = $applicationInsightsKey }
+        }
+        if ($aadTenantId) {
+            $Params += @{ "AadTenantId" = $aadTenantId }
         }
 
         # Setup tenant
