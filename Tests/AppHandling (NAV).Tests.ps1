@@ -15,8 +15,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
-Describe 'AppHandling' -Skip {
+Describe 'AppHandling' {
 
     It 'Add-GitToAlProjectFolder' {
         #TODO
