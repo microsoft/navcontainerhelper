@@ -7,9 +7,11 @@ $bcContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensio
 $bcMyPath = Join-Path $bcContainerPath "my"
 
 if ($sandbox) {
-    $bcArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" -country "us" -select 'Closest'
+    $bcArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -country "us" -select 'Current'
+    $artifactPath = Download-Artifacts -artifactUrl $bcArtifactUrl
+    $manifest = Get-Content (Join-Path $artifactPath "manifest.json" -Resolve) | ConvertFrom-Json
     $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
-    $bcContainerPlatformVersion = "17.0.18204.30560"
+    $bcContainerPlatformVersion = $manifest.platform
     New-BCContainer -accept_eula `
                     -accept_outdated `
                     -containerName $bcContainerName `
@@ -24,9 +26,12 @@ if ($sandbox) {
                     -includeTestLibrariesOnly
 }
 else {
-    $bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "17.0" -country w1
+    $bcArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -country "w1" -select 'Current'
+    $artifactPath = Download-Artifacts -artifactUrl $bcArtifactUrl
+    $manifest = Get-Content (Join-Path $artifactPath "manifest.json" -Resolve) | ConvertFrom-Json
+
     $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
-    $bcContainerPlatformVersion = '17.0.16974.0'
+    $bcContainerPlatformVersion = $manifest.platform
     New-BCContainer -accept_eula `
                     -accept_outdated `
                     -containerName $bcContainerName `
