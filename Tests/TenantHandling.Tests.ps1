@@ -12,8 +12,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
 }
 
-# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
-Describe 'TenantHandling' -Skip {
+Describe 'TenantHandling' {
 
     It 'Get-BcContainerTenants' {
         Get-BcContainerTenants -containerName $bcContainerName | Should -Not -BeNullOrEmpty
