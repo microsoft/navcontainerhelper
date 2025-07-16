@@ -198,7 +198,7 @@
  .Parameter PipelineInitialize
   Override for Pipeline Initialize
  .Parameter PipelineFinalize
-  Override for Pipeline Finalize 
+  Override for Pipeline Finalize
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -889,7 +889,7 @@ if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
             Remove-Item $packagesFolder -Recurse -Force
         }
     }
-    New-Item $packagesFolder -ItemType Directory -Force | Out-Null 
+    New-Item $packagesFolder -ItemType Directory -Force | Out-Null
 }
 
 if ($useDevEndpoint) {
@@ -2367,6 +2367,21 @@ Write-Host -ForegroundColor Yellow @'
         $apps += $appFile
         $appsFolder += @{ "$appFile" = $folder }
     }
+
+    # Make sure all dependencies are copied from the app packages folder the dependencies folder if generateDependencyArtifact is set to $true
+    if ($generateDependencyArtifact) {
+        Write-Host "Copying dependencies from $appPackagesFolder to $dependenciesFolder"
+        Get-ChildItem -Path $appPackagesFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+            $destName = Join-Path $dependenciesFolder $_.Name
+            if (Test-Path $destName) {
+                 Write-Host "- $destName already exists"
+            }
+            else {
+                Write-Host "+ Copying $($_.FullName) to $destName"
+                Copy-Item -Path $_.FullName -Destination $destName -Force
+            }
+        }
+    }
 }
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
 Write-GroupEnd
@@ -2430,7 +2445,7 @@ Measure-Command {
         "upgrade" = $true
         "ignoreIfAppExists" = $true
 }
-    
+
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
@@ -2438,7 +2453,7 @@ Measure-Command {
             "checkAlreadyInstalled" = $true
         }
     }
-    
+
     if (!$doNotPublishApps) {
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
