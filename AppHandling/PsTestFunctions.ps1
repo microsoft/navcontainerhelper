@@ -106,6 +106,29 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-RequiredTestIsolation
+(
+    [ValidateSet('None','Disabled','Codeunit','Function')]
+    [string] $RequiredTestIsolation,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if ($debugMode) {
+        Write-Host "Setting Required Test Isolation $RequiredTestIsolation"
+    }
+
+    $TestIsolationValues = @{
+        None = 0
+        Disabled = 1
+        Codeunit = 2
+        Function = 3
+    }
+    $requiredTestIsolationControl = $ClientContext.GetControlByName($Form, "RequiredTestIsolation")
+    $ClientContext.SaveValue($requiredTestIsolationControl, $TestIsolationValues[$RequiredTestIsolation])
+}
+
 function Set-TestType
 (
     [ValidateSet('UnitTest','IntegrationTest','Uncategorized')]
@@ -355,6 +378,7 @@ function Get-Tests {
         [string] $testCodeunit = "*",
         [string] $testCodeunitRange = "",
         [string] $extensionId = "",
+        [string] $requiredTestIsolation = "",
         [string] $testType = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
@@ -396,6 +420,9 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($requiredTestIsolation)) {
+            Set-RequiredTestIsolation -RequiredTestIsolation $requiredTestIsolation -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         if (![string]::IsNullOrEmpty($testType)) {
             Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
         }
@@ -551,6 +578,7 @@ function Run-Tests {
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $requiredTestIsolation = "",
         [string] $testType = "",
         [string] $appName = "",
         [string] $testRunnerCodeunitId,
@@ -616,6 +644,9 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        if (![string]::IsNullOrEmpty($requiredTestIsolation)) {
+            Set-RequiredTestIsolation -RequiredTestIsolation $requiredTestIsolation -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        }
         if (![string]::IsNullOrEmpty($testType)) {
             Set-TestType -TestType $testType -Form $form -ClientContext $clientContext -debugMode:$debugMode
         }
