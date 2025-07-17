@@ -63,8 +63,19 @@ try {
                     $exitedDaysAgo = [DateTime]::Now.Subtract($finishedAt).Days
                     if ($exitedDaysAgo -ge $keepDays) {
                         if (($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
-                            Write-Host "Removing container $containerName"
-                            docker rm $containerID -f
+                            if ($caches.Contains('ALGoContainersOnly')) {
+                                if ($inspect.Config.Labels.psobject.Properties.Match('creator').Count -ne 0 -and $inspect.Config.Labels.creator -eq "AL-Go") {
+                                    Write-Host "Removing container $containerName"
+                                    docker rm $containerID -f
+                                } 
+                                else {
+                                    Write-Host "Container $containerName (exited $exitedDaysAgo day$(if($exitedDaysAgo -ne 1){'s'}) ago) is recognized as a Business Central Container, but was not created by AL-Go - not removing"
+                                }
+                            } 
+                            else {
+                                Write-Host "Removing container $containerName"
+                                docker rm $containerID -f
+                            }   
                         }
                         else {
                             Write-Host "Container $containerName (exited $exitedDaysAgo day$(if($exitedDaysAgo -ne 1){'s'}) ago) is not recognized as a Business Central Container - not removing"
