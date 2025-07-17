@@ -12,7 +12,6 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
 }
 
-# Test is disabled because of an error with missing ODBC driver when importing .fob files (supported only on older versions of NAV)
 Describe 'Bacpac' -Skip {
 
     It 'Export-NavContainerDatabasesAsBacpac (multitenant)' {
