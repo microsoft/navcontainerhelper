@@ -156,12 +156,12 @@ try {
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = '8874ed3a-0643-4247-9ced-7a7002f7135d'; "version" = $appJsonObject.platform }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
@@ -206,11 +206,11 @@ try {
                 Copy-Item -Path $copyCompilerFolderApp.path -Destination $appSymbolsFolder -Force
                 if ($copyCompilerFolderApp.Application) {
                     if (!($dependencies | where-Object { $_.Name -eq 'Application'})) {
-                        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $copyCompilerFolderApp.Application }
+                        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $copyCompilerFolderApp.Application }
                     }
                 }
                 if (!($dependencies | where-Object { ($_.Name -eq "System") -and ($_.Publisher -eq "Microsoft") })) {
-                    $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $copyCompilerFolderApp.Platform }
+                    $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = '8874ed3a-0643-4247-9ced-7a7002f7135d'; "version" = $copyCompilerFolderApp.Platform }
                 }
                 $addDependencies += $copyCompilerFolderApp.Dependencies
             }

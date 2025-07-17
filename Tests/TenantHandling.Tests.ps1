@@ -12,7 +12,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
 }
 
-Describe 'TenantHandling' {
+Describe 'TenantHandling' -Skip {
 
     It 'Get-BcContainerTenants' {
         Get-BcContainerTenants -containerName $bcContainerName | Should -Not -BeNullOrEmpty

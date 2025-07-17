@@ -11,6 +11,8 @@ on:
         description: Commaseparated list of patterns to match against test names (default is * for all tests)
         required: false
         default: ''
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight UTC
 
 permissions:
   contents: read
