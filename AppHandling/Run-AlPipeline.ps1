@@ -2922,18 +2922,22 @@ $pageScriptingTests | ForEach-Object {
     $path = $testSpec
     if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
     if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
-    Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
+    Write-Host "(TEST) Running Page Scripting Tests for $testSpec (test name: $name)"
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    $thisFailed = pwsh -command {
-        try {
+    try {
+        pwsh -command {
             npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
-        } catch {
-            Write-Host "Error running page scripting test $($args[0]) - $($_.Exception.Message)"
-            return $true
+        } -args $path, $resultsFolder, $startAddress
+        if ($? -ne "True") {
+            Write-Host "Page Scripting Tests failed for $testSpec"
+            $thisFailed = $true
         }
-        return $false
-    } -args $path, $resultsFolder, $startAddress
+    } catch {
+        $thisFailed = $true
+        Write-Host -ForegroundColor Red "Page Scripting Tests failed for $testSpec : $($_.Exception.Message)"
+    }
+
     if ($thisFailed) {
         Write-Host "Page Scripting Tests failed for $testSpec"
         $allPassed = $false
