@@ -2925,13 +2925,18 @@ $pageScriptingTests | ForEach-Object {
     Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    pwsh -command {
-        npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+    $thisFailed = pwsh -command {
+        try {
+            npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+        } catch {
+            Write-Host "Error running page scripting test $($args[0]) - $($_.Exception.Message)"
+            return $true
+        }
+        return $false
     } -args $path, $resultsFolder, $startAddress
-    if ($? -ne "True") {
+    if ($thisFailed) {
         Write-Host "Page Scripting Tests failed for $testSpec"
         $allPassed = $false
-        $thisFailed = $true
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
     $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
