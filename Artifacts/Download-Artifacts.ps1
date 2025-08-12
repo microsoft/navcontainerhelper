@@ -127,13 +127,34 @@ try {
             $appUri = [Uri]::new($artifactUrl)
     
             $appArtifactPath = Join-Path $basePath $appUri.AbsolutePath
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             $exists = Test-Path $appArtifactPath
+
+            # if the force switch is set, we remove the existing artifact and redownload it
             if ($exists -and $force) {
                 Remove-Item $appArtifactPath -Recurse -Force
                 $exists = $false
             }
+
+            # If the artifact exists and includePlatform or forceRedirection is set, we also need the manifest file
+            if ($exists -and ($includePlatform -or $forceRedirection) -and (-not (Test-Path $appManifestPath))) {
+                Remove-Item $appArtifactPath -Recurse -Force
+                $exists = $false
+            }
+
+            # Test if the manifest file exists and is not corrupt
+            if ($exists -and (Test-Path $appManifestPath)) {
+                try {
+                    Get-Content $appManifestPath | ConvertFrom-Json | Out-Null
+                }
+                catch {
+                    Write-Host "ERROR: Manifest file is corrupt, removing $appArtifactPath and redownloading"
+                    Remove-Item $appArtifactPath -Recurse -Force
+                    $exists = $false
+                }
+            }
+
             if ($exists -and $forceRedirection) {
-                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
                 if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
                     # redirect artifacts are always downloaded
@@ -141,13 +162,13 @@ try {
                     $exists = $false
                 }
             }
+
             if (-not $exists) {
                 Write-Host "Downloading artifact $($appUri.AbsolutePath)"
                 DownloadPackage -artifactUrl $artifactUrl -destinationPath $appArtifactPath -timeout $timeout | Out-Null
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
 
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             if (Test-Path $appManifestPath) {
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
