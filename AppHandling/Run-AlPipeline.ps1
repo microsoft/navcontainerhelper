@@ -2922,7 +2922,7 @@ $pageScriptingTests | ForEach-Object {
     $path = $testSpec
     if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
     if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
-    Write-Host "(TEST) Running Page Scripting Tests for $testSpec (test name: $name)"
+    Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     try {
