@@ -3,6 +3,7 @@ Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
 Add support for TestType field when running tests
 Issue 3943 Error downloading symbols for Microsoft_System
 Add support for RequiredTestIsolation field when running tests
+Catch errors when page scripting tests are failing
 
 6.1.6
 Added a new outcome to failOn = newWarning. For BcContainerHelper it will work as error - in AL-Go for GitHub it will have a meaning.
