@@ -84,6 +84,30 @@ try {
         $memoryStream = [System.IO.MemoryStream]::new($content)
         $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
         $prevdir = ""
+
+        # If the app file is a ready-to-run app, it will have the real app file embedded inside the original app file.
+        $appFileInArchive = $zipArchive.Entries | Where-Object { $_.FullName -like "*.app" }
+        if ($appFileInArchive) {
+            Write-Host "Extracting app file from archive"
+
+            # Create a temporary folder to extract the app file to
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            $fullname = Join-Path $tmpFolder ([Uri]::UnescapeDataString($appFileInArchive.FullName))
+            New-Item -Path $tmpFolder -ItemType Directory -Force | Out-Null
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($appFileInArchive, $fullname)
+            $zipArchive.Close()
+            $memoryStream.Close()
+
+            try {
+                # Call the Extract-AppFileToFolder function again to extract the content of the app file
+                Extract-AppFileToFolder -appFilename $fullname -appFolder $appFolder -generateAppJson:$generateAppJson -excludeRuntimeProperty:$excludeRuntimeProperty -latestSupportedRuntimeVersion:$latestSupportedRuntimeVersion -openFolder:$openFolder
+            } finally {
+                # Clean up the temporary folder
+                Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            return
+        }
+
         $zipArchive.Entries | ForEach-Object {
             $fullname = Join-Path $appFolder ([Uri]::UnescapeDataString($_.FullName))
             $dir = [System.IO.Path]::GetDirectoryName($fullname)
