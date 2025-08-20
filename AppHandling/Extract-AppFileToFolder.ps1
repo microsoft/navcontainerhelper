@@ -85,7 +85,7 @@ try {
         $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
         $prevdir = ""
 
-        # If the app file is a ready-to-run app, it have a readytorunappmanifest.json file inside the archive
+        # If the app file is a ready-to-run app, it has a readytorunappmanifest.json file inside the archive
         $readyToRunAppManifest = $zipArchive.Entries | Where-Object { $_.FullName -eq "readytorunappmanifest.json" }
         if ($readyToRunAppManifest) {
             # Create a temporary folder to extract the ready-to-run app manifest
@@ -104,6 +104,11 @@ try {
             # Create a temporary folder to extract the app file to
             $fullname = Join-Path $tmpFolder ([Uri]::UnescapeDataString($embeddedAppFile.FullName))
             [System.IO.Compression.ZipFileExtensions]::ExtractToFile($embeddedAppFile, $fullname)
+
+            # Close stream and binary reader before recursive call
+            $binaryReader.Close()
+            $filestream.Close()
+            $memoryStream.Close()
 
             try {
                 # Call the Extract-AppFileToFolder function again to extract the content of the app file
