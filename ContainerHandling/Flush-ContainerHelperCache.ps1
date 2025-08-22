@@ -63,9 +63,9 @@ try {
                     $exitedDaysAgo = [DateTime]::Now.Subtract($finishedAt).Days
                     if ($exitedDaysAgo -ge $keepDays) {
                         if (($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
-                            if ($caches.Contains('ALGoContainersOnly')) {
+                            if ($caches.Contains('algocontainersonly')) {
                                 if ($inspect.Config.Labels.psobject.Properties.Match('creator').Count -ne 0 -and $inspect.Config.Labels.creator -eq "AL-Go") {
-                                    Write-Host "Removing container $containerName"
+                                    Write-Host "Removing AL-Go container $containerName"
                                     docker rm $containerID -f
                                 } 
                                 else {
