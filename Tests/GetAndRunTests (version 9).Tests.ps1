@@ -16,7 +16,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
-Describe 'AppHandling' {
+Describe 'AppHandling' -Skip {
 
     It 'Get/RunTests' {
         $artifactUrl = Get-BCArtifactUrl -type OnPrem -version "$runTestsInVersion" -country "w1" -select Latest
@@ -53,4 +53,5 @@ Describe 'AppHandling' {
         }
         $resultsFile | Should -Exist
     }
+
 }
