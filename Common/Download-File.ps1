@@ -82,10 +82,11 @@ function Download-File {
                 if ($_.Exception.Message -like '*404*' -or $waitTime -gt 60) {
                     throw (GetExtendedErrorMessage $_)
                 }
-                Write-Host "Error downloading..., retrying in $waitTime seconds..."
+                Write-Host "Error downloading, error: $($_)... Retrying in $waitTime seconds..."
                 Start-Sleep -Seconds $waitTime
             }
         }
     }
 }
 Export-ModuleMember -Function Download-File
+
