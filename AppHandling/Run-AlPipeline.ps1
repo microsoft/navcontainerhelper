@@ -2927,7 +2927,13 @@ $pageScriptingTests | ForEach-Object {
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     try {
         pwsh -command {
-            npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+            param(
+                [string]$TestPath,
+                [string]$ResultsFolder,
+                [string]$StartAddress
+            )
+            Write-Host "Running: npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'"
+            npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'
         } -args $path, $resultsFolder, $startAddress
         if ($? -ne "True") {
             Write-Host "Page Scripting Tests failed for $testSpec"

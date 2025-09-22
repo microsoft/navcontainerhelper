@@ -1,5 +1,5 @@
 6.1.8
-
+AL-Go issue 1920 Pagescript not working on own github runner
 
 6.1.7
 Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
