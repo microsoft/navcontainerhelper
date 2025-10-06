@@ -307,4 +307,4 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
-Export-ModuleMember -Function Clean-BcContainerDatabase2
+Export-ModuleMember -Function Clean-BcContainerDatabase
