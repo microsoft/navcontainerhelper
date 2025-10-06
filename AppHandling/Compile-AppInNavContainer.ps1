@@ -349,7 +349,7 @@ try {
     }
 
     $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
-    if (-not $applicationApp) {
+    if ((-not $applicationApp) -and ($platformversion -lt [System.Version]"27.0.0.0")) {
         # locate application version number in database if using SQLEXPRESS
         try {
             if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
