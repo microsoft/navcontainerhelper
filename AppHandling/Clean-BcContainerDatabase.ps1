@@ -152,6 +152,7 @@ try {
             } else 
             {
                 # In 27.x and later applicationversion is removed from the dbproperty table
+                New-NAVApplicationDatabase -DatabaseServer $databaseServerInstance -DatabaseName $databaseName @CollationParam | Out-Null
                 Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)'"
             }
             else {
@@ -308,3 +309,4 @@ finally {
 }
 }
 Export-ModuleMember -Function Clean-BcContainerDatabase
+
