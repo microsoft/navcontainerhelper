@@ -149,13 +149,11 @@ try {
             if (($platformVersion.Major -ge 15) -and ($platformVersion.Major -le 26)) {
                 New-NAVApplicationDatabase -DatabaseServer $databaseServerInstance -DatabaseName $databaseName @CollationParam | Out-Null
                 Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)', [applicationversion] = '$($dbproperties.applicationversion)'"
-            } else 
-            {
+            } elseif ($platformVersion.Major -ge 27) {
                 # In 27.x and later applicationversion is removed from the dbproperty table
                 New-NAVApplicationDatabase -DatabaseServer $databaseServerInstance -DatabaseName $databaseName @CollationParam | Out-Null
                 Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)'"
-            }
-            else {
+            } else {
                 Create-NAVDatabase -databasename $databaseName -databaseserver $databaseServerInstance @CollationParam | Out-Null
             }
 
