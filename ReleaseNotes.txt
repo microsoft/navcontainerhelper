@@ -1,6 +1,7 @@
 6.1.8
 AL-Go issue 1920 Pagescript not working on own github runner
 Issue 4018 Using New-navcontainer with useNewDatabase=true for BC 27 fails
+Add support for reportSuppressedDiagnostics in Run-AlPipeline
 
 6.1.7
 Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
