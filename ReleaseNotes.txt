@@ -8,6 +8,7 @@ Issue 4018 Using New-navcontainer with useNewDatabase=true for BC 27 fails
 6.1.7
 Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
 Add support for TestType field when running tests
+Issue 3729 Missing Test Apps after Import-TestToolkitToBcContainer
 Issue 3943 Error downloading symbols for Microsoft_System
 Add support for RequiredTestIsolation field when running tests
 Catch errors when page scripting tests are failing
