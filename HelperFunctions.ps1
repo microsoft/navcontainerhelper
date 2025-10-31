@@ -114,7 +114,7 @@ function CmdDo {
         if ("$err" -ne "") {
             $message += "$err"
         }
-        
+
         $message = $message.Trim()
 
         if ($p.ExitCode -eq 0) {
@@ -222,7 +222,7 @@ function DockerDo {
             break
         }
     } while (!($p.HasExited))
-    
+
     $err = $errtask.Result
     $p.WaitForExit();
 
@@ -260,7 +260,7 @@ function Get-NavContainerAuth {
         [string]$containerName
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
@@ -404,7 +404,7 @@ function GetTestToolkitApps {
             $apps += @('Microsoft_Any', 'Microsoft_Library Assert', 'Microsoft_Library Variable Storage')
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries','Microsoft_AI Test Toolkit')
+                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Application Test Library', 'Microsoft_Tests-TestLibraries','Microsoft_AI Test Toolkit')
                 if (!$includeTestLibrariesOnly) {
                     # Add Tests
                     if ($version -ge [Version]"18.0.0.0") {
@@ -431,25 +431,25 @@ function GetTestToolkitApps {
     }
     else {
         Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit)
-    
+
             $version = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-    
+
             # Add Test Framework
             $apps = @()
             if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
             }
             $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
-    
+
             if (!$includeTestRunnerOnly) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
-    
+
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", 'Microsoft_Application Test Library', "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
-        
+
                     if (!$includeTestLibrariesOnly) {
                         # Add Tests
                         if ($version -ge [Version]"18.0.0.0") {
@@ -461,14 +461,14 @@ function GetTestToolkitApps {
                     }
                 }
             }
-    
+
             if ($includePerformanceToolkit) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*Toolkit.app")
                 if (!$includeTestFrameworkOnly) {
                     $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app" -exclude "*Toolkit.app")
                 }
             }
-    
+
             $apps | ForEach-Object {
                 $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app", "_*.app")
                 if (!($appFile)) {
@@ -1236,7 +1236,7 @@ function GetLatestAlLanguageExtensionVersionAndUrl {
                       -Uri https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=3.0-preview.1 `
                       -Body '{"filters":[{"criteria":[{"filterType":8,"value":"Microsoft.VisualStudio.Code"},{"filterType":12,"value":"4096"},{"filterType":7,"value":"ms-dynamics-smb.al"}],"pageNumber":1,"pageSize":50,"sortBy":0,"sortOrder":0}],"assetTypes":[],"flags":0x192}' `
                       -ContentType application/json | ConvertFrom-Json
-    
+
     $result =  $listing.results | Select-Object -First 1 -ExpandProperty extensions `
                          | Select-Object -ExpandProperty versions `
                          | Where-Object { ($allowPrerelease.IsPresent -or !(($_.properties.Key -eq 'Microsoft.VisualStudio.Code.PreRelease') -and ($_.properties | where-object { $_.Key -eq 'Microsoft.VisualStudio.Code.PreRelease' }).value -eq "true")) } `
@@ -1286,7 +1286,7 @@ function DownloadLatestAlLanguageExtension {
             $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
         }
     }
-    
+
     $mutexName = "DownloadAlLanguageExtension"
     $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     try {
@@ -1341,7 +1341,7 @@ function RunAlTool {
             $command = 'dotnet'
             $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
         }
-    } 
+    }
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
         if (Test-Path $command) {
@@ -1634,34 +1634,34 @@ function GetHostOs {
     elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
-    elseif ($os.BuildNumber -eq 22000) { 
+    elseif ($os.BuildNumber -eq 22000) {
         $hostOs = "21H2"
     }
-    elseif ($os.BuildNumber -eq 20348) { 
+    elseif ($os.BuildNumber -eq 20348) {
         $hostOs = "ltsc2022"
     }
-    elseif ($os.BuildNumber -eq 19045) { 
+    elseif ($os.BuildNumber -eq 19045) {
         $hostOs = "22H2"
     }
-    elseif ($os.BuildNumber -eq 19044) { 
+    elseif ($os.BuildNumber -eq 19044) {
         $hostOs = "21H2"
     }
-    elseif ($os.BuildNumber -eq 19043) { 
+    elseif ($os.BuildNumber -eq 19043) {
         $hostOs = "21H1"
     }
-    elseif ($os.BuildNumber -eq 19042) { 
+    elseif ($os.BuildNumber -eq 19042) {
         $hostOs = "20H2"
     }
-    elseif ($os.BuildNumber -eq 19041) { 
+    elseif ($os.BuildNumber -eq 19041) {
         $hostOs = "2004"
     }
-    elseif ($os.BuildNumber -eq 18363) { 
+    elseif ($os.BuildNumber -eq 18363) {
         $hostOs = "1909"
     }
-    elseif ($os.BuildNumber -eq 18362) { 
+    elseif ($os.BuildNumber -eq 18362) {
         $hostOs = "1903"
     }
-    elseif ($os.BuildNumber -eq 17763) { 
+    elseif ($os.BuildNumber -eq 17763) {
         if ($isServerHost) {
             $hostOs = "ltsc2019"
         }
@@ -1669,10 +1669,10 @@ function GetHostOs {
             $hostOs = "1809"
         }
     }
-    elseif ($os.BuildNumber -eq 17134) { 
+    elseif ($os.BuildNumber -eq 17134) {
         $hostOs = "1803"
     }
-    elseif ($os.BuildNumber -eq 16299) { 
+    elseif ($os.BuildNumber -eq 16299) {
         $hostOs = "1709"
     }
     elseif ($os.BuildNumber -eq 15063) {

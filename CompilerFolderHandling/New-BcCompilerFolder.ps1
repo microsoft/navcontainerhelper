@@ -154,7 +154,7 @@ try {
                 Write-Host "App apps"
                 $appApps | ForEach-Object { Write-Host "- $($_.Name)" }
             }
-            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app','Microsoft_Business Foundation Test Libraries*.app','Microsoft_AI Test Toolkit*.app' | ForEach-Object {
+            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app','Microsoft_Business Foundation Test Libraries*.app','Microsoft_AI Test Toolkit*.app','Microsoft_Application Test Library*.app' | ForEach-Object {
                 $appName = $_
                 $apps = $appApps | Where-Object { $_.Name -like $appName }
                 if (!$apps) {
