@@ -1,5 +1,6 @@
 6.1.9
 Add support for reportSuppressedDiagnostics in Run-AlPipeline
+Include 'Application Test Library' when importing test libraries
 
 6.1.8
 AL-Go issue 1920 Pagescript not working on own github runner
