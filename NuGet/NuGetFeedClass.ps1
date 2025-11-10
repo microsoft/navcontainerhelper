@@ -376,6 +376,7 @@ class NuGetFeed {
             }
             if (Test-Path $nuSpecFileName) {
                 Write-Host "Using cached nuspec for $packageId version $version"
+                (Get-Item $nuSpecFileName).LastWriteTime = Get-Date
                 return (Get-Content -Path $nuSpecFileName | ConvertFrom-Json | ConvertTo-HashTable)
             }
             if (!$this.IsTrusted($packageId)) {
@@ -462,7 +463,11 @@ class NuGetFeed {
             }
             $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
             $packageCacheFolder = Join-Path $this.cacheFolder $packageSubFolder
-            if (!(test-Path $packageCacheFolder)) {
+            if (test-Path $packageCacheFolder) {
+                Write-Host "Using cached package for $packageId version $version"
+                (Get-Item $packageCacheFolder).LastWriteTime = Get-Date
+            }
+            else {
                 try {
                     Write-Host -ForegroundColor Green "Download package using $queryUrl"
                     $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
@@ -492,7 +497,7 @@ class NuGetFeed {
                 }
                 finally {
                     if (Test-Path $filename) {
-                        #Remove-Item $filename -Force
+                        Remove-Item $filename -Force
                     }
                 }
             }
