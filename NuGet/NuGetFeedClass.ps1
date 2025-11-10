@@ -360,17 +360,23 @@ class NuGetFeed {
     # - authors: the package authors
     # - dependencies: the package dependencies (id and version range)
     [PSCustomObject] DownloadPackageSpec([string] $packageId, [string] $version) {
+        $nuSpecFileName = Join-Path $this.cacheFolder "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
+        if (Test-Path $nuSpecFileName) {
+            Write-Host "Using cached nuspec for $packageId version $version"
+            return (Get-Content -Path $nuSpecFileName | ConvertFrom-Json | ConvertTo-HashTable)
+        }
         if (!$this.IsTrusted($packageId)) {
             throw "Package $packageId is not trusted on $($this.url)"
         }
         if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
             $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
+            Write-Host "Download nuspec using $queryUrl"
             $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
             $content = $response.Content | ConvertFrom-Json
             if (!($content.PSObject.Properties.Name -eq 'catalogEntry') -or ($null -eq $content.catalogEntry)) {
                 throw "Package $packageId version $version not found on"
             }
-            return @{
+            $returnValue = @{
                 "id" = $content.catalogEntry.id
                 "name" = $content.catalogEntry.description
                 "version" = $content.catalogEntry.version
@@ -407,7 +413,7 @@ class NuGetFeed {
             else {
                 $dependencies = @()
             }
-            return @{
+            $returnValue = @{
                 "id" = $nuspec.package.metadata.id
                 "name" = $appName
                 "version" = $nuspec.package.metadata.version
@@ -415,6 +421,8 @@ class NuGetFeed {
                 "dependencies" = $dependencies
             }
         }
+        New-Item -Path $nuSpecFileName -ItemType File -Force -Value ($returnValue | ConvertTo-Json -Depth 99) | Out-Null
+        return $returnValue
     }
 
     [string] DownloadPackage([string] $packageId, [string] $version) {

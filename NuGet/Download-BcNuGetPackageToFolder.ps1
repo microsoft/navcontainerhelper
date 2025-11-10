@@ -257,7 +257,7 @@ try {
                 }
                 if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                     # The NuGet package found isn't compatible with the installed application
-                    Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
+                    Write-Host "NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
                 }                   
                 if ($dependenciesErr) {
                     if (@('LatestMatching', 'EarliestMatching') -notcontains $select) {
@@ -265,7 +265,7 @@ try {
                     }
                     else {
                         # If we are looking for the earliest/latest matching version, then we can try to find another version
-                        Write-Host "WARNING: $dependenciesErr"
+                        Write-Host $dependenciesErr
                         break
                     }
                 }
