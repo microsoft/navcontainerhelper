@@ -360,112 +360,150 @@ class NuGetFeed {
     # - authors: the package authors
     # - dependencies: the package dependencies (id and version range)
     [PSCustomObject] DownloadPackageSpec([string] $packageId, [string] $version) {
-        $nuSpecFileName = Join-Path $this.cacheFolder "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
-        if (Test-Path $nuSpecFileName) {
-            Write-Host "Using cached nuspec for $packageId version $version"
-            return (Get-Content -Path $nuSpecFileName | ConvertFrom-Json | ConvertTo-HashTable)
-        }
-        if (!$this.IsTrusted($packageId)) {
-            throw "Package $packageId is not trusted on $($this.url)"
-        }
-        if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
-            $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
-            Write-Host "Download nuspec using $queryUrl"
-            $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
-            $content = $response.Content | ConvertFrom-Json
-            if (!($content.PSObject.Properties.Name -eq 'catalogEntry') -or ($null -eq $content.catalogEntry)) {
-                throw "Package $packageId version $version not found on"
-            }
-            $returnValue = @{
-                "id" = $content.catalogEntry.id
-                "name" = $content.catalogEntry.description
-                "version" = $content.catalogEntry.version
-                "authors" = $content.catalogEntry.authors
-                "dependencies" = $content.catalogEntry.dependencyGroups | ForEach-Object { $_.dependencies | ForEach-Object { @{"id" = $_.id; "version" = $_.range.replace(' ','') } } }
-            }
-        }
-        else {
-            $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
+        $nuSpecName = "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
+        $nuSpecFileName = Join-Path $this.cacheFolder $nuSpecName
+        $nuSpecMutex = New-Object System.Threading.Mutex($false, $nuSpecName)
+        try {
             try {
+                if (!$nuSpecMutex.WaitOne(1000)) {
+                    Write-Host "Waiting for other process downloading nuspec '$($nuSpecName)'"
+                    $nuSpecMutex.WaitOne() | Out-Null
+                    Write-Host "Other process completed download"
+                }
+            }
+            catch [System.Threading.AbandonedMutexException] {
+               Write-Host "Other process terminated abnormally"
+            }
+            if (Test-Path $nuSpecFileName) {
+                Write-Host "Using cached nuspec for $packageId version $version"
+                return (Get-Content -Path $nuSpecFileName | ConvertFrom-Json | ConvertTo-HashTable)
+            }
+            if (!$this.IsTrusted($packageId)) {
+                throw "Package $packageId is not trusted on $($this.url)"
+            }
+            if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
+                $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
                 Write-Host "Download nuspec using $queryUrl"
-                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-                $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
-                Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
-                $nuspec = [xml](Get-Content -Path $tmpfile -Encoding UTF8 -Raw)
-                Remove-Item -Path $tmpFile -Force
-                $global:ProgressPreference = $prev
-            }
-            catch {
-                throw (GetExtendedErrorMessage $_)
-            }
-            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'title') {
-                $appName = $nuspec.package.metadata.title
-            }
-            elseif ($nuspec.package.metadata.PSObject.Properties.Name -eq 'description') {
-                $appName = $nuspec.package.metadata.description
+                $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+                $content = $response.Content | ConvertFrom-Json
+                if (!($content.PSObject.Properties.Name -eq 'catalogEntry') -or ($null -eq $content.catalogEntry)) {
+                    throw "Package $packageId version $version not found on"
+                }
+                $returnValue = @{
+                    "id" = $content.catalogEntry.id
+                    "name" = $content.catalogEntry.description
+                    "version" = $content.catalogEntry.version
+                    "authors" = $content.catalogEntry.authors
+                    "dependencies" = $content.catalogEntry.dependencyGroups | ForEach-Object { $_.dependencies | ForEach-Object { @{"id" = $_.id; "version" = $_.range.replace(' ','') } } }
+                }
             }
             else {
-                $appName = $nuspec.package.metadata.id
+                $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
+                try {
+                    Write-Host "Download nuspec using $queryUrl"
+                    $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                    $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
+                    Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
+                    $nuspec = [xml](Get-Content -Path $tmpfile -Encoding UTF8 -Raw)
+                    Remove-Item -Path $tmpFile -Force
+                    $global:ProgressPreference = $prev
+                }
+                catch {
+                    throw (GetExtendedErrorMessage $_)
+                }
+                if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'title') {
+                    $appName = $nuspec.package.metadata.title
+                }
+                elseif ($nuspec.package.metadata.PSObject.Properties.Name -eq 'description') {
+                    $appName = $nuspec.package.metadata.description
+                }
+                else {
+                    $appName = $nuspec.package.metadata.id
+                }
+                if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
+                    $dependencies = @($nuspec.package.metadata.Dependencies.GetEnumerator() | ForEach-Object { @{"id" = $_.id; "version" = $_.version } })
+                }
+                else {
+                    $dependencies = @()
+                }
+                $returnValue = @{
+                    "id" = $nuspec.package.metadata.id
+                    "name" = $appName
+                    "version" = $nuspec.package.metadata.version
+                    "authors" = $nuspec.package.metadata.authors
+                    "dependencies" = $dependencies
+                }
             }
-            if ($nuspec.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
-                $dependencies = @($nuspec.package.metadata.Dependencies.GetEnumerator() | ForEach-Object { @{"id" = $_.id; "version" = $_.version } })
-            }
-            else {
-                $dependencies = @()
-            }
-            $returnValue = @{
-                "id" = $nuspec.package.metadata.id
-                "name" = $appName
-                "version" = $nuspec.package.metadata.version
-                "authors" = $nuspec.package.metadata.authors
-                "dependencies" = $dependencies
-            }
+            New-Item -Path $nuSpecFileName -ItemType File -Force -Value ($returnValue | ConvertTo-Json -Depth 99) | Out-Null
+            return $returnValue
         }
-        New-Item -Path $nuSpecFileName -ItemType File -Force -Value ($returnValue | ConvertTo-Json -Depth 99) | Out-Null
-        return $returnValue
+        finally {
+            $nuSpecMutex.ReleaseMutex()
+        }
     }
 
     [string] DownloadPackage([string] $packageId, [string] $version) {
-        if (!$this.IsTrusted($packageId)) {
-            throw "Package $packageId is not trusted on $($this.url)"
-        }
-        $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
-        $downloadFolder = Join-Path $this.cacheFolder "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())"
-        if (!(test-Path $downloadFolder)) {
+        $packageSubFolder = "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())"
+        $packageMutex = New-Object System.Threading.Mutex($false, $packageSubFolder)
+        try {
             try {
-                Write-Host -ForegroundColor Green "Download package using $queryUrl"
-                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-                $filename = "$downloadFolder.zip"
-                New-Item -Path $downloadFolder -ItemType Container | Out-Null
-                Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
-                if ($this.fingerprints) {
-                    $arguments = @("nuget", "verify", $filename)
-                    if ($this.fingerprints.Count -eq 1 -and $this.fingerprints[0] -eq '*') {
-                        Write-Host "Verifying package using any certificate"
+                if (!$packageMutex.WaitOne(1000)) {
+                    Write-Host "Waiting for other process downloading package '$($packageSubFolder)'"
+                    $packageMutex.WaitOne() | Out-Null
+                    Write-Host "Other process completed download"
+                }
+            }
+            catch [System.Threading.AbandonedMutexException] {
+               Write-Host "Other process terminated abnormally"
+            }
+
+            if (!$this.IsTrusted($packageId)) {
+                throw "Package $packageId is not trusted on $($this.url)"
+            }
+            $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
+            $packageCacheFolder = Join-Path $this.cacheFolder $packageSubFolder
+            if (!(test-Path $packageCacheFolder)) {
+                try {
+                    Write-Host -ForegroundColor Green "Download package using $queryUrl"
+                    $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                    $filename = "$($packageCacheFolder).zip"
+                    New-Item -Path $packageCacheFolder -ItemType Container | Out-Null
+                    Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
+                    if ($this.fingerprints) {
+                        $arguments = @("nuget", "verify", $filename)
+                        if ($this.fingerprints.Count -eq 1 -and $this.fingerprints[0] -eq '*') {
+                            Write-Host "Verifying package using any certificate"
+                        }
+                        else {
+                            Write-Host "Verifying package using $($this.fingerprints -join ', ')"
+                            $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
+                        }
+                        cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
                     }
-                    else {
-                        Write-Host "Verifying package using $($this.fingerprints -join ', ')"
-                        $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
+                    Expand-Archive -Path $filename -DestinationPath $packageCacheFolder -Force
+                    $global:ProgressPreference = $prev
+                    Write-Host "Package successfully downloaded"
+                }
+                catch {
+                    if (Test-Path $packageCacheFolder) {
+                        Remove-Item $packageCacheFolder -Recurse -Force
                     }
-                    cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
+                    throw (GetExtendedErrorMessage $_)
                 }
-                Expand-Archive -Path $filename -DestinationPath $downloadFolder -Force
-                $global:ProgressPreference = $prev
-                Write-Host "Package successfully downloaded"
-            }
-            catch {
-                if (Test-Path $downloadFolder) {
-                    Remove-Item $downloadFolder -Recurse -Force
-                }
-                throw (GetExtendedErrorMessage $_)
-            }
-            finally {
-                if (Test-Path $filename) {
-                    Remove-Item $filename -Force
+                finally {
+                    if (Test-Path $filename) {
+                        #Remove-Item $filename -Force
+                    }
                 }
             }
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
+            New-Item -Path $tmpFolder -ItemType Container | Out-Null
+            Copy-Item -Path (Join-Path $packageCacheFolder '*') -Destination $tmpFolder -Recurse -Force
+            return $tmpFolder
         }
-        return $downloadFolder
+        finally {
+            $packageMutex.ReleaseMutex()
+        }
     }
 
     [void] PushPackage([string] $package) {

@@ -322,6 +322,7 @@ try {
                     Copy-Item $appFile.FullName -Destination $targetFilePath -Force
                 }
             }
+            Remove-Item -Path $package -Recurse -Force
             break
         }
     }
