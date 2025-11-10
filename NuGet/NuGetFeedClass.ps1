@@ -17,13 +17,16 @@ class NuGetFeed {
     [hashtable] $orgType = @{}
 
     [hashtable] $searchResultsCache = @{}
-    [int]       $searchResultsCacheRetentionPeriod = $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod
+    [int]       $searchResultsCacheRetentionPeriod
+    [string]    $cacheFolder
 
-    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
+    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints, [int] $nuGetSearchResultsCacheRetentionPeriod, [string] $nuGetCacheFolder) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
         $this.patterns = $patterns
         $this.fingerprints = $fingerprints
+        $this.searchResultsCacheRetentionPeriod = $nuGetSearchResultsCacheRetentionPeriod
+        $this.cacheFolder = $nugetCacheFolder
 
         # When trusting nuget.org, you should only trust packages signed by an author or packages matching a specific pattern (like using a registered prefix or a full name)
         if ($nuGetServerUrl -like 'https://api.nuget.org/*' -and $patterns.Contains('*') -and (!$fingerprints -or $fingerprints.Contains('*'))) {
@@ -55,10 +58,10 @@ class NuGetFeed {
         }
     }
 
-    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
-        $nuGetFeed = $script:NuGetFeedCache | Where-Object { $_.url -eq $nuGetServerUrl -and $_.token -eq $nuGetToken -and (-not (Compare-Object $_.patterns $patterns)) -and (-not (Compare-Object $_.fingerprints $fingerprints)) }
+    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints, [int] $nuGetSearchResultsCacheRetentionPeriod, [string] $nuGetCacheFolder) {
+        $nuGetFeed = $script:NuGetFeedCache | Where-Object { $_.url -eq $nuGetServerUrl -and $_.token -eq $nuGetToken -and (-not (Compare-Object $_.patterns $patterns)) -and (-not (Compare-Object $_.fingerprints $fingerprints)) -and $_.searchResultsCacheRetentionPeriod -eq $nuGetSearchResultsCacheRetentionPeriod }
         if (!$nuGetFeed) {
-            $nuGetFeed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $fingerprints)
+            $nuGetFeed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $fingerprints, $nuGetSearchResultsCacheRetentionPeriod, $nugetCacheFolder)
             $script:NuGetFeedCache += $nuGetFeed
         }
         return $nuGetFeed
@@ -324,25 +327,29 @@ class NuGetFeed {
     }
 
     [string] FindPackageVersion([hashtable] $package, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
-        $versions = $this.GetVersions($package, ($select -ne 'Earliest'), $allowPrerelease)
+        $versions = $this.GetVersions($package, !($select -eq 'Earliest' -or $select -eq 'AllAscending'), $allowPrerelease)
         if ($excludeVersions) {
             Write-Host "Exclude versions: $($excludeVersions -join ', ')"
         }
+        $versionList = @()
         foreach($version in $versions ) {
             if ($excludeVersions -contains $version) {
                 continue
             }
             if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                if ($nuGetVersionRange -eq '0.0.0.0') {
+                if ($select -eq 'AllAscending' -or $select -eq 'AllDescending') {
+                    Write-Host "Include $version"
+                }
+                elseif ($nuGetVersionRange -eq '0.0.0.0') {
                     Write-Host "$select version is $version"
                 }
                 else {
                     Write-Host "$select version matching '$nuGetVersionRange' is $version"
                 }
-                return $version
+                $versionList += @($version)
             }
         }
-        return ''
+        return ($versionList -join ',')
     }
 
     # Download the specs for the package with id = packageId and version = version
@@ -415,32 +422,42 @@ class NuGetFeed {
             throw "Package $packageId is not trusted on $($this.url)"
         }
         $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
-        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())    
-        try {
-            Write-Host -ForegroundColor Green "Download package using $queryUrl"
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $filename = "$tmpFolder.zip"
-            Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
-            if ($this.fingerprints) {
-                $arguments = @("nuget", "verify", $filename)
-                if ($this.fingerprints.Count -eq 1 -and $this.fingerprints[0] -eq '*') {
-                    Write-Host "Verifying package using any certificate"
+        $downloadFolder = Join-Path $this.cacheFolder "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())"
+        if (!(test-Path $downloadFolder)) {
+            try {
+                Write-Host -ForegroundColor Green "Download package using $queryUrl"
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $filename = "$downloadFolder.zip"
+                New-Item -Path $downloadFolder -ItemType Container | Out-Null
+                Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
+                if ($this.fingerprints) {
+                    $arguments = @("nuget", "verify", $filename)
+                    if ($this.fingerprints.Count -eq 1 -and $this.fingerprints[0] -eq '*') {
+                        Write-Host "Verifying package using any certificate"
+                    }
+                    else {
+                        Write-Host "Verifying package using $($this.fingerprints -join ', ')"
+                        $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
+                    }
+                    cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
                 }
-                else {
-                    Write-Host "Verifying package using $($this.fingerprints -join ', ')"
-                    $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
-                }
-                cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
+                Expand-Archive -Path $filename -DestinationPath $downloadFolder -Force
+                $global:ProgressPreference = $prev
+                Write-Host "Package successfully downloaded"
             }
-            Expand-Archive -Path $filename -DestinationPath $tmpFolder -Force
-            $global:ProgressPreference = $prev
-            Remove-Item $filename -Force
-            Write-Host "Package successfully downloaded"
+            catch {
+                if (Test-Path $downloadFolder) {
+                    Remove-Item $downloadFolder -Recurse -Force
+                }
+                throw (GetExtendedErrorMessage $_)
+            }
+            finally {
+                if (Test-Path $filename) {
+                    Remove-Item $filename -Force
+                }
+            }
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
-        }
-        return $tmpFolder
+        return $downloadFolder
     }
 
     [void] PushPackage([string] $package) {

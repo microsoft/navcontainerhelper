@@ -80,10 +80,10 @@ Function Download-BcNuGetPackageToFolder {
 try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
-        $findSelect = 'Latest'
+        $findSelect = 'AllDescending'
     }
     if ($select -eq 'EarliestMatching') {
-        $findSelect = 'Earliest'
+        $findSelect = 'AllAscending'
     }
     $excludeVersions = @()
     if ($checkLocalVersion) {
@@ -135,9 +135,18 @@ try {
             return @()
         }
     }
-    while ($true) {
+    if ($findselect -eq 'AllAscending' -or $findselect -eq 'AllDescending') {
+        $nuGetVersions = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+    }
+    else {
+        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+        $nuGetVersions = @(@{"feed" = $feed; "packageId" = $packageId; "packageVersion" = $packageVersion })
+    }
+    foreach($nuGetVersion in $nuGetVersions) {
+        $feed = $nuGetVersion.feed
+        $packageId = $nuGetVersion.packageId
+        $packageVersion = $nuGetVersion.packageVersion
         $returnValue = @()
-        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findSelect -allowPrerelease:($allowPrerelease.IsPresent)
         if (-not $feed) {
             Write-Host "No package found matching package name $($packageName) Version $($version)"
             break
@@ -313,7 +322,6 @@ try {
                     Copy-Item $appFile.FullName -Destination $targetFilePath -Force
                 }
             }
-            Remove-Item -Path $package -Recurse -Force
             break
         }
     }
