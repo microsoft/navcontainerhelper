@@ -2977,7 +2977,11 @@ $pageScriptingTests | ForEach-Object {
         }
         else {
             Write-Host "Removing results folder"
-            Remove-Item -Path $resultsFolder -Recurse -Force
+            if (Test-Path $resultsFolder) {
+                Remove-Item -Path $resultsFolder -Recurse -Force -ErrorAction SilentlyContinue
+            } else {
+                Write-Host "Results folder $resultsFolder not found"
+            }
         }
     }
 }
