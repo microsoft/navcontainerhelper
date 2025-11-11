@@ -62,7 +62,8 @@ Function Find-BcNuGetPackage {
             if (!($feed.PSObject.Properties.Name -eq 'Token')) { $feed | Add-Member -MemberType NoteProperty -Name 'Token' -Value '' }
             if (!($feed.PSObject.Properties.Name -eq 'Patterns')) { $feed | Add-Member -MemberType NoteProperty -Name 'Patterns' -Value @('*') }
             if (!($feed.PSObject.Properties.Name -eq 'Fingerprints')) { $feed | Add-Member -MemberType NoteProperty -Name 'Fingerprints' -Value @() }
-            $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints,$bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod,$bcContainerHelperConfig.BcNuGetCacheFolder)
+            $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints, $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod, $bcContainerHelperConfig.BcNuGetCacheFolder)
+
             $packages = $nuGetFeed.Search($packageName)
             if ($packages) {
                 foreach($package in $packages) {
