@@ -26,6 +26,8 @@
   - Latest: Select the latest version (default)
   - Exact: Select the exact version
   - Any: Select the first version found
+  - AllAscending: Select all matching versions in ascending order
+  - AllDescending: Select all matching versions in descending order
  .PARAMETER allowPrerelease
   Include prerelease versions in the search
  .EXAMPLE
