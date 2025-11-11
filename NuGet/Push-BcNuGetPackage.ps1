@@ -23,7 +23,8 @@ Function Push-BcNuGetPackage {
         [string] $bcNuGetPackage
     )
 
-    $nuGetFeed = [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, @(), @(),$bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod,$bcContainerHelperConfig.BcNuGetCacheFolder)
+    $nuGetFeed = [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, @(), @(), $bcContainerHelperConfig.NuGetSearchResultsCacheRetentionPeriod, $bcContainerHelperConfig.BcNuGetCacheFolder)
+
     $nuGetFeed.PushPackage($bcNuGetPackage)
 }
 Export-ModuleMember -Function Push-BcNuGetPackage
