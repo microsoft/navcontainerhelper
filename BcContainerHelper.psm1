@@ -74,6 +74,7 @@ function VolumeOrPath {
 }
 
 $bcContainerHelperConfig.bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
+$bcContainerHelperConfig.bcNuGetCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcNuGetCacheFolder
 $bcContainerHelperConfig.hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
 $usedContainerHelperConfigFile = $bcContainerHelperConfigFile
 

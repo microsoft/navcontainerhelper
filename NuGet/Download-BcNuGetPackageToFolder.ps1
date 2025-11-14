@@ -80,10 +80,10 @@ Function Download-BcNuGetPackageToFolder {
 try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
-        $findSelect = 'Latest'
+        $findSelect = 'AllDescending'
     }
     if ($select -eq 'EarliestMatching') {
-        $findSelect = 'Earliest'
+        $findSelect = 'AllAscending'
     }
     $excludeVersions = @()
     if ($checkLocalVersion) {
@@ -135,9 +135,18 @@ try {
             return @()
         }
     }
-    while ($true) {
+    if ($findselect -eq 'AllAscending' -or $findselect -eq 'AllDescending') {
+        $nuGetVersions = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+    }
+    else {
+        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+        $nuGetVersions = @(@{"feed" = $feed; "packageId" = $packageId; "packageVersion" = $packageVersion })
+    }
+    foreach($nuGetVersion in $nuGetVersions) {
+        $feed = $nuGetVersion.feed
+        $packageId = $nuGetVersion.packageId
+        $packageVersion = $nuGetVersion.packageVersion
         $returnValue = @()
-        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findSelect -allowPrerelease:($allowPrerelease.IsPresent)
         if (-not $feed) {
             Write-Host "No package found matching package name $($packageName) Version $($version)"
             break
@@ -248,7 +257,7 @@ try {
                 }
                 if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                     # The NuGet package found isn't compatible with the installed application
-                    Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
+                    Write-Host "NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
                 }                   
                 if ($dependenciesErr) {
                     if (@('LatestMatching', 'EarliestMatching') -notcontains $select) {
@@ -256,7 +265,7 @@ try {
                     }
                     else {
                         # If we are looking for the earliest/latest matching version, then we can try to find another version
-                        Write-Host "WARNING: $dependenciesErr"
+                        Write-Host $dependenciesErr
                         break
                     }
                 }
