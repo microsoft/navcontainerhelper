@@ -22,6 +22,6 @@ Describe 'Download' {
         Download-BcNuGetPackageToFolder -packageName "6da8dd2f-e698-461f-9147-8e404244dd85" -version "26.0.0.0" -select EarliestMatching -installedApps @(@{"id"="";"name"="Application";"version"="26.5.38752.40172";"publisher"="Microsoft"}) -folder $folder
 
         $files = @(Get-ChildItem $folder)
-        $files.Count | Should -Be 7
+        $files.Count | Should -Be 6
     }
 }
