@@ -80,12 +80,11 @@ Function Download-BcNuGetPackageToFolder {
 try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
-        $findSelect = 'Latest'
+        $findSelect = 'AllDescending'
     }
     if ($select -eq 'EarliestMatching') {
-        $findSelect = 'Earliest'
+        $findSelect = 'AllAscending'
     }
-    $excludeVersions = @()
     if ($checkLocalVersion) {
         # Format Publisher.Name[.Country][.symbols][.AppId]
         if ($packageName -match '^(Microsoft)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
@@ -135,9 +134,18 @@ try {
             return @()
         }
     }
-    while ($true) {
+    if ($findselect -eq 'AllAscending' -or $findselect -eq 'AllDescending') {
+        $nuGetVersions = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+    }
+    else {
+        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+        $nuGetVersions = @(@{"feed" = $feed; "packageId" = $packageId; "packageVersion" = $packageVersion })
+    }
+    foreach($nuGetVersion in $nuGetVersions) {
+        $feed = $nuGetVersion.feed
+        $packageId = $nuGetVersion.packageId
+        $packageVersion = $nuGetVersion.packageVersion
         $returnValue = @()
-        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findSelect -allowPrerelease:($allowPrerelease.IsPresent)
         if (-not $feed) {
             Write-Host "No package found matching package name $($packageName) Version $($version)"
             break
@@ -248,7 +256,7 @@ try {
                 }
                 if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                     # The NuGet package found isn't compatible with the installed application
-                    Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
+                    Write-Host "NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
                 }                   
                 if ($dependenciesErr) {
                     if (@('LatestMatching', 'EarliestMatching') -notcontains $select) {
@@ -256,7 +264,8 @@ try {
                     }
                     else {
                         # If we are looking for the earliest/latest matching version, then we can try to find another version
-                        Write-Host "WARNING: $dependenciesErr"
+                        Write-Host $dependenciesErr
+                        $returnValue = @()
                         break
                     }
                 }
@@ -266,7 +275,6 @@ try {
             }
             if ($dependenciesErr) {
                 # If we are looking for the earliest/latest matching version, then we can try to find another version
-                $excludeVersions += $packageVersion
                 continue
             }
             
@@ -281,7 +289,14 @@ try {
                     # Downloading Microsoft packages for a specific version
                     $dependencyVersion = $version
                 }
-                $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                Write-Host -foregroundcolor Yellow "Downloading dependency $dependencyId version $dependencyVersion"
+                $dependencyApps = Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                if ($dependencyApps) {
+                    $returnValue += $dependencyApps
+                }
+                else {
+                    Write-Host "WARNING: Dependency $dependencyId version $dependencyVersion cannot be found"
+                }
             }
 
             if ($installedCountry -and (Test-Path (Join-Path $package $installedCountry) -PathType Container)) {
