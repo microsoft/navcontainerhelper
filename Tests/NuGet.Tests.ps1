@@ -13,6 +13,7 @@ AfterAll {
 
 Describe 'Download' {
     It 'Download-BcNuGetPackageToFolder' {
+        # Make a test downloading earliest matching as this won't change when new versions are released
         $bcContainerHelperConfig.TrustedNuGetFeeds = @(
         @{ "url" = "https://pkgs.dev.azure.com/continia-repository/ContiniaBCPublicFeeds/_packaging/AppSourceApps/nuget/v3/index.json" }
         )

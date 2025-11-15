@@ -445,7 +445,7 @@ class NuGetFeed {
 
     [string] DownloadPackage([string] $packageId, [string] $version) {
         $packageSubFolder = "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())"
-        $packageMutex = New-Object System.Threading.Mutex($false, $packageSubFolder)
+        $packageMutex = New-Object System.Threading.Mutex($false, $packageSubFolder.Replace('/','_').Replace('\','_'))
         try {
             try {
                 if (!$packageMutex.WaitOne(1000)) {
