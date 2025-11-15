@@ -85,7 +85,6 @@ try {
     if ($select -eq 'EarliestMatching') {
         $findSelect = 'AllAscending'
     }
-    $excludeVersions = @()
     if ($checkLocalVersion) {
         # Format Publisher.Name[.Country][.symbols][.AppId]
         if ($packageName -match '^(Microsoft)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
@@ -136,10 +135,10 @@ try {
         }
     }
     if ($findselect -eq 'AllAscending' -or $findselect -eq 'AllDescending') {
-        $nuGetVersions = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+        $nuGetVersions = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
     }
     else {
-        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
+        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $findselect -allowPrerelease:($allowPrerelease.IsPresent)
         $nuGetVersions = @(@{"feed" = $feed; "packageId" = $packageId; "packageVersion" = $packageVersion })
     }
     foreach($nuGetVersion in $nuGetVersions) {
@@ -276,7 +275,6 @@ try {
             }
             if ($dependenciesErr) {
                 # If we are looking for the earliest/latest matching version, then we can try to find another version
-                $excludeVersions += $packageVersion
                 continue
             }
             
