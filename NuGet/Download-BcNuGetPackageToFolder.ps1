@@ -266,6 +266,7 @@ try {
                     else {
                         # If we are looking for the earliest/latest matching version, then we can try to find another version
                         Write-Host $dependenciesErr
+                        $returnValue = @()
                         break
                     }
                 }
@@ -290,7 +291,14 @@ try {
                     # Downloading Microsoft packages for a specific version
                     $dependencyVersion = $version
                 }
-                $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                Write-Host -foregroundcolor Yellow "Downloading dependency $dependencyId version $dependencyVersion"
+                $dependencyApps = Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                if ($dependencyApps) {
+                    $returnValue += $dependencyApps
+                }
+                else {
+                    Write-Host "WARNING: Dependency $dependencyId version $dependencyVersion cannot be found"
+                }
             }
 
             if ($installedCountry -and (Test-Path (Join-Path $package $installedCountry) -PathType Container)) {
