@@ -362,7 +362,7 @@ class NuGetFeed {
     [PSCustomObject] DownloadPackageSpec([string] $packageId, [string] $version) {
         $nuSpecName = "$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
         $nuSpecFileName = Join-Path $this.cacheFolder $nuSpecName
-        $nuSpecMutex = New-Object System.Threading.Mutex($false, $nuSpecName)
+        $nuSpecMutex = New-Object System.Threading.Mutex($false, $nuSpecName.Replace('/','_').Replace('\','_'))
         try {
             try {
                 if (!$nuSpecMutex.WaitOne(1000)) {
