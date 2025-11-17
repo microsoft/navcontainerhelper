@@ -1,14 +1,17 @@
 if ($isWindows) {
     $programDataFolder = 'C:\ProgramData\BcContainerHelper'
     $artifactsCacheFolder = "c:\bcartifacts.cache"
+    $nugetCacheFolder = "c:\bcnuget.cache"
 }
 elseif ($isMacOS) {
     $programDataFolder = "/Users/$myUsername/.bccontainerhelper"
     $artifactsCacheFolder = "/Users/$myUsername/.bcartifacts.cache"
+    $nugetCacheFolder = "/Users/$myUsername/.bcnuget.cache"
 }
 else {
     $programDataFolder = "/home/$myUsername/.bccontainerhelper"
     $artifactsCacheFolder = "/home/$myUsername/.bcartifacts.cache"
+    $nugetCacheFolder = "/home/$myUsername/.bcnuget.cache"
 }
 
 function Get-ContainerHelperConfig {
@@ -121,6 +124,7 @@ function Get-ContainerHelperConfig {
             "useApproximateVersion" = $false
             "useSqlServerModule" = $false
             "NuGetSearchResultsCacheRetentionPeriod" = 600 # 10 minutes
+            "BcNuGetCacheFolder" = ""
             "doNotRemovePackagesFolderIfExists" = $false
         }
 
@@ -184,6 +188,9 @@ function Get-ContainerHelperConfig {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
                 $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
             }
+            if ($bcContainerHelperConfig.bcNuGetCacheFolder -eq "") {
+                $bcContainerHelperConfig.bcNuGetCacheFolder = "bcnuget.cache"
+            }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
             }
@@ -192,6 +199,9 @@ function Get-ContainerHelperConfig {
         else {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
                 $bcContainerHelperConfig.bcartifactsCacheFolder = $artifactsCacheFolder
+            }
+            if ($bcContainerHelperConfig.bcNuGetCacheFolder -eq "") {
+                $bcContainerHelperConfig.bcNuGetCacheFolder = $nuGetCacheFolder
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
