@@ -11,6 +11,7 @@
   - applicationCache are the test applications runtime cache (15.x containers)
   - bakFolderCache are version specific backup sets
   - bcartifacts are artifacts downloaded for spinning up containers
+  - bcnuget are nuget packages downloaded to nuget cache
   - sandboxartifacts are artifacts downloaded for spinning up containers
   - images are images built on artifacts using New-BcImage or New-BcContainer
   - compilerFolders are folders used for Dockerless builds
@@ -172,6 +173,18 @@ try {
             }
         }
     
+        if (($caches.Contains('all') -or $caches.Contains('bcnuget')) -and ($bcContainerHelperConfig.BcNuGetCacheFolder) -and (Test-Path $bcContainerHelperConfig.BcNuGetCacheFolder)) {
+            Get-ChildItem -Path $bcContainerHelperConfig.BcNuGetCacheFolder | Where-Object { $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $_.FullName | ForEach-Object {
+                    $lastWrite = $_.LastWriteTime
+                    if ($keepDays -eq 0 -or $lastWrite -lt (Get-Date).AddDays(-$keepDays)) {
+                        Write-Host "Remove $($_.FullName.SubString($bcContainerHelperConfig.BcNuGetCacheFolder.Length+1))"
+                        Remove-Item -Path $_.FullName -Recurse -Force
+                    }
+                }
+            }
+        }
+
         if ($caches.Contains('all') -or $caches.Contains('images')) {
             $bestGenericImageName = Get-BestGenericImageName
             $allImages = @(docker images --no-trunc --format "{{.Repository}}:{{.Tag}}|{{.ID}}")
