@@ -279,6 +279,8 @@
   Override function parameter for Get-BcContainerEventLog
  .Parameter InstallMissingDependencies
   Override function parameter for Installing missing dependencies
+ .Parameter RunPageScriptingTests
+  Override function parameter for Running Page Scripting Tests
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
@@ -416,6 +418,7 @@ Param(
     [scriptblock] $GetBestGenericImageName,
     [scriptblock] $GetBcContainerEventLog,
     [scriptblock] $InstallMissingDependencies,
+    [scriptblock] $RunPageScriptingTests,
     [scriptblock] $PipelineFinalize
 )
 
@@ -526,6 +529,104 @@ function GetInstalledApps {
         return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
     }
     Write-GroupEnd
+}
+
+function RunPageScriptingTests {
+    param(
+        [Hashtable] $parameters
+    )
+    $containerName = $parameters.containerName
+    $credential = $parameters.credential
+    $pageScriptingTests = $parameters.pageScriptingTests
+    $restoreDatabases = $parameters.restoreDatabases
+    $pageScriptingTestResultsFile = $parameters.pageScriptingTestResultsFile
+    $pageScriptingTestResultsFolder = $parameters.pageScriptingTestResultsFolder
+    $startAddress = $parameters.startAddress
+
+    # Install npm package for page scripting tests
+    pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
+
+    ${env:containerUsername} = $credential.UserName
+    ${env:containerPassword} = $credential.Password | Get-PlainText
+
+    $usedNames = @()
+
+    $pageScriptingTests | ForEach-Object {
+        $thisFailed = $false
+        if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
+            Write-GroupStart -Message "Restoring databases before each page scripting test"
+            Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName }
+            Write-GroupEnd
+        }
+        $testSpec = $_
+        $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
+        if ($usedNames -contains $name) {
+            throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs ($testSpec)."
+        }
+        $usedNames += $name
+        $path = $testSpec
+        if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
+        if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
+        Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
+        $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
+        New-Item -Path $resultsFolder -ItemType Directory | Out-Null
+        try {
+            pwsh -command {
+                param(
+                    [string]$TestPath,
+                    [string]$ResultsFolder,
+                    [string]$StartAddress
+                )
+                Write-Host "Running: npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'"
+                npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+            } -args $path, $resultsFolder, $startAddress
+            if ($? -ne "True") {
+                Write-Host "Page Scripting Tests failed for $testSpec"
+                $thisFailed = $true
+            }
+        }
+        catch {
+            $thisFailed = $true
+            Write-Host -ForegroundColor Red "Page Scripting Tests failed for $testSpec : $($_.Exception.Message)"
+        }
+
+        if ($thisFailed) {
+            Write-Host "Page Scripting Tests failed for $testSpec"
+            $allPassed = $false
+        }
+        $testResultsFile = Join-Path $resultsFolder "results.xml"
+        $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
+        if ((Test-Path $testResultsFile -PathType Leaf) -and (Test-Path $playwrightReportFolder -PathType Container)) {
+            $thisXml = [xml](Get-Content $testResultsFile -Encoding UTF8)
+            $thisXml.testsuites.testsuite.Name = $name
+            $resultsXml = $thisXml
+            if (Test-Path $pageScriptingTestResultsFile) {
+                # Merge results and aggregate counts
+                $resultsXml = [xml](Get-Content $pageScriptingTestResultsFile -Encoding UTF8)
+                $resultsXml.testsuites.AppendChild($resultsXml.ImportNode($thisXml.testsuites.testsuite, $true))
+            }
+            foreach ($property in 'tests', 'failures', 'skipped', 'errors', 'time') {
+                $resultsXml.testsuites."$property" = "$(([double[]]$resultsXml.testsuites.testsuite."$property" | Measure-Object -Sum).Sum)"
+            }
+            $resultsXml.Save($pageScriptingTestResultsFile)
+            Remove-Item $testResultsFile -Force
+            if ($thisFailed) {
+                Write-Host "Moving Playwright report folder"
+                Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
+                Write-Host "Removing Playwright report folder"
+                Remove-Item -Path $playwrightReportFolder -Force
+            }
+            else {
+                if (Test-Path $resultsFolder) {
+                    Write-Host "Removing results folder"
+                    Remove-Item -Path $resultsFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                else {
+                    Write-Host "Results folder $resultsFolder not found"
+                }
+            }
+        }
+    }
 }
 
 $script:existingContainerName = ''
@@ -838,7 +939,11 @@ if ($bcptTestFolders) {
 
 $artifactUrl = ""
 $filesOnly = $false
-if ($bcAuthContext) {
+$IsBcSaaSInfrastructure = $bcAuthContext -and $bcAuthContext -is [Hashtable] -and $bcAuthContext.ContainsKey('scopes') -and $bcAuthContext.scopes -in @('https://api.businesscentral.dynamics.com/', 'https://projectmadeira.com/')
+if ($IsBcSaaSInfrastructure) {
+    Write-Host "Using BC SaaS Infrastructure. Test for feature compatibility."
+}
+if ($IsBcSaaSInfrastructure) {
     if ("$environment" -eq "") {
         throw "When specifying bcAuthContext, you also have to specify the name of the pre-setup online environment to use."
     }
@@ -1262,6 +1367,11 @@ else {
 }
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+if ($RunPageScriptingTests) {
+    Write-Host -ForegroundColor Yellow "RunPageScriptingTests override"; Write-Host $RunPageScriptingTests.ToString()
+} else {
+    $RunPageScriptingTests = { Param([Hashtable]$parameters) RunPageScriptingTests $parameters }
 }
 Write-GroupEnd
 
@@ -2878,7 +2988,7 @@ if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
 Write-GroupEnd
 }
 
-if ($createContainer -and !$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
+if (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
 if ($restoreDatabases -contains 'BeforePageScriptingTests' -and $restoreDatabases -notcontains 'BeforeEachPageScriptingTest') {
     Write-GroupStart -Message "Restoring databases before page scripting tests"
     Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = (GetBuildContainer)}
@@ -2899,92 +3009,19 @@ Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running Page Scripting Tests for additional country $testCountry"
 }
-
-$containerName = (GetBuildContainer)
-
-# Install npm package for page scripting tests
-pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
-
-${env:containerUsername} = $credential.UserName
-${env:containerPassword} = $credential.Password | Get-PlainText
-$startAddress = "http://$containerName/BC?tenant=$tenant"
-
-$usedNames = @()
-
-$pageScriptingTests | ForEach-Object {
-    $thisFailed = $false
-    if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
-        Write-GroupStart -Message "Restoring databases before each page scripting test"
-        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
-        Write-GroupEnd
-    }
-    $testSpec = $_
-    $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
-    if ($usedNames -contains $name) {
-        throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs ($testSpec)."
-    }
-    $usedNames += $name
-    $path = $testSpec
-    if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
-    if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
-    Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
-    $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
-    New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    try {
-        pwsh -command {
-            param(
-                [string]$TestPath,
-                [string]$ResultsFolder,
-                [string]$StartAddress
-            )
-            Write-Host "Running: npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'"
-            npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'
-        } -args $path, $resultsFolder, $startAddress
-        if ($? -ne "True") {
-            Write-Host "Page Scripting Tests failed for $testSpec"
-            $thisFailed = $true
-        }
-    } catch {
-        $thisFailed = $true
-        Write-Host -ForegroundColor Red "Page Scripting Tests failed for $testSpec : $($_.Exception.Message)"
-    }
-
-    if ($thisFailed) {
-        Write-Host "Page Scripting Tests failed for $testSpec"
-        $allPassed = $false
-    }
-    $testResultsFile = Join-Path $resultsFolder "results.xml"
-    $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
-    if ((Test-Path $testResultsFile -PathType Leaf) -and (Test-Path $playwrightReportFolder -PathType Container)) {
-        $thisXml = [xml](Get-Content $testResultsFile -encoding UTF8)
-        $thisXml.testsuites.testsuite.Name = $name
-        $resultsXml = $thisXml
-        if (Test-Path $pageScriptingTestResultsFile) {
-            # Merge results and aggregate counts
-            $resultsXml = [xml](Get-Content $pageScriptingTestResultsFile -encoding UTF8)
-            $resultsXml.testsuites.AppendChild($resultsXml.ImportNode($thisXml.testsuites.testsuite, $true))
-        }
-        foreach($property in 'tests','failures','skipped','errors','time') {
-            $resultsXml.testsuites."$property" = "$(([double[]]$resultsXml.testsuites.testsuite."$property" | Measure-Object -Sum).Sum)"
-        }
-        $resultsXml.Save($pageScriptingTestResultsFile)
-        Remove-Item $testResultsFile -Force
-        if ($thisFailed) {
-            Write-Host "Moving Playwright report folder"
-            Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
-            Write-Host "Removing Playwright report folder"
-            Remove-Item -Path $playwrightReportFolder -Force
-        }
-        else {
-            if (Test-Path $resultsFolder) {
-                Write-Host "Removing results folder"
-                Remove-Item -Path $resultsFolder -Recurse -Force -ErrorAction SilentlyContinue
-            } else {
-                Write-Host "Results folder $resultsFolder not found"
-            }
-        }
-    }
+$Parameters = @{
+    "containerName" = (GetBuildContainer)
+    "tenant" = $tenant
+    "credential" = $credential
+    "pageScriptingTests" = $pageScriptingTests
+    "restoreDatabases" = $restoreDatabases
+    "pageScriptingTestResultsFolder" = $pageScriptingTestResultsFolder
+    "pageScriptingTestResultsFile" = $pageScriptingTestResultsFile
+    "startAddress" = "http://$containerName/BC?tenant=$tenant"
+    "bcAuthContext" = $bcAuthContext
+    "environment" = $environment
 }
+Invoke-Command -ScriptBlock $RunPageScriptingTests -ArgumentList $Parameters 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
