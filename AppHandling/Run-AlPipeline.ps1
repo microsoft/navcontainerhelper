@@ -939,7 +939,7 @@ if ($bcptTestFolders) {
 
 $artifactUrl = ""
 $filesOnly = $false
-$IsBcSaaSInfrastructure = $bcAuthContext -and $bcAuthContext -is [Hashtable] -and $bcAuthContext.ContainsKey('scopes') -and $bcAuthContext.scopes -in @('https://api.businesscentral.dynamics.com/', 'https://projectmadeira.com/')
+$IsBcSaaSInfrastructure = $bcAuthContext -and $bcAuthContext -is [Hashtable] -and $bcAuthContext.ContainsKey('scopes') -and $bcAuthContext.scopes -like "https://projectmadeira.com/*"
 if ($IsBcSaaSInfrastructure) {
     Write-Host "Using BC SaaS Infrastructure. Test for feature compatibility."
 }
