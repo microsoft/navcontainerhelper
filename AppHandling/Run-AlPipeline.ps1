@@ -533,15 +533,16 @@ function GetInstalledApps {
 
 function RunPageScriptingTests {
     param(
-        [Hashtable] $parameters
+        [string] $containerName,
+        [PSCredential] $credential,
+        [array] $pageScriptingTests,
+        [array] $restoreDatabases,
+        [string] $pageScriptingTestResultsFile,
+        [string] $pageScriptingTestResultsFolder,
+        [string] $startAddress,
+        [scriptblock] $RestoreDatabasesInBcContainer,
+        [switch] $returnTrueIfAllPassed
     )
-    $containerName = $parameters.containerName
-    $credential = $parameters.credential
-    $pageScriptingTests = $parameters.pageScriptingTests
-    $restoreDatabases = $parameters.restoreDatabases
-    $pageScriptingTestResultsFile = $parameters.pageScriptingTestResultsFile
-    $pageScriptingTestResultsFolder = $parameters.pageScriptingTestResultsFolder
-    $startAddress = $parameters.startAddress
 
     # Install npm package for page scripting tests
     pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
@@ -549,6 +550,7 @@ function RunPageScriptingTests {
     ${env:containerUsername} = $credential.UserName
     ${env:containerPassword} = $credential.Password | Get-PlainText
 
+    $allPassed = $true
     $usedNames = @()
 
     $pageScriptingTests | ForEach-Object {
@@ -626,6 +628,10 @@ function RunPageScriptingTests {
                 }
             }
         }
+    }
+
+    if ($returnTrueIfAllPassed) {
+        return $allPassed
     }
 }
 
@@ -940,10 +946,9 @@ if ($bcptTestFolders) {
 $artifactUrl = ""
 $filesOnly = $false
 $IsBcSaaSInfrastructure = $bcAuthContext -and $bcAuthContext -is [Hashtable] -and $bcAuthContext.ContainsKey('scopes') -and $bcAuthContext.scopes -like "https://projectmadeira.com/*"
+
 if ($IsBcSaaSInfrastructure) {
     Write-Host "Using BC SaaS Infrastructure. Test for feature compatibility."
-}
-if ($IsBcSaaSInfrastructure) {
     if ("$environment" -eq "") {
         throw "When specifying bcAuthContext, you also have to specify the name of the pre-setup online environment to use."
     }
@@ -1371,7 +1376,7 @@ if ($InstallMissingDependencies) {
 if ($RunPageScriptingTests) {
     Write-Host -ForegroundColor Yellow "RunPageScriptingTests override"; Write-Host $RunPageScriptingTests.ToString()
 } else {
-    $RunPageScriptingTests = { Param([Hashtable]$parameters) RunPageScriptingTests $parameters }
+    $RunPageScriptingTests = { Param([Hashtable]$parameters) RunPageScriptingTests @parameters }
 }
 Write-GroupEnd
 
@@ -3011,17 +3016,22 @@ if ($testCountry) {
 }
 $Parameters = @{
     "containerName" = (GetBuildContainer)
-    "tenant" = $tenant
     "credential" = $credential
     "pageScriptingTests" = $pageScriptingTests
     "restoreDatabases" = $restoreDatabases
-    "pageScriptingTestResultsFolder" = $pageScriptingTestResultsFolder
     "pageScriptingTestResultsFile" = $pageScriptingTestResultsFile
+    "pageScriptingTestResultsFolder" = $pageScriptingTestResultsFolder
     "startAddress" = "http://$containerName/BC?tenant=$tenant"
-    "bcAuthContext" = $bcAuthContext
-    "environment" = $environment
+    "RestoreDatabasesInBcContainer" = $RestoreDatabasesInBcContainer
+    "returnTrueIfAllPassed" = $true
 }
-Invoke-Command -ScriptBlock $RunPageScriptingTests -ArgumentList $Parameters 
+$result = Invoke-Command -ScriptBlock $RunPageScriptingTests -ArgumentList $Parameters
+if ($result -is [array]) {
+    $allPassed =  $allPassed -and $result[$result.Count-1]
+}
+else {
+    $allPassed =  $allPassed -and $result
+} 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }

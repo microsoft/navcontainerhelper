@@ -3,7 +3,7 @@ Better performance when downloading NuGet packages by adding another cache folde
 Add bcnuget to cache parameter in Flush-ContainerHelperCache in order to cleanup NuGet cache folders as well
 Better performance when searching for matching packages by not re-searching multiple times, but instead fetching all versions just once, cached in c:\bcnuget.cache
 Better performance when reading nuspec metadata - cached in c:\bcnuget.cache
-Improve SaaS Envionment recognition and allow overwriting Page Scripting Test execution in Run-AlPipeline
+Improve SaaS Environment recognition and allow overwriting Page Scripting Test execution in Run-AlPipeline
 
 6.1.9
 Add support for reportSuppressedDiagnostics in Run-AlPipeline
