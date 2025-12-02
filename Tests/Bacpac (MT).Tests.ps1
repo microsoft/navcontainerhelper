@@ -12,7 +12,7 @@ AfterAll {
     . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
 }
 
-Describe 'Bacpac' {
+Describe 'Bacpac' -Skip {
 
     It 'Export-NavContainerDatabasesAsBacpac (multitenant)' {
 

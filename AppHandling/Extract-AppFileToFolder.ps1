@@ -84,6 +84,42 @@ try {
         $memoryStream = [System.IO.MemoryStream]::new($content)
         $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
         $prevdir = ""
+
+        # If the app file is a ready-to-run app, it has a readytorunappmanifest.json file inside the archive
+        $readyToRunAppManifest = $zipArchive.Entries | Where-Object { $_.FullName -eq "readytorunappmanifest.json" }
+        if ($readyToRunAppManifest) {
+            # Create a temporary folder to extract the ready-to-run app manifest
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            New-Item -Path $tmpFolder -ItemType Directory -Force | Out-Null
+
+            # Extract the ready-to-run app manifest and get the embedded app file name
+            $fullname = Join-Path $tmpFolder "readytorunappmanifest.json"
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($readyToRunAppManifest, $fullname)
+            $embeddedAppFileName = (Get-Content -Path $fullname -Raw | ConvertFrom-Json).EmbeddedAppFileName
+            $embeddedAppFile = $zipArchive.Entries | Where-Object { $_.FullName -eq $embeddedAppFileName }
+            if (-not $embeddedAppFile) {
+                throw "Unable to find embedded app file '$embeddedAppFile' in the ready-to-run app."
+            }
+
+            # Create a temporary folder to extract the app file to
+            $fullname = Join-Path $tmpFolder ([Uri]::UnescapeDataString($embeddedAppFile.FullName))
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($embeddedAppFile, $fullname)
+
+            # Close stream and binary reader before recursive call
+            $binaryReader.Close()
+            $filestream.Close()
+            $memoryStream.Close()
+
+            try {
+                # Call the Extract-AppFileToFolder function again to extract the content of the app file
+                Extract-AppFileToFolder -appFilename $fullname -appFolder $appFolder -generateAppJson:$generateAppJson -excludeRuntimeProperty:$excludeRuntimeProperty -latestSupportedRuntimeVersion:$latestSupportedRuntimeVersion -openFolder:$openFolder
+            } finally {
+                # Clean up the temporary folder
+                Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            return
+        }
+
         $zipArchive.Entries | ForEach-Object {
             $fullname = Join-Path $appFolder ([Uri]::UnescapeDataString($_.FullName))
             $dir = [System.IO.Path]::GetDirectoryName($fullname)

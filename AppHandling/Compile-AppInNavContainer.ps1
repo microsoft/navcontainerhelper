@@ -291,12 +291,12 @@ try {
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = '8874ed3a-0643-4247-9ced-7a7002f7135d'; "version" = $appJsonObject.platform }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test) {
@@ -349,7 +349,7 @@ try {
     }
 
     $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
-    if (-not $applicationApp) {
+    if ((-not $applicationApp) -and ($platformversion -le [System.Version]"26.0.0.0")) {
         # locate application version number in database if using SQLEXPRESS
         try {
             if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
@@ -502,7 +502,7 @@ try {
                                 if ($alToolExists) {
                                     $manifest = & "$alToolExe" GetPackageManifest "$symbolsFile" | ConvertFrom-Json
                                     if ($manifest.PSObject.Properties.Name -eq 'application' -and $manifest.application) {
-                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $manifest.Application }
                                     }
                                     if ($manifest.PSObject.Properties.Name -eq 'dependencies') {
                                         foreach ($dependency in $manifest.dependencies) {
@@ -523,7 +523,7 @@ try {
                                     $manifest = $package.ReadNavAppManifest()
 
                                     if ($manifest.application) {
-                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $manifest.Application }
                                     }
 
                                     foreach ($dependency in $manifest.dependencies) {

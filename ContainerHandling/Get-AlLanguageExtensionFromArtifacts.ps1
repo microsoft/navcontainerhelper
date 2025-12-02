@@ -15,7 +15,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     $paths = Download-Artifacts $artifactUrl -includePlatform
-    $vsixFile = Get-Item -Path (Join-Path $paths[1] "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment\*.vsix")
+    $vsixFile = Get-Item -Path (Join-Path $paths[1] "ModernDev\*\Microsoft Dynamics NAV\*\AL Development Environment\*.vsix")
     if ($vsixFile) {
         $vsixFile.FullName
     }

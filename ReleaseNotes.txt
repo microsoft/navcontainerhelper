@@ -1,4 +1,23 @@
+6.1.10
+Better performance when downloading NuGet packages by adding another cache folder, which defaults to c:\bcnuget.cache
+Add bcnuget to cache parameter in Flush-ContainerHelperCache in order to cleanup NuGet cache folders as well
+Better performance when searching for matching packages by not re-searching multiple times, but instead fetching all versions just once, cached in c:\bcnuget.cache
+Better performance when reading nuspec metadata - cached in c:\bcnuget.cache
+
+6.1.9
+Add support for reportSuppressedDiagnostics in Run-AlPipeline
+Include 'Application Test Library' when importing test libraries
+
+6.1.8
+AL-Go issue 1920 Pagescript not working on own github runner
+Issue 4018 Using New-navcontainer with useNewDatabase=true for BC 27 fails
+
 6.1.7
+Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
+Add support for TestType field when running tests
+Issue 3943 Error downloading symbols for Microsoft_System
+Add support for RequiredTestIsolation field when running tests
+Catch errors when page scripting tests are failing
 
 6.1.6
 Added a new outcome to failOn = newWarning. For BcContainerHelper it will work as error - in AL-Go for GitHub it will have a meaning.

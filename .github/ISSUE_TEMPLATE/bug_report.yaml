@@ -1,0 +1,83 @@
+name: Report a bug
+description: Report a bug in BCContainerhelper
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+        Before you create a new issue, please check the following:
+        ✅ Make sure you can reproduce the issue on the [latest version](https://www.powershellgallery.com/packages/BcContainerHelper) of BCContainerhelper.
+        🔎 Search existing issues to avoid creating duplicates.
+        📖 Preview formatting to see that your scripts are readable.
+        ⛔ Please do not include any passwords or tokens in your issue.
+
+        The more information you provide, and the more clear the repro steps are, the easier it will be for us to help you.
+
+  - type: input
+    id: BCContainerhelper-version
+    attributes:
+      label: BCContainerhelper version
+      description: The version of BCContainerhelper you are using. If you are not sure, run `Get-Module BCContainerHelper` in PowerShell.
+      placeholder: For example 6.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: describe-the-issue
+    attributes:
+      label: Describe the issue
+      description: A clear and concise description of what the issue is
+      placeholder: Describe the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: script-repro
+    attributes:
+      label: Command or script used to produce the issue
+      description: BCContainerHelper command or script used to produce the issue
+      placeholder: Script/Command used to produce the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: script-output
+    attributes:
+      label: Full output of the command or script
+      description: Full output of the command or script used to produce the issue. Please make sure to remove any sensitive information such as passwords or tokens.
+      placeholder: Full output of the command or script
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional information
+      description: Any additional information that might be helpful in diagnosing the issue such as screen captures, logs, or other relevant details.
+      placeholder: Additional information
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Does this happen every time?
+      description: Does this issue occur every time you run the command or script?
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: used-to-work
+    attributes:
+      label: Did this used to work?
+      description: Did this issue used to work in a previous version of BCContainerhelper?
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true

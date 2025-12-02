@@ -179,6 +179,8 @@
   Environment to use for the pipeline
  .Parameter escapeFromCops
   If One of the cops causes an error in an app, then show the error, recompile the app without cops and continue
+ .Parameter reportSuppressedDiagnostics
+  Report diagnostics that are suppressed by #pragma warning disable directives when compiling.
  .Parameter AppSourceCopMandatoryAffixes
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
@@ -379,6 +381,7 @@ Param(
     [string[]] $preProcessorSymbols = @(),
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
+    [switch] $reportSuppressedDiagnostics,
     [Hashtable] $bcAuthContext,
     [string] $environment,
     $AppSourceCopMandatoryAffixes = @(),
@@ -1041,6 +1044,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder                  "
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                    "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder             "; Write-Host $buildArtifactFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages           "; Write-Host $createRuntimePackages
+Write-Host -NoNewLine -ForegroundColor Yellow "reportSuppressedDiagnostics     "; Write-Host $reportSuppressedDiagnostics
 Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                      "; Write-Host $appVersion
 Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                        "; Write-Host $appBuild
 Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                     "; Write-Host $appRevision
@@ -2121,6 +2125,7 @@ Write-Host -ForegroundColor Yellow @'
         "updateDependencies" = $UpdateDependencies
         "features" = $features
         "generateErrorLog" = $generateErrorLog
+        "ReportSuppressedDiagnostics" = $reportSuppressedDiagnostics
     }
 
     if ($buildOutputFile) {
@@ -2925,13 +2930,28 @@ $pageScriptingTests | ForEach-Object {
     Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    pwsh -command {
-        npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
-    } -args $path, $resultsFolder, $startAddress
-    if ($? -ne "True") {
+    try {
+        pwsh -command {
+            param(
+                [string]$TestPath,
+                [string]$ResultsFolder,
+                [string]$StartAddress
+            )
+            Write-Host "Running: npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'"
+            npx replay $TestPath -ResultDir $ResultsFolder -StartAddress $StartAddress -Authentication 'UserPassword' -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+        } -args $path, $resultsFolder, $startAddress
+        if ($? -ne "True") {
+            Write-Host "Page Scripting Tests failed for $testSpec"
+            $thisFailed = $true
+        }
+    } catch {
+        $thisFailed = $true
+        Write-Host -ForegroundColor Red "Page Scripting Tests failed for $testSpec : $($_.Exception.Message)"
+    }
+
+    if ($thisFailed) {
         Write-Host "Page Scripting Tests failed for $testSpec"
         $allPassed = $false
-        $thisFailed = $true
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
     $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
@@ -2956,8 +2976,12 @@ $pageScriptingTests | ForEach-Object {
             Remove-Item -Path $playwrightReportFolder -Force
         }
         else {
-            Write-Host "Removing results folder"
-            Remove-Item -Path $resultsFolder -Recurse -Force
+            if (Test-Path $resultsFolder) {
+                Write-Host "Removing results folder"
+                Remove-Item -Path $resultsFolder -Recurse -Force -ErrorAction SilentlyContinue
+            } else {
+                Write-Host "Results folder $resultsFolder not found"
+            }
         }
     }
 }
