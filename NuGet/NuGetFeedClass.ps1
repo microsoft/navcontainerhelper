@@ -473,9 +473,16 @@ class NuGetFeed {
             Write-Host -ForegroundColor Green "NuGet package successfully submitted"
 
             # Clear matching search results caches
-            @( $this.searchResultsCache.Keys ) | 
-                Where-Object { $package -like "*$($_)*" -or $_ -like 'GitHubPackages:*' } | 
+            # Extract package ID from filename: format is {packageId}-{version}.nupkg
+            $packageFileName = [System.IO.Path]::GetFileNameWithoutExtension($package)
+            # Version pattern: -X.Y.Z.W or -X.Y.Z at the end, optionally followed by prerelease tag like -beta
+            if ($packageFileName -match '^(.+)-(\d+\.\d+\.\d+(\.\d+)?(-[a-zA-Z0-9]+)?)$') {
+                $packageId = $matches[1]                
+                
+                @( $this.searchResultsCache.Keys ) | 
+                Where-Object { $packageId -like "*$($_)*" -or $_ -like 'GitHubPackages:*' } | 
                 ForEach-Object { $this.searchResultsCache.Remove($_) }
+            }
         }
         catch [System.Net.WebException] {
             if ($_.Exception.Status -eq "ProtocolError" -and $_.Exception.Response -is [System.Net.HttpWebResponse]) {
