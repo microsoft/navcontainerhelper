@@ -1,3 +1,5 @@
+6.1.11
+
 6.1.10
 Better performance when downloading NuGet packages by adding another cache folder, which defaults to c:\bcnuget.cache
 Add bcnuget to cache parameter in Flush-ContainerHelperCache in order to cleanup NuGet cache folders as well
