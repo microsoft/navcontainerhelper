@@ -754,11 +754,12 @@ function Run-Tests {
                 break
             }
             $result = $testResultJson | ConvertFrom-Json
+            $hasTestResults = [bool]($result.PSobject.Properties.name -eq "testResults")
         
             Write-Host -NoNewline "  Codeunit $($result.codeUnit) $($result.name) "
 
             $totalTests = 0
-            if ($result.PSobject.Properties.name -eq "testResults") {
+            if ($hasTestResults) {
                 $totalTests = $result.testResults.Count
             }
 
@@ -840,7 +841,7 @@ function Run-Tests {
             }
         
             $totalduration = [Timespan]::Zero
-            if ($result.PSobject.Properties.name -eq "testResults") {
+            if ($hasTestResults) {
                 $result.testResults | ForEach-Object {
                     $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
@@ -863,7 +864,7 @@ function Run-Tests {
             $failed = 0
             $skipped = 0
         
-            if ($result.PSobject.Properties.name -eq "testResults") {
+            if ($hasTestResults) {
                 $result.testResults | ForEach-Object {
                     $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
