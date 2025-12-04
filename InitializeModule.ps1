@@ -59,7 +59,7 @@ if ($isWindows) {
                 catch {
                 }
             }
-            $dotNetRuntimeVersionInstalled = $versions | Where-Object { $_.Major -ne 9 } | Sort-Object -Descending | Select-Object -First 1
+            $dotNetRuntimeVersionInstalled = $versions | Where-Object { ($_.Major -ne 9) -and ($_.Major -ne 10) } | Sort-Object -Descending | Select-Object -First 1
         }
     }
 }
