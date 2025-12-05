@@ -9,6 +9,10 @@ resources:
     name: OneBranch.Pipelines/GovernedTemplates
     ref: refs/heads/main
 
+variables:
+- name: WindowsContainerImage
+  value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest #https://aka.ms/obpipelines/containers
+
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
