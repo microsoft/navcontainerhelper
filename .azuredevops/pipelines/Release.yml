@@ -125,7 +125,7 @@ extends:
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
-      dependsOn: Release
+      dependsOn: Prepare
       condition: succeeded()
       jobs:
       - job: UploadToStorage
@@ -167,7 +167,7 @@ extends:
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
-      dependsOn: Release
+      dependsOn: Prepare
       condition: succeeded()
       jobs:
       - job: PublishToPSGallery
