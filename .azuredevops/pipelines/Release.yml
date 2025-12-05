@@ -105,11 +105,11 @@ extends:
                 exit 1
               }
 
-        - task: onebranch.pipeline.signing@1
+        - task: onebranch.pipeline.signing@1 # https://aka.ms/obpipelines/signing
           displayName: 'Sign PowerShell Files'
           inputs:
             command: 'sign'
-            signing_profile: 'external_distribution' # TODO: check if this is the correct profile
+            signing_profile: '135020002' # for OSS Components
             files_to_sign: '**\*.ps1;**\*.psm1;**\*.psd1'
             search_root: '$(Build.StagingDirectory)\module\BcContainerHelper'
 
