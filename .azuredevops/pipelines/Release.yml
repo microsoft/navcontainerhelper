@@ -28,10 +28,15 @@ extends:
     stages:
     - stage: BuildPSPackage
       jobs:
-      - job: BuildPSPackageJob
-        displayName: Build BcContainerHelper Package
+      - job: default_job
+        displayName: Build and Package
+        pool:
+          type: windows
         variables:
-          ob_outputDirectory: "$(Build.SourcesDirectory)/out"
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        - name: ob_artifactBaseName
+          value: drop_build
         steps:
         - checkout: self
           displayName: 'Checkout'
