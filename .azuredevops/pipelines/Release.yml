@@ -109,7 +109,7 @@ extends:
           displayName: 'Sign PowerShell Files'
           inputs:
             command: 'sign'
-            signing_profile: '135020002' # for OSS Components
+            signing_profile: 'external_default'
             files_to_sign: '**\*.ps1;**\*.psm1;**\*.psd1'
             search_root: '$(Build.StagingDirectory)\module\BcContainerHelper'
 
