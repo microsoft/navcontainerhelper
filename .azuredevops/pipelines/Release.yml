@@ -45,6 +45,9 @@ extends:
               try {
                 $path = Join-Path $(Build.StagingDirectory) "module\BcContainerHelper"
                 New-Item -path $path -itemType Directory -Force | Out-Null
+
+                Write-Host "Copying files to $path"
+                Get-ChildItem -Path $(Build.SourcesDirectory) -Recurse | ForEach-Object { Write-Host $_.FullName }
                 Copy-Item -path (Join-Path $(Build.SourcesDirectory) "*") -Destination $path -Recurse -Force
 
                 Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
