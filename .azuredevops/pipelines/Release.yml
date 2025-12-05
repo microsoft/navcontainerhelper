@@ -12,12 +12,21 @@ resources:
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
+    featureFlags:
+      WindowsHostVersion: '1ESWindows2022'
+    globalSdl: # https://aka.ms/obpipelines/sdl
+      tsa:
+        enabled: false # onebranch publish all sdl results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
+      binskim:
+        break: true # always break the build on binskim issues. You can disable it by setting to 'false'
+      policheck:
+        break: true # always break the build on policheck issues. You can disable it by setting to 'false'
     stages:
     - stage: Release
       displayName: 'Release BcContainerHelper'
       jobs:
-      - job: ReleaseModule
-        displayName: 'Release BcContainerHelper Module'
+      - job: default_job
+        displayName: Build and Release BcContainerHelper
         steps:
         - checkout: self
           displayName: 'Checkout'
