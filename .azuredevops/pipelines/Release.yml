@@ -27,6 +27,8 @@ extends:
       jobs:
       - job: default_job
         displayName: Build and Release BcContainerHelper
+        pool:
+          type: windows
         steps:
         - checkout: self
           displayName: 'Checkout'
