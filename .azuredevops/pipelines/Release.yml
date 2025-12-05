@@ -1,0 +1,216 @@
+trigger: none
+name: Release BCContainerHelper (Preview) $(Date:yyyyMMdd).$(Rev:r)
+pr: none
+
+resources:
+  repositories:
+  - repository: 1ESPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@1ESPipelineTemplates
+  parameters:
+    sdl:
+      sourceAnalysisPool:
+        name: Azure-Pipelines-1ESPT-ExDShared
+        image: windows-latest
+        os: windows
+
+    stages:
+    - stage: Release
+      displayName: 'Release BcContainerHelper'
+      jobs:
+      - job: Deploy
+        displayName: 'Deploy'
+        templateContext:
+          outputs:
+          - output: pipelineArtifact
+            targetPath: '$(Pipeline.Workspace)/module'
+            artifactName: 'BcContainerHelper'
+            displayName: 'Publish BcContainerHelper Module'
+
+        steps:
+        - checkout: self
+          displayName: 'Checkout'
+
+        - task: AzureCLI@2
+          displayName: 'Az CLI login'
+          inputs:
+            azureSubscription: 'BcContainerHelper-ServiceConnection' # Create a service connection with federated credentials
+            scriptType: 'pscore'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              Write-Host "Authenticated with Azure"
+            addSpnToEnvironment: true
+            useGlobalConfig: true
+
+        - task: PowerShell@2
+          displayName: 'Install Azure PowerShell Modules'
+          inputs:
+            targetType: 'inline'
+            script: |
+              if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
+                Install-Module -Name 'Az.Storage' -Force -AllowClobber
+              }
+            pwsh: false
+
+        - task: PowerShell@2
+          displayName: 'Prepare Module'
+          inputs:
+            targetType: 'inline'
+            pwsh: false
+            script: |
+              $errorActionPreference = "stop"
+              try {
+                $path = Join-Path $ENV:PIPELINE_WORKSPACE "module\BcContainerHelper"
+                New-Item -path $path -itemType Directory -Force | Out-Null
+                Copy-Item -path (Join-Path $ENV:BUILD_SOURCESDIRECTORY "*") -Destination $path -Recurse -Force
+
+                Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path ".azuredevops") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path ".git") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path ".gitignore") -Force -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path "README.md") -Force -ErrorAction Ignore
+
+                $versionFile = Join-Path $path 'Version.txt'
+                $version = (Get-Content -Path $versionFile).split('-')[0]
+                Write-Host "BcContainerHelper version $Version"
+                Set-Content -Path $versionFile -Value $version
+
+                $modulePath = Join-Path $ENV:BUILD_SOURCESDIRECTORY "BcContainerHelper.psm1"
+                Import-Module $modulePath -DisableNameChecking
+
+                $functionsToExport = (Get-Module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+                $aliasesToExport = (Get-Module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
+
+                $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+                Write-Host "Set latest generic tag version to $($labels.tag)"
+                Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
+
+                $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+                $idx = $releaseNotes.IndexOf($version)
+                if ($idx -lt 0) {
+                    throw 'No release notes identified'
+                }
+                $versionReleaseNotes = @()
+                while ($releaseNotes[$idx]) {
+                    $versionReleaseNotes += $releaseNotes[$idx]
+                    $idx++
+                }
+
+                Write-Host "Release Notes:"
+                Write-Host $VersionReleaseNotes
+
+                Write-Host "Update Module Manifest"
+                Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                                      -RootModule "BcContainerHelper.psm1" `
+                                      -ModuleVersion $version `
+                                      -Author "Freddy Kristiansen" `
+                                      -FunctionsToExport $functionsToExport `
+                                      -AliasesToExport $aliasesToExport `
+                                      -CompanyName "Microsoft" `
+                                      -ReleaseNotes $versionReleaseNotes `
+                                      -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
+                                      -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
+
+              }
+              catch {
+                Write-Host "##vso[task.logissue type=error]Error preparing module. Error was $($_.Exception.Message)"
+                exit 1
+              }
+
+        - task: onebranch.pipeline.signing@1
+          displayName: 'Sign PowerShell Files'
+          inputs:
+            command: 'sign'
+            signing_profile: 'external_distribution' # TODO: check if this is the correct profile
+            files_to_sign: '**\*.ps1;**\*.psm1;**\*.psd1'
+            search_root: '$(Pipeline.Workspace)/module/BcContainerHelper'
+
+    - stage: DeployToStorage
+      displayName: 'Deploy to Azure Storage'
+      dependsOn: Release
+      condition: succeeded()
+      jobs:
+      - job: UploadToStorage
+        displayName: 'Upload to Storage Account'
+        steps:
+        - download: current
+          artifact: 'BcContainerHelper'
+          displayName: 'Download BcContainerHelper Artifact'
+
+        - task: AzureCLI@2
+          displayName: 'Upload to Azure Storage'
+          inputs:
+            azureSubscription: 'BcContainerHelper-ServiceConnection'
+            scriptType: 'pscore'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              $storageAccountName = "bccontainerhelper"  # TODO: Update with actual storage account name
+              $containerName = "modules"  # TODO: Update with actual container name
+              $modulePath = "$(Pipeline.Workspace)/BcContainerHelper"
+
+              $versionFile = Join-Path $modulePath 'BcContainerHelper/Version.txt'
+              $version = Get-Content -Path $versionFile
+              Write-Host "Uploading BcContainerHelper version $version to Azure Storage"
+
+              # Create a zip file of the module
+              $zipPath = "$(Pipeline.Workspace)/BcContainerHelper-$version.zip"
+              Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
+
+              # Upload to Azure Storage
+              az storage blob upload `
+                --account-name $storageAccountName `
+                --container-name $containerName `
+                --name "BcContainerHelper-$version.zip" `
+                --file $zipPath `
+                --auth-mode login `
+                --overwrite
+
+              Write-Host "Successfully uploaded to Azure Storage"
+
+    - stage: DeployToPSGallery
+      displayName: 'Deploy to PowerShell Gallery'
+      dependsOn: Release
+      condition: succeeded()
+      jobs:
+      - job: PublishToPSGallery
+        displayName: 'Publish to PowerShell Gallery'
+        steps:
+        - download: current
+          artifact: 'BcContainerHelper'
+          displayName: 'Download BcContainerHelper Artifact'
+
+        - task: PowerShell@2
+          displayName: 'Publish to PowerShell Gallery'
+          inputs:
+            targetType: 'inline'
+            pwsh: true
+            script: |
+              $errorActionPreference = "stop"
+              try {
+                $modulePath = "$(Pipeline.Workspace)/BcContainerHelper/BcContainerHelper"
+                $versionFile = Join-Path $modulePath 'Version.txt'
+                $version = Get-Content -Path $versionFile
+                Write-Host "Publishing BcContainerHelper version $version to PowerShell Gallery"
+
+                # Get the API key from pipeline variable
+                $apiKey = $env:PSGALLERY_API_KEY
+                if (-not $apiKey) {
+                  throw "PowerShell Gallery API key not found. Please set the PSGALLERY_API_KEY variable."
+                }
+
+                # Publish to PowerShell Gallery
+                Publish-Module -Path $modulePath -NuGetApiKey $apiKey -Repository PSGallery -Verbose
+
+                Write-Host "Successfully published to PowerShell Gallery"
+              }
+              catch {
+                Write-Host "##vso[task.logissue type=error]Error publishing to PowerShell Gallery. Error was $($_.Exception.Message)"
+                exit 1
+              }
+          env:
+            PSGALLERY_API_KEY: $(PSGalleryApiKey)
