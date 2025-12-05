@@ -26,7 +26,7 @@ extends:
       policheck:
         break: true # always break the build on policheck issues. You can disable it by setting to 'false'
     stages:
-    - stage: Release
+    - stage: BuildPSPackage
       jobs:
       - job: default_job
         displayName: Release BcContainerHelper
