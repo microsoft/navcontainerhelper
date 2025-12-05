@@ -29,7 +29,7 @@ extends:
     - stage: BuildPSPackage
       jobs:
       - job: default_job
-        displayName: Release BcContainerHelper
+        displayName: Build BcContainerHelper Package
         steps:
         - checkout: self
           displayName: 'Checkout'
