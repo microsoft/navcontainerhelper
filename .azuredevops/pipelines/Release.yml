@@ -1,0 +1,127 @@
+trigger: none
+
+pr: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  - group: Release-Secrets # Create a variable group with: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, CodeSignCertificatePfx, CodeSignCertificatePassword, NugetKey
+
+jobs:
+- job: Deploy
+  displayName: 'Deploy BcContainerHelper'
+  condition: eq(variables['Build.Repository.Name'], 'Microsoft/NavContainerHelper')
+  steps:
+  - task: AzureCLI@2
+    displayName: 'Az CLI login'
+    inputs:
+      azureSubscription: 'BcContainerHelper-ServiceConnection' # Create a service connection with federated credentials
+      scriptType: 'pscore'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        Write-Host "Authenticated with Azure"
+      addSpnToEnvironment: true
+      useGlobalConfig: true
+
+  - task: PowerShell@2
+    displayName: 'Install Azure PowerShell Modules'
+    inputs:
+      targetType: 'inline'
+      script: |
+        if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
+          Install-Module -Name 'Az.Storage' -Force -AllowClobber
+        }
+      pwsh: false
+
+  - checkout: self
+    displayName: 'Checkout'
+
+  - task: PowerShell@2
+    displayName: 'Deploy'
+    inputs:
+      targetType: 'inline'
+      pwsh: false
+      script: |
+        $errorActionPreference = "stop"
+        try {
+          $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
+          New-Item -path $path -itemType Directory | Out-Null
+          Copy-Item -path (Join-Path $ENV:BUILD_SOURCESDIRECTORY "*") -Destination $path -Recurse -Force
+
+          Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+          Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
+          Remove-Item -Path (Join-Path $path ".azuredevops") -Force -Recurse -ErrorAction Ignore
+          Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
+          Remove-Item -Path (Join-Path $path ".gitignore") -Force
+          Remove-Item -Path (Join-Path $path "README.md") -Force
+
+          $versionFile = Join-Path $path 'Version.txt'
+          $version = (Get-Content -Path $versionFile).split('-')[0]
+          Write-Host "BcContainerHelper version $Version"
+          Set-Content -Path $versionFile -Value $version
+
+          $modulePath = Join-Path $ENV:BUILD_SOURCESDIRECTORY "BcContainerHelper.psm1"
+          Import-Module $modulePath -DisableNameChecking
+
+          $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+          $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
+
+          $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+          Write-Host "Set latest generic tag version to $($labels.tag)"
+          Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
+
+          $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+          $idx = $releaseNotes.IndexOf($version)
+          if ($idx -lt 0) {
+              throw 'No release notes identified'
+          }
+          $versionReleaseNotes = @()
+          while ($releaseNotes[$idx]) {
+              $versionReleaseNotes += $releaseNotes[$idx]
+              $idx++
+          }
+
+          Write-Host "Release Notes:"
+          Write-Host $VersionReleaseNotes
+
+          Write-Host "Update Module Manifest"
+          Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                                -RootModule "BcContainerHelper.psm1" `
+                                -ModuleVersion $version `
+                                -Author "Freddy Kristiansen" `
+                                -FunctionsToExport $functionsToExport `
+                                -AliasesToExport $aliasesToExport `
+                                -CompanyName "Microsoft" `
+                                -ReleaseNotes $versionReleaseNotes `
+                                -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
+                                -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
+
+          $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
+          [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('$(CodeSignCertificatePfx)')))
+
+          Remove-Module BcContainerHelper
+
+          Write-Host $path
+
+          Write-Host "Signing scripts"
+          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '$(CodeSignCertificatePassword)')
+          $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                         @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
+          Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
+
+          Write-Host "Upload to storage (preview)"
+          $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
+          New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+
+          Compress-Archive -path $path -DestinationPath "$($path).zip"
+          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
+          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Properties @{"CacheControl" = "no-cache"} -Force | Out-Null
+
+          Write-Host "Publishing Module"
+          Publish-Module -Path $path -NuGetApiKey '$(NugetKey)' -SkipAutomaticTags
+        }
+        catch {
+          Write-Host "##vso[task.logissue type=error]Error publishing module. Error was $($_.Exception.Message)"
+          exit 1
+        }
