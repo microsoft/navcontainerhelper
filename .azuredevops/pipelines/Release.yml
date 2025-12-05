@@ -47,8 +47,9 @@ extends:
                 New-Item -path $path -itemType Directory -Force | Out-Null
 
                 Write-Host "Copying files to $path"
-                Get-ChildItem -Path $(Build.SourcesDirectory) -Recurse | ForEach-Object { Write-Host $_.FullName }
-                Copy-Item -path (Join-Path $(Build.SourcesDirectory) "*") -Destination $path -Recurse -Force
+                $filesPath = Join-Path $(Build.SourcesDirectory) "navcontainerhelper"
+                Get-ChildItem -Path $filesPath -Recurse | ForEach-Object { Write-Host $_.FullName }
+                Copy-Item -Path (Join-Path $filesPath "*") -Destination $path -Recurse -Force
 
                 Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
