@@ -122,35 +122,43 @@ extends:
           artifact: 'BcContainerHelper'
           displayName: 'Download BcContainerHelper Artifact'
 
-        - task: AzureCLI@2
-          displayName: 'Upload to Azure Storage'
+        - task: PowerShell@2
+          displayName: 'Publish to PowerShell Gallery'
           inputs:
-            azureSubscription: 'BcContainerHelper-ServiceConnection'
-            scriptType: 'pscore'
-            scriptLocation: 'inlineScript'
-            inlineScript: |
-              $storageAccountName = "bccontainerhelper"  # TODO: Update with actual storage account name
-              $containerName = "modules"  # TODO: Update with actual container name
-              $modulePath = "$(Pipeline.Workspace)/BcContainerHelper"
+            targetType: 'inline'
+            pwsh: true
+            script: |
+              Write-Host "Upload to Azure Storage is currently disabled. Please enable and configure the following script when ready." # TODO: Remove this line when enabling the script below.
 
-              $versionFile = Join-Path $modulePath 'BcContainerHelper/Version.txt'
-              $version = Get-Content -Path $versionFile
-              Write-Host "Uploading BcContainerHelper version $version to Azure Storage"
+        # - task: AzureCLI@2
+        #   displayName: 'Upload to Azure Storage'
+        #   inputs:
+        #     azureSubscription: 'BcContainerHelper-ServiceConnection'
+        #     scriptType: 'pscore'
+        #     scriptLocation: 'inlineScript'
+        #     inlineScript: |
+        #       $storageAccountName = "bccontainerhelper"  # TODO: Update with actual storage account name
+        #       $containerName = "modules"  # TODO: Update with actual container name
+        #       $modulePath = "$(Pipeline.Workspace)/BcContainerHelper"
 
-              # Create a zip file of the module
-              $zipPath = "$(Pipeline.Workspace)/BcContainerHelper-$version.zip"
-              Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
+        #       $versionFile = Join-Path $modulePath 'BcContainerHelper/Version.txt'
+        #       $version = Get-Content -Path $versionFile
+        #       Write-Host "Uploading BcContainerHelper version $version to Azure Storage"
 
-              # Upload to Azure Storage
-              az storage blob upload `
-                --account-name $storageAccountName `
-                --container-name $containerName `
-                --name "BcContainerHelper-$version.zip" `
-                --file $zipPath `
-                --auth-mode login `
-                --overwrite
+        #       # Create a zip file of the module
+        #       $zipPath = "$(Pipeline.Workspace)/BcContainerHelper-$version.zip"
+        #       Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
 
-              Write-Host "Successfully uploaded to Azure Storage"
+        #       # Upload to Azure Storage
+        #       az storage blob upload `
+        #         --account-name $storageAccountName `
+        #         --container-name $containerName `
+        #         --name "BcContainerHelper-$version.zip" `
+        #         --file $zipPath `
+        #         --auth-mode login `
+        #         --overwrite
+
+        #       Write-Host "Successfully uploaded to Azure Storage"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
