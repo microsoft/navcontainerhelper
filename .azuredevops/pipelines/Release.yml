@@ -12,25 +12,18 @@ resources:
 extends:
   template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates
   parameters:
-    sdl:
-      sourceAnalysisPool:
-        name: Azure-Pipelines-1ESPT-ExDShared
-        image: windows-latest
-        os: windows
-
     stages:
-    - stage: Release
-      displayName: 'Release BcContainerHelper'
+    - stage: Prepare
+      displayName: 'Prepare BcContainerHelper'
       jobs:
-      - job: Deploy
-        displayName: 'Deploy'
+      - job: PrepareModule
+        displayName: 'Prepare Module'
         templateContext:
           outputs:
           - output: pipelineArtifact
             targetPath: '$(Pipeline.Workspace)/module'
             artifactName: 'BcContainerHelper'
-            displayName: 'Publish BcContainerHelper Module'
-
+            displayName: 'Prepare BcContainerHelper Module'
         steps:
         - checkout: self
           displayName: 'Checkout'
