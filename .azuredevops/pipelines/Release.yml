@@ -13,17 +13,11 @@ extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
     stages:
-    - stage: PrepareModule
-      displayName: 'Prepare BcContainerHelper'
+    - stage: Release
+      displayName: 'Release BcContainerHelper'
       jobs:
-      - job: PrepareModule
-        displayName: 'Prepare Module'
-        templateContext:
-          outputs:
-          - output: pipelineArtifact
-            targetPath: '$(Pipeline.Workspace)/module'
-            artifactName: 'BcContainerHelper'
-            displayName: 'Prepare BcContainerHelper Module'
+      - job: ReleaseModule
+        displayName: 'Release BcContainerHelper Module'
         steps:
         - checkout: self
           displayName: 'Checkout'
@@ -123,18 +117,6 @@ extends:
             files_to_sign: '**\*.ps1;**\*.psm1;**\*.psd1'
             search_root: '$(Pipeline.Workspace)/module/BcContainerHelper'
 
-    - stage: DeployToStorage
-      displayName: 'Deploy to Azure Storage'
-      dependsOn: ['PrepareModule']
-      condition: succeeded()
-      jobs:
-      - job: UploadToStorage
-        displayName: 'Upload to Storage Account'
-        steps:
-        - download: current
-          artifact: 'BcContainerHelper'
-          displayName: 'Download BcContainerHelper Artifact'
-
         - task: AzureCLI@2
           displayName: 'Upload to Azure Storage'
           inputs:
@@ -144,9 +126,9 @@ extends:
             inlineScript: |
               $storageAccountName = "bccontainerhelper"  # TODO: Update with actual storage account name
               $containerName = "modules"  # TODO: Update with actual container name
-              $modulePath = "$(Pipeline.Workspace)/BcContainerHelper"
+              $modulePath = "$(Pipeline.Workspace)/module/BcContainerHelper"
 
-              $versionFile = Join-Path $modulePath 'BcContainerHelper/Version.txt'
+              $versionFile = Join-Path $modulePath 'Version.txt'
               $version = Get-Content -Path $versionFile
               Write-Host "Uploading BcContainerHelper version $version to Azure Storage"
 
@@ -165,18 +147,6 @@ extends:
 
               Write-Host "Successfully uploaded to Azure Storage"
 
-    - stage: DeployToPSGallery
-      displayName: 'Deploy to PowerShell Gallery'
-      dependsOn: ['PrepareModule']
-      condition: succeeded()
-      jobs:
-      - job: PublishToPSGallery
-        displayName: 'Publish to PowerShell Gallery'
-        steps:
-        - download: current
-          artifact: 'BcContainerHelper'
-          displayName: 'Download BcContainerHelper Artifact'
-
         - task: PowerShell@2
           displayName: 'Publish to PowerShell Gallery'
           inputs:
@@ -185,7 +155,7 @@ extends:
             script: |
               $errorActionPreference = "stop"
               try {
-                $modulePath = "$(Pipeline.Workspace)/BcContainerHelper/BcContainerHelper"
+                $modulePath = "$(Pipeline.Workspace)/module/BcContainerHelper"
                 $versionFile = Join-Path $modulePath 'Version.txt'
                 $version = Get-Content -Path $versionFile
                 Write-Host "Publishing BcContainerHelper version $version to PowerShell Gallery"
