@@ -43,9 +43,9 @@ extends:
             script: |
               $errorActionPreference = "stop"
               try {
-                $path = Join-Path $ENV:PIPELINE_WORKSPACE "module\BcContainerHelper"
+                $path = Join-Path $(Build.StagingDirectory) "module\BcContainerHelper"
                 New-Item -path $path -itemType Directory -Force | Out-Null
-                Copy-Item -path (Join-Path $ENV:BUILD_SOURCESDIRECTORY "*") -Destination $path -Recurse -Force
+                Copy-Item -path (Join-Path $(Build.SourcesDirectory) "*") -Destination $path -Recurse -Force
 
                 Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
@@ -59,7 +59,7 @@ extends:
                 Write-Host "BcContainerHelper version $Version"
                 Set-Content -Path $versionFile -Value $version
 
-                $modulePath = Join-Path $ENV:BUILD_SOURCESDIRECTORY "BcContainerHelper.psm1"
+                $modulePath = Join-Path $(Build.SourcesDirectory) "BcContainerHelper.psm1"
                 Import-Module $modulePath -DisableNameChecking
 
                 $functionsToExport = (Get-Module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
