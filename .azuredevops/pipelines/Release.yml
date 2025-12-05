@@ -18,36 +18,16 @@ extends:
       jobs:
       - job: PrepareModule
         displayName: 'Prepare Module'
-        templateContext:
-          outputs:
-          - output: pipelineArtifact
-            targetPath: '$(Pipeline.Workspace)/module'
-            artifactName: 'BcContainerHelper'
-            displayName: 'Prepare BcContainerHelper Module'
+        pool:
+          type: 'windows'
+        variables:
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        - name: ob_artifactBaseName
+          value: drop_build
         steps:
         - checkout: self
           displayName: 'Checkout'
-
-        - task: AzureCLI@2
-          displayName: 'Az CLI login'
-          inputs:
-            azureSubscription: 'BcContainerHelper-ServiceConnection' # Create a service connection with federated credentials
-            scriptType: 'pscore'
-            scriptLocation: 'inlineScript'
-            inlineScript: |
-              Write-Host "Authenticated with Azure"
-            addSpnToEnvironment: true
-            useGlobalConfig: true
-
-        - task: PowerShell@2
-          displayName: 'Install Azure PowerShell Modules'
-          inputs:
-            targetType: 'inline'
-            script: |
-              if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
-                Install-Module -Name 'Az.Storage' -Force -AllowClobber
-              }
-            pwsh: false
 
         - task: PowerShell@2
           displayName: 'Prepare Module'
@@ -130,6 +110,13 @@ extends:
       jobs:
       - job: UploadToStorage
         displayName: 'Upload to Storage Account'
+        pool:
+          type: 'windows'
+        variables:
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        - name: ob_artifactBaseName
+          value: drop_build
         steps:
         - download: current
           artifact: 'BcContainerHelper'
@@ -172,6 +159,13 @@ extends:
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
+        pool:
+          type: 'windows'
+        variables:
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        - name: ob_artifactBaseName
+          value: drop_build
         steps:
         - download: current
           artifact: 'BcContainerHelper'
