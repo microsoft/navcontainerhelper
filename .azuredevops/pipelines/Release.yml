@@ -13,7 +13,7 @@ extends:
   template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates
   parameters:
     stages:
-    - stage: Prepare
+    - stage: PrepareModule
       displayName: 'Prepare BcContainerHelper'
       jobs:
       - job: PrepareModule
@@ -125,7 +125,7 @@ extends:
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
-      dependsOn: Prepare
+      dependsOn: ['PrepareModule']
       condition: succeeded()
       jobs:
       - job: UploadToStorage
@@ -167,7 +167,7 @@ extends:
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
-      dependsOn: Prepare
+      dependsOn: ['PrepareModule']
       condition: succeeded()
       jobs:
       - job: PublishToPSGallery
