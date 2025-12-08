@@ -8,9 +8,14 @@ resources:
     type: git
     name: OneBranch.Pipelines/GovernedTemplates
     ref: refs/heads/main
+  - repository: PipelineTemplates
+    type: git
+    name: Infrastructure-PipelineTemplates
+    ref: master
 variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
+  - template: codesign-variables.yml@PipelineTemplates
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
@@ -103,13 +108,10 @@ extends:
                 exit 1
               }
 
-        - task: onebranch.pipeline.signing@1 # https://aka.ms/obpipelines/signing
+        - template: codesign.yml@PipelineTemplates
           displayName: 'Sign PowerShell Files'
-          inputs:
-            command: 'sign'
-            signing_profile: 'external_distribution'
-            files_to_sign: '**\*.ps1;**\*.psm1;**\*.psd1'
-            search_root: '$(Build.StagingDirectory)\module\BcContainerHelper'
+          parameters:
+            OutputPath: '$(Build.StagingDirectory)\module\BcContainerHelper'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
