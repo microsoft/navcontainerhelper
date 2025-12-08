@@ -31,7 +31,7 @@ extends:
           type: 'windows'
         variables:
         - name: ob_outputDirectory
-          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT/drop'
         - name: ob_artifactBaseName
           value: drop_build
         steps:
@@ -46,7 +46,7 @@ extends:
             script: |
               $errorActionPreference = "stop"
               try {
-                $path = Join-Path $(Build.StagingDirectory) "module\BcContainerHelper"
+                $path = Join-Path $(ob_outputDirectory) "module\BcContainerHelper"
                 New-Item -path $path -itemType Directory -Force | Out-Null
 
                 Write-Host "Copying files to $path"
@@ -110,7 +110,7 @@ extends:
 
         - template: codesign.yml@PipelineTemplates
           parameters:
-            OutputPath: '$(Build.StagingDirectory)\module\BcContainerHelper'
+            OutputPath: '$(ob_outputDirectory)\module\BcContainerHelper'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
