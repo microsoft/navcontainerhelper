@@ -15,9 +15,7 @@ extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
     featureFlags:
-      WindowsHostVersion:
-        Version: 2022
-        Network: R1
+      WindowsHostVersion: '1ESWindows2022'
     stages:
     - stage: PrepareModule
       displayName: 'Prepare BcContainerHelper'
