@@ -109,7 +109,6 @@ extends:
               }
 
         - template: codesign.yml@PipelineTemplates
-          displayName: 'Sign PowerShell Files'
           parameters:
             OutputPath: '$(Build.StagingDirectory)\module\BcContainerHelper'
 
