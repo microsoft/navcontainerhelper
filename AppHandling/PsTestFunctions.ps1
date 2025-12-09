@@ -1,7 +1,7 @@
 ﻿Param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory=$true)]
     [string] $clientDllPath,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory=$true)]
     [string] $newtonSoftDllPath,
     [string] $clientContextScriptPath = $null
 )
@@ -37,11 +37,11 @@ if (!($clientContextScriptPath)) {
 
 function New-ClientContext {
     Param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory=$true)]
         [string] $serviceUrl,
-        [ValidateSet('Windows', 'NavUserPassword', 'AAD')]
-        [string] $auth = 'NavUserPassword',
-        [Parameter(Mandatory = $false)]
+        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [string] $auth='NavUserPassword',
+        [Parameter(Mandatory=$false)]
         [pscredential] $credential,
         [timespan] $interactionTimeout = [timespan]::FromMinutes(10),
         [string] $culture = "en-US",
@@ -106,8 +106,10 @@ function Set-ExtensionId
     [ClientContext] $ClientContext,
     [switch] $debugMode,
     $Form
-) {
-    if (!$ExtensionId) {
+)
+{
+    if(!$ExtensionId)
+    {
         return
     }
     
@@ -120,18 +122,19 @@ function Set-ExtensionId
 
 function Set-RequiredTestIsolation
 (
-    [ValidateSet('None', 'Disabled', 'Codeunit', 'Function')]
+    [ValidateSet('None','Disabled','Codeunit','Function')]
     [string] $RequiredTestIsolation,
     [ClientContext] $ClientContext,
     [switch] $debugMode,
     $Form
-) {
+)
+{
     if ($debugMode) {
         Write-Host "Setting Required Test Isolation $RequiredTestIsolation"
     }
 
     $TestIsolationValues = @{
-        None     = 0
+        None = 0
         Disabled = 1
         Codeunit = 2
         Function = 3
@@ -142,20 +145,21 @@ function Set-RequiredTestIsolation
 
 function Set-TestType
 (
-    [ValidateSet('UnitTest', 'IntegrationTest', 'Uncategorized')]
+    [ValidateSet('UnitTest','IntegrationTest','Uncategorized')]
     [string] $TestType,
     [ClientContext] $ClientContext,
     [switch] $debugMode,
     $Form
-) {
+)
+{
     if ($debugMode) {
         Write-Host "Setting Test Type $TestType"
     }
 
     $TypeValues = @{
-        UnitTest        = 1
+        UnitTest = 1
         IntegrationTest = 2
-        Uncategorized   = 3
+        Uncategorized = 3
     }
     $testTypeControl = $ClientContext.GetControlByName($Form, "TestType")
     $ClientContext.SaveValue($testTypeControl, $TypeValues[$TestType])
@@ -189,8 +193,10 @@ function Set-TestRunnerCodeunitId
     [ClientContext] $ClientContext,
     [switch] $debugMode,
     $Form
-) {
-    if (!$testRunnerCodeunitId) {
+)
+{
+    if(!$testRunnerCodeunitId)
+    {
         return
     }
     
@@ -207,13 +213,16 @@ function Set-RunFalseOnDisabledTests
     [array] $DisabledTests,
     [switch] $debugMode,
     $Form
-) {
-    if (!$DisabledTests) {
+)
+{
+    if(!$DisabledTests)
+    {
         return
     }
 
     $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
-    foreach ($disabledTestMethod in $DisabledTests) {
+    foreach($disabledTestMethod in $DisabledTests)
+    {
         $disabledTestMethod.method | ForEach-Object {
             if ($disabledTestMethod.codeunitName.IndexOf(',') -ge 0) {
                 Write-Host "Warning: Cannot disable tests in codeunits with a comma in the name ($($disabledTestMethod.codeunitName):$_)"
@@ -229,7 +238,8 @@ function Set-RunFalseOnDisabledTests
     }
 }
 
-function Set-CCTrackingType {
+function Set-CCTrackingType
+{
     param (
         [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
         [string] $Value,
@@ -237,28 +247,30 @@ function Set-CCTrackingType {
         $Form
     )
     $TypeValues = @{
-        Disabled    = 0
-        PerRun      = 1
-        PerCodeunit = 2
-        PerTest     = 3
+        Disabled = 0
+        PerRun = 1
+        PerCodeunit=2
+        PerTest=3
     }
     $suiteControl = $ClientContext.GetControlByName($Form, "CCTrackingType")
     $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
 }
 
-function Set-CCExporterID {
+function Set-CCExporterID
+{
     param (
         [string] $Value,
         [ClientContext] $ClientContext,
         $Form
     )
-    if ($Value) {
+    if($Value){
         $suiteControl = $ClientContext.GetControlByName($Form, "CCExporterID");
         $ClientContext.SaveValue($suiteControl, $Value)
     }
 }
 
-function Set-CCProduceCodeCoverageMap {
+function Set-CCProduceCodeCoverageMap
+{
 
     param (
         [ValidateSet('Disabled', 'PerCodeunit', 'PerTest')]
@@ -267,15 +279,16 @@ function Set-CCProduceCodeCoverageMap {
         $Form
     )
     $TypeValues = @{
-        Disabled    = 0
+        Disabled = 0
         PerCodeunit = 1
-        PerTest     = 2
+        PerTest=2
     }
     $suiteControl = $ClientContext.GetControlByName($Form, "CCMap")
     $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
 }
 
-function Clear-CCResults {
+function Clear-CCResults
+{
     param (
         [ClientContext] $ClientContext,
         $Form
@@ -289,15 +302,15 @@ function CollectCoverageResults {
         [string] $TrackingType,
         [string] $OutputPath,
         [switch] $DisableSSLVerification,
-        [ValidateSet('Windows', 'NavUserPassword', 'AAD')]
+        [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory=$false)]
         [pscredential] $Credential,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory=$true)]
         [string] $ServiceUrl,
         [string] $CodeCoverageFilePrefix
     )
-    try {
+    try{
         $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
         $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
         do {
@@ -307,23 +320,23 @@ function CollectCoverageResults {
             $CCInfoControl = $clientContext.GetControlByName($form, "CCInfo")
             $CCResult = $CCResultControl.StringValue
             $CCInfo = $CCInfoControl.StringValue
-            if ($CCInfo -ne $script:CCCollectedResult) {
-                $CCInfo = $CCInfo -replace ",", "-"
-                $CCOutputFilename = $CodeCoverageFilePrefix + "_$CCInfo.dat"
+            if($CCInfo -ne $script:CCCollectedResult){
+                $CCInfo = $CCInfo -replace ",","-"
+                $CCOutputFilename = $CodeCoverageFilePrefix +"_$CCInfo.dat"
                 Write-Host "Storing coverage results of $CCCodeunitId in:  $OutputPath\$CCOutputFilename"
                 Set-Content -Path "$OutputPath\$CCOutputFilename" -Value $CCResult
             }
         } while ($CCInfo -ne $script:CCCollectedResult)
        
-        if ($ProduceCodeCoverageMap -ne 'Disabled') {
+        if($ProduceCodeCoverageMap -ne 'Disabled') {
             $codeCoverageMapPath = Join-Path $OutputPath "TestCoverageMap"
             SaveCodeCoverageMap -OutputPath $codeCoverageMapPath  -DisableSSLVerification:$DisableSSLVerification -AutorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
         }
 
         $clientContext.CloseForm($form)
     }
-    finally {
-        if ($clientContext) {
+    finally{
+        if($clientContext){
             $clientContext.Dispose()
         }
     }
@@ -333,14 +346,14 @@ function SaveCodeCoverageMap {
     param (
         [string] $OutputPath,
         [switch] $DisableSSLVerification,
-        [ValidateSet('Windows', 'NavUserPassword', 'AAD')]
+        [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory=$false)]
         [pscredential] $Credential,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory=$true)]
         [string] $ServiceUrl
     )
-    try {
+    try{
         $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
         $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
 
@@ -349,12 +362,14 @@ function SaveCodeCoverageMap {
         $CCResultControl = $clientContext.GetControlByName($form, "CCMapCSVText")
         $CCMap = $CCResultControl.StringValue
 
-        if (-not (Test-Path $OutputPath)) {
+        if (-not (Test-Path $OutputPath))
+        {
             New-Item $OutputPath -ItemType Directory
         }
         
         $codeCoverageMapFileName = Join-Path $codeCoverageMapPath "TestCoverageMap.txt"
-        if (-not (Test-Path $codeCoverageMapFileName)) {
+        if (-not (Test-Path $codeCoverageMapFileName))
+        {
             New-Item $codeCoverageMapFileName -ItemType File
         }
 
@@ -362,8 +377,8 @@ function SaveCodeCoverageMap {
 
         $clientContext.CloseForm($form)
     }
-    finally {
-        if ($clientContext) {
+    finally{
+        if($clientContext){
             $clientContext.Dispose()
         }
     }
@@ -446,7 +461,8 @@ function Get-Tests {
 
     $Tests = @()
     $group = $null
-    while ($true) {
+    while ($true)
+    {
         $validationResults = $form.validationResults
         if ($validationResults) {
             throw "Validation errors occured. Error is: $($validationResults | ConvertTo-Json -Depth 99)"
@@ -455,7 +471,8 @@ function Get-Tests {
         if ($debugMode) {
             Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
         }        
-        if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count)) {
+        if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
+        {
             if ($debugMode) {
                 Write-Host "Scroll"
             }
@@ -466,7 +483,8 @@ function Get-Tests {
         }
         $rowIndex = $index - $repeater.Offset
         $index++
-        if ($rowIndex -ge $repeater.DefaultViewport.Count) {
+        if ($rowIndex -ge $repeater.DefaultViewport.Count)
+        {
             if ($debugMode) {
                 Write-Host "Breaking - rowIndex: $rowIndex"
             }
@@ -480,7 +498,7 @@ function Get-Tests {
         if ($testPage -eq 130455) {
             $run = $clientContext.GetControlByName($row, "Run").StringValue
         }
-        else {
+        else{
             $run = $true
         }
 
@@ -493,8 +511,7 @@ function Get-Tests {
                 $group = @{ "Group" = $name; "Codeunits" = @() }
                 $Tests += $group
                             
-            }
-            elseif ($linetype -eq "1") {
+            } elseif ($linetype -eq "1") {
                 $codeUnitName = $name
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
                     if ($debugMode) { 
@@ -513,8 +530,7 @@ function Get-Tests {
                         }
                     }
                 }
-            }
-            elseif ($lineType -eq "2") {
+            } elseif ($lineType -eq "2") {
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
                     if ($run) {
                         if ($debugMode) { 
@@ -537,11 +553,11 @@ function Run-ConnectionTest {
         [switch] $connectFromHost
     )
 
-    #    $rolecenter = $clientContext.OpenForm(9020)
-    #    if (!($rolecenter)) {
-    #        throw "Cannot open rolecenter"
-    #    }
-    #    Write-Host "Rolecenter 9020 opened successfully"
+#    $rolecenter = $clientContext.OpenForm(9020)
+#    if (!($rolecenter)) {
+#        throw "Cannot open rolecenter"
+#    }
+#    Write-Host "Rolecenter 9020 opened successfully"
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
@@ -583,7 +599,7 @@ function Run-Tests {
         [array]  $disabledtests = @(),
         [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
         [string] $CodeCoverageTrackingType = 'Disabled',
-        [ValidateSet('Disabled', 'PerCodeunit', 'PerTest')]
+        [ValidateSet('Disabled','PerCodeunit','PerTest')]
         [string] $ProduceCodeCoverageMap = 'Disabled',
         [string] $CodeCoverageExporterId,
         [switch] $detailed,
@@ -593,9 +609,9 @@ function Run-Tests {
         [string] $JUnitResultFileName = "",
         [switch] $AppendToJUnitResultFile,
         [switch] $ReRun,
-        [ValidateSet('no', 'error', 'warning')]
+        [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no',
-        [ValidateSet('no', 'error', 'warning')]
+        [ValidateSet('no','error','warning')]
         [string] $GitHubActions = 'no',
         [switch] $connectFromHost,
         [scriptblock] $renewClientContext
@@ -652,7 +668,7 @@ function Run-Tests {
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
-        if ($CodeCoverageTrackingType -ne 'Disabled') {
+        if($CodeCoverageTrackingType -ne 'Disabled'){
             Set-CCTrackingType -Value $CodeCoverageTrackingType -Form $form -ClientContext $clientContext
             Set-CCExporterID -Value $CodeCoverageExporterId -Form $form -ClientContext $clientContext
             Clear-CCResults -Form $form -ClientContext $clientContext
@@ -671,7 +687,7 @@ function Run-Tests {
             $XUnitAssemblies = $XUnitDoc.assemblies
             if (-not $XUnitAssemblies) {
                 [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
-                $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0", "UTF-8", $null)) | Out-Null
+                $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
                 $XUnitAssemblies = $XUnitDoc.CreateElement("assemblies")
                 $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
             }
@@ -681,7 +697,7 @@ function Run-Tests {
                 Remove-Item $XUnitResultFileName -Force
             }
             [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
-            $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0", "UTF-8", $null)) | Out-Null
+            $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
             $XUnitAssemblies = $XUnitDoc.CreateElement("assemblies")
             $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
         }
@@ -693,7 +709,7 @@ function Run-Tests {
             $JUnitTestSuites = $JUnitDoc.testsuites
             if (-not $JUnitTestSuites) {
                 [xml]$JUnitDoc = New-Object System.Xml.XmlDocument
-                $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0", "UTF-8", $null)) | Out-Null
+                $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
                 $JUnitTestSuites = $JUnitDoc.CreateElement("testsuites")
                 $JUnitDoc.AppendChild($JUnitTestSuites) | Out-Null
             }
@@ -703,7 +719,7 @@ function Run-Tests {
                 Remove-Item $JUnitResultFileName -Force
             }
             [xml]$JUnitDoc = New-Object System.Xml.XmlDocument
-            $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0", "UTF-8", $null)) | Out-Null
+            $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
             $JUnitTestSuites = $JUnitDoc.CreateElement("testsuites")
             $JUnitDoc.AppendChild($JUnitTestSuites) | Out-Null
         }
@@ -769,7 +785,7 @@ function Run-Tests {
                     }
                 }
                 $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
-                $XUnitAssembly.SetAttribute("name", "$($result.codeUnit) $($result.name)")
+                $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                 $XUnitAssembly.SetAttribute("run-date", (GetDT -val $result.startTime).ToString("yyyy-MM-dd"))
                 $XUnitAssembly.SetAttribute("run-time", (GetDT -val $result.startTime).ToString("HH':'mm':'ss"))
@@ -787,7 +803,7 @@ function Run-Tests {
                     }
                 }
                 $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
-                $JUnitTestSuite.SetAttribute("name", "$($result.codeUnit) $($result.name)")
+                $JUnitTestSuite.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
                 $JUnitTestSuite.SetAttribute("hostname", $hostname)
 
@@ -799,7 +815,7 @@ function Run-Tests {
 
                 if ($extensionid) {
                     $property = $JUnitDoc.CreateElement("property")
-                    $property.SetAttribute("name", "extensionid")
+                    $property.SetAttribute("name","extensionid")
                     $property.SetAttribute("value", $extensionId)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
@@ -808,7 +824,7 @@ function Run-Tests {
                     }
                     if ($appName) {
                         $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name", "appName")
+                        $property.SetAttribute("name","appName")
                         $property.SetAttribute("value", $appName)
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
                     }
@@ -816,7 +832,7 @@ function Run-Tests {
 
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
-                    $property.SetAttribute("name", "processinfo.start")
+                    $property.SetAttribute("name","processinfo.start")
                     $property.SetAttribute("value", $processinfostart)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
@@ -874,9 +890,9 @@ function Run-Tests {
             
                         $XUnitTest = $XUnitDoc.CreateElement("test")
                         $XUnitCollection.AppendChild($XUnitTest) | Out-Null
-                        $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name") + ':' + $_.method)
+                        $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$_.method)
                         $XUnitTest.SetAttribute("method", $_.method)
-                        $XUnitTest.SetAttribute("time", [Math]::Round($testduration.TotalSeconds, 3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                        $XUnitTest.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                     }
                     if ($JUnitResultFileName) {
                         if ($JUnitTestSuite.ParentNode -eq $null) {
@@ -887,7 +903,7 @@ function Run-Tests {
                         $JUnitTestSuite.AppendChild($JUnitTestCase) | Out-Null
                         $JUnitTestCase.SetAttribute("classname", $JUnitTestSuite.GetAttribute("name"))
                         $JUnitTestCase.SetAttribute("name", $_.method)
-                        $JUnitTestCase.SetAttribute("time", [Math]::Round($testduration.TotalSeconds, 3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                        $JUnitTestCase.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                     }
                     if ($_.result -eq 2) {
                         if ($detailed) {
@@ -901,7 +917,7 @@ function Run-Tests {
                     elseif ($_.result -eq 1) {
                         $stacktrace = $_.stacktrace
                         if ($stacktrace.EndsWith(';')) {
-                            $stacktrace = $stacktrace.Substring(0, $stacktrace.Length - 1)
+                            $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
                         }
                         if ($AzureDevOps -ne 'no') {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
@@ -928,14 +944,14 @@ function Run-Tests {
                             $XUnitMessage.InnerText = $_.message
                             $XUnitFailure.AppendChild($XUnitMessage) | Out-Null
                             $XUnitStacktrace = $XUnitDoc.CreateElement("stack-trace")
-                            $XUnitStacktrace.InnerText = $_.stacktrace.Replace(";", "`n")
+                            $XUnitStacktrace.InnerText = $_.stacktrace.Replace(";","`n")
                             $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
                             $XUnitTest.AppendChild($XUnitFailure) | Out-Null
                         }
                         if ($JUnitResultFileName) {
                             $JUnitFailure = $JUnitDoc.CreateElement("failure")
                             $JUnitFailure.SetAttribute("message", $_.message)
-                            $JUnitFailure.InnerText = $_.stacktrace.Replace(";", "`n")
+                            $JUnitFailure.InnerText = $_.stacktrace.Replace(";","`n")
                             $JUnitTestCase.AppendChild($JUnitFailure) | Out-Null
                         }
                     }
@@ -960,22 +976,22 @@ function Run-Tests {
                 $XUnitAssembly.SetAttribute("passed", $Passed)
                 $XUnitAssembly.SetAttribute("failed", $failed)
                 $XUnitAssembly.SetAttribute("skipped", $skipped)
-                $XUnitAssembly.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds, 3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                $XUnitAssembly.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
         
                 $XUnitCollection.SetAttribute("passed", $Passed)
                 $XUnitCollection.SetAttribute("failed", $failed)
                 $XUnitCollection.SetAttribute("skipped", $skipped)
-                $XUnitCollection.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds, 3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                $XUnitCollection.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
             }
             if ($JUnitResultFileName) {
                 $JUnitTestSuite.SetAttribute("errors", 0)
                 $JUnitTestSuite.SetAttribute("failures", $failed)
                 $JUnitTestSuite.SetAttribute("skipped", $skipped)
-                $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds, 3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                 if ($process) {
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     $property = $JUnitDoc.CreateElement("property")
-                    $property.SetAttribute("name", "processinfo.end")
+                    $property.SetAttribute("name","processinfo.end")
                     try { $cpu = "$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))" } catch { $cpu = "n/a" }
                     try { $mem = "$(($cimInstance.FreePhysicalMemory/1048576).ToString("F1",[CultureInfo]::InvariantCulture))" } catch { $mem = "n/a" }
                     $property.SetAttribute("value", "{ ""CPU"": ""$cpu"", ""Free Memory (Gb)"": ""$mem"" }")
@@ -1032,7 +1048,8 @@ function Run-Tests {
         $LastCodeunitName = ""
         $groupName = ""
     
-        while ($true) {
+        while ($true)
+        {
     
             $validationResults = $form.validationResults
             if ($validationResults) {
@@ -1045,7 +1062,8 @@ function Run-Tests {
                     Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
                 }        
     
-                if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count)) {
+                if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
+                {
                     if ($debugMode) {
                         Write-Host "Scroll"
                     }
@@ -1056,7 +1074,8 @@ function Run-Tests {
                 }
                 $rowIndex = $index - $repeater.Offset
                 $index++
-                if ($rowIndex -ge $repeater.DefaultViewport.Count) {
+                if ($rowIndex -ge $repeater.DefaultViewport.Count)
+                {
                     if ($debugMode) {
                         Write-Host "Breaking - rowIndex: $rowIndex"
                     }
@@ -1070,7 +1089,7 @@ function Run-Tests {
                 if ($testPage -eq 130455) {
                     $run = $clientContext.GetControlByName($row, "Run").StringValue
                 }
-                else {
+                else{
                     $run = $true
                 }
 
@@ -1098,7 +1117,8 @@ function Run-Tests {
                 Write-Host "Found Row - index = $index, rowIndex = $($rowIndex)/$($repeater.DefaultViewport.Count), lineType = $linetype, run = $run, CodeunitId = $codeUnitId, codeunitName = '$codeunitName', name = '$name'"
             }
     
-            if ($rowIndex -ge $repeater.DefaultViewport.Count -or !($name)) {
+            if ($rowIndex -ge $repeater.DefaultViewport.Count -or !($name))
+            {
                 break 
             }
     
@@ -1145,7 +1165,7 @@ function Run-Tests {
                             else {
                                 $row = $repeater.CurrentRow
                                 if ($repeater.DefaultViewport[0].Bookmark -eq $row.Bookmark) {
-                                    $index = $repeater.Offset + 1
+                                    $index = $repeater.Offset+1
                                 }
                             }
 
@@ -1172,22 +1192,22 @@ function Run-Tests {
                                 }
                             }
                             $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
-                            $XUnitAssembly.SetAttribute("name", "$codeunitId $Name")
+                            $XUnitAssembly.SetAttribute("name","$codeunitId $Name")
                             $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                             $XUnitAssembly.SetAttribute("run-date", $startTime.ToString("yyyy-MM-dd"))
                             $XUnitAssembly.SetAttribute("run-time", $startTime.ToString("HH':'mm':'ss"))
-                            $XUnitAssembly.SetAttribute("total", 0)
-                            $XUnitAssembly.SetAttribute("passed", 0)
-                            $XUnitAssembly.SetAttribute("failed", 0)
-                            $XUnitAssembly.SetAttribute("skipped", 0)
+                            $XUnitAssembly.SetAttribute("total",0)
+                            $XUnitAssembly.SetAttribute("passed",0)
+                            $XUnitAssembly.SetAttribute("failed",0)
+                            $XUnitAssembly.SetAttribute("skipped",0)
                             $XUnitAssembly.SetAttribute("time", "0")
                             $XUnitCollection = $XUnitDoc.CreateElement("collection")
                             $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
-                            $XUnitCollection.SetAttribute("name", "$Name")
-                            $XUnitCollection.SetAttribute("total", 0)
-                            $XUnitCollection.SetAttribute("passed", 0)
-                            $XUnitCollection.SetAttribute("failed", 0)
-                            $XUnitCollection.SetAttribute("skipped", 0)
+                            $XUnitCollection.SetAttribute("name","$Name")
+                            $XUnitCollection.SetAttribute("total",0)
+                            $XUnitCollection.SetAttribute("passed",0)
+                            $XUnitCollection.SetAttribute("failed",0)
+                            $XUnitCollection.SetAttribute("skipped",0)
                             $XUnitCollection.SetAttribute("time", "0")
                         }
                         if ($JUnitResultFileName) {
@@ -1198,7 +1218,7 @@ function Run-Tests {
                                 }
                             }
                             $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
-                            $JUnitTestSuite.SetAttribute("name", "$codeunitId $Name")
+                            $JUnitTestSuite.SetAttribute("name","$codeunitId $Name")
                             $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
                             $JUnitTestSuite.SetAttribute("hostname", $hostname)
                             $JUnitTestSuite.SetAttribute("time", 0)
@@ -1225,7 +1245,7 @@ function Run-Tests {
                             $row = $repeater.CurrentRow
                             for ($idx = 0; $idx -lt $repeater.DefaultViewPort.Count; $idx++) {
                                 if ($repeater.DefaultViewPort[$idx].Bookmark -eq $row.Bookmark) {
-                                    $index = $repeater.Offset + $idx + 1
+                                    $index = $repeater.Offset+$idx+1
                                 }
                             }
                         }
@@ -1239,39 +1259,39 @@ function Run-Tests {
                             if ($XUnitAssembly.ParentNode -eq $null) {
                                 $XUnitAssemblies.AppendChild($XUnitAssembly) | Out-Null
                             }
-                            $XUnitAssembly.SetAttribute("time", ([Math]::Round($totalduration.TotalSeconds, 3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
-                            $XUnitAssembly.SetAttribute("total", ([int]$XUnitAssembly.GetAttribute("total") + 1))
+                            $XUnitAssembly.SetAttribute("time",([Math]::Round($totalduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                            $XUnitAssembly.SetAttribute("total",([int]$XUnitAssembly.GetAttribute("total")+1))
                             $XUnitTest = $XUnitDoc.CreateElement("test")
                             $XUnitCollection.AppendChild($XUnitTest) | Out-Null
-                            $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name") + ':' + $Name)
+                            $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$Name)
                             $XUnitTest.SetAttribute("method", $Name)
-                            $XUnitTest.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds, 3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                            $XUnitTest.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                         }
                         if ($JUnitResultFileName) {
                             if ($JUnitTestSuite.ParentNode -eq $null) {
                                 $JUnitTestSuites.AppendChild($JUnitTestSuite) | Out-Null
                             }
-                            $JUnitTestSuite.SetAttribute("time", ([Math]::Round($totalduration.TotalSeconds, 3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
-                            $JUnitTestSuite.SetAttribute("total", ([int]$JUnitTestSuite.GetAttribute("total") + 1))
+                            $JUnitTestSuite.SetAttribute("time",([Math]::Round($totalduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                            $JUnitTestSuite.SetAttribute("total",([int]$JUnitTestSuite.GetAttribute("total")+1))
                             $JUnitTestCase = $JUnitDoc.CreateElement("testcase")
                             $JUnitTestSuite.AppendChild($JUnitTestCase) | Out-Null
                             $JUnitTestCase.SetAttribute("classname", $JUnitTestSuite.GetAttribute("name"))
                             $JUnitTestCase.SetAttribute("name", $Name)
-                            $JUnitTestCase.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds, 3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                            $JUnitTestCase.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                         }
                         if ($result -eq "2") {
                             if ($detailed) {
                                 Write-Host -ForegroundColor Green "    Testfunction $name Success ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                             }
                             if ($XUnitResultFileName) {
-                                $XUnitAssembly.SetAttribute("passed", ([int]$XUnitAssembly.GetAttribute("passed") + 1))
+                                $XUnitAssembly.SetAttribute("passed",([int]$XUnitAssembly.GetAttribute("passed")+1))
                                 $XUnitTest.SetAttribute("result", "Pass")
                             }
                         }
                         elseif ($result -eq "1") {
                             $firstError = $clientContext.GetControlByName($row, $firstErrorName).StringValue
                             $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
-                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0, $callStack.Length - 1) }
+                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                             if ($AzureDevOps -ne 'no') {
                                 Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
                             }
@@ -1281,23 +1301,23 @@ function Run-Tests {
                             Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                             $allPassed = $false
                             if ($XUnitResultFileName) {
-                                $XUnitAssembly.SetAttribute("failed", ([int]$XUnitAssembly.GetAttribute("failed") + 1))
+                                $XUnitAssembly.SetAttribute("failed",([int]$XUnitAssembly.GetAttribute("failed")+1))
                                 $XUnitTest.SetAttribute("result", "Fail")
                                 $XUnitFailure = $XUnitDoc.CreateElement("failure")
                                 $XUnitMessage = $XUnitDoc.CreateElement("message")
                                 $XUnitMessage.InnerText = $firstError
                                 $XUnitFailure.AppendChild($XUnitMessage) | Out-Null
                                 $XUnitStacktrace = $XUnitDoc.CreateElement("stack-trace")
-                                $XUnitStacktrace.InnerText = $Callstack.Replace("\", "`n")
+                                $XUnitStacktrace.InnerText = $Callstack.Replace("\","`n")
                                 $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
                                 $XUnitTest.AppendChild($XUnitFailure) | Out-Null
                             }
                             if ($JUnitResultFileName) {
-                                $JUnitTestSuite.SetAttribute("failures", ([int]$JUnitTestSuite.GetAttribute("failures") + 1))
+                                $JUnitTestSuite.SetAttribute("failures",([int]$JUnitTestSuite.GetAttribute("failures")+1))
                                 $JUnitTestCase.SetAttribute("result", "Fail")
                                 $JUnitFailure = $JUnitDoc.CreateElement("failure")
                                 $JUnitFailure.SetAttribute("message", $firstError)
-                                $JUnitFailure.InnerText = $Callstack.Replace("\", "`n")
+                                $JUnitFailure.InnerText = $Callstack.Replace("\","`n")
                                 $JUnitTestCase.AppendChild($JUnitFailure) | Out-Null
                             }
                         }
@@ -1306,12 +1326,12 @@ function Run-Tests {
                                 Write-Host -ForegroundColor Yellow "    Testfunction $name Skipped"
                             }
                             if ($XUnitResultFileName) {
-                                $XUnitCollection.SetAttribute("skipped", ([int]$XUnitCollection.GetAttribute("skipped") + 1))
-                                $XUnitAssembly.SetAttribute("skipped", ([int]$XUnitAssembly.GetAttribute("skipped") + 1))
+                                $XUnitCollection.SetAttribute("skipped",([int]$XUnitCollection.GetAttribute("skipped")+1))
+                                $XUnitAssembly.SetAttribute("skipped",([int]$XUnitAssembly.GetAttribute("skipped")+1))
                                 $XUnitTest.SetAttribute("result", "Skip")
                             }
                             if ($JUnitResultFileName) {
-                                $JUnitTestSuite.SetAttribute("skipped", ([int]$JUnitTestSuite.GetAttribute("skipped") + 1))
+                                $JUnitTestSuite.SetAttribute("skipped",([int]$JUnitTestSuite.GetAttribute("skipped")+1))
                                 $JUnitSkipped = $JUnitDoc.CreateElement("skipped")
                                 $JUnitTestCase.AppendChild($JUnitSkipped) | Out-Null
                             }
@@ -1346,9 +1366,11 @@ function Run-Tests {
     $allPassed
 }
 
-function Disable-SslVerification {
-    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
-        $sslCallbackCode = @"
+function Disable-SslVerification
+{
+    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+    {
+$sslCallbackCode = @"
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
 
@@ -1364,8 +1386,10 @@ function Disable-SslVerification {
     [SslVerification]::Disable()
 }
 
-function Enable-SslVerification {
-    if (([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+function Enable-SslVerification
+{
+    if (([System.Management.Automation.PSTypeName]"SslVerification").Type)
+    {
         [SslVerification]::Enable()
     }
 }
