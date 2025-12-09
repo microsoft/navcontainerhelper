@@ -1,6 +1,6 @@
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
-
+Fix bug where NuGet cache was not cleared for runtime package feeds
 
 6.1.10
 Better performance when downloading NuGet packages by adding another cache folder, which defaults to c:\bcnuget.cache
