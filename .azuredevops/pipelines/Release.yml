@@ -21,7 +21,7 @@ extends:
   parameters:
     globalSdl: # https://aka.ms/obpipelines/sdl
       credscan:
-        suppressionsFile: $(Build.SourcesDirectory)/.pipelines/CredScanSuppressions.json
+        suppressionsFile: $(Build.SourcesDirectory)/.azuredevops/pipelines/CredScanSuppressions.json
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
     stages:
