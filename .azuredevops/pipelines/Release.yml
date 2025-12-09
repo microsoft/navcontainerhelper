@@ -19,7 +19,6 @@ variables:
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
-    enableGitCheckout: true
     globalSdl: # https://aka.ms/obpipelines/sdl
       credscan:
         suppressionsFile: $(Build.SourcesDirectory)/.azuredevops/pipelines/CredScanSuppressions.json
