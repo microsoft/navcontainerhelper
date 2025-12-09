@@ -34,7 +34,7 @@ extends:
           type: 'windows'
         variables:
         - name: ob_outputDirectory
-          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT/drop'
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         - name: ob_artifactBaseName
           value: drop_build
         steps:
