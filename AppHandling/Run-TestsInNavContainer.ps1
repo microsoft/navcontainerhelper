@@ -577,6 +577,7 @@ try {
             break
         }
         catch {
+            $rethrow = $true
             if ($containerName) {
                 Remove-BcContainerSession $containerName
                 if ($restartContainerAndRetry) {
@@ -587,13 +588,14 @@ try {
                         Start-Sleep -Seconds 30
                     }
                     $restartContainerAndRetry = $false
+                    $rethrow = $false
                 }
-                else {
-                    if ($debugMode) {
-                        Write-host $_.ScriptStackTrace
-                    }
-                    throw $_.Exception.Message
+            }
+            if ($rethrow) {
+                if ($debugMode) {
+                    Write-host $_.ScriptStackTrace
                 }
+                throw $_.Exception.Message
             }
         }
     }
