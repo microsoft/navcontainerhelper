@@ -39,9 +39,6 @@ extends:
         - name: ob_artifactBaseName
           value: drop_build
         steps:
-        - checkout: self
-          displayName: 'Checkout'
-
         - task: PowerShell@2
           displayName: 'Prepare Module'
           inputs:
