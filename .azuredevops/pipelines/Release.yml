@@ -19,9 +19,9 @@ variables:
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
-    globalSdl:
+    globalSdl: # https://aka.ms/obpipelines/sdl
       credscan:
-        suppressionsFile: '$(Build.SourcesDirectory)/.gdn/CredScanSuppressions.json'
+        suppressionsFile: $(Build.SourcesDirectory)/.pipelines/CredScanSuppressions.json
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
     stages:
