@@ -53,7 +53,7 @@ extends:
                 New-Item -path $path -itemType Directory -Force | Out-Null
 
                 Write-Host "Copying files to $path"
-                $filesPath = Join-Path $(Build.SourcesDirectory) "navcontainerhelper"
+                $filesPath = '.'
                 Get-ChildItem -Path $filesPath -Recurse | ForEach-Object { Write-Host $_.FullName }
                 Copy-Item -Path (Join-Path $filesPath "*") -Destination $path -Recurse -Force
 
