@@ -59,7 +59,6 @@ extends:
 
                 Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $path ".azuredevops") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".git") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".gitignore") -Force -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path "README.md") -Force -ErrorAction Ignore
