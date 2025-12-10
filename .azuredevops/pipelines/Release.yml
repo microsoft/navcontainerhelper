@@ -111,7 +111,7 @@ extends:
 
         - template: codesign.yml@PipelineTemplates
           parameters:
-            OutputPath: '$(ob_outputDirectory)/module'
+            OutputPath: '$(ob_outputDirectory)'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
