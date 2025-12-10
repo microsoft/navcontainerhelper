@@ -16,7 +16,8 @@ resources:
 variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
-  - template: codesign-variables.yml@PipelineTemplates
+  - ${{ if eq(parameters.MockRun, true) }}:
+    - template: codesign-variables.yml@PipelineTemplates
 
 parameters:
   - name: MockRun
@@ -115,11 +116,11 @@ extends:
                 Write-Host "##vso[task.logissue type=error]Error preparing module. Error was: $($_.Exception.Message)"
                 exit 1
               }
-
-        - template: codesign.yml@PipelineTemplates
-          parameters:
-            OutputPath: '$(ob_outputDirectory)'
-            Mock: ${{ parameters.MockRun }}
+        - ${{ if eq(parameters.MockRun, true) }}:
+          - template: codesign.yml@PipelineTemplates
+            parameters:
+              OutputPath: '$(ob_outputDirectory)'
+              Mock: ${{ parameters.MockRun }}
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
