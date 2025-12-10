@@ -136,7 +136,6 @@ extends:
         - name: ob_artifactBaseName
           value: BCContainerHelper_Zip
         steps:
-        - checkout: none
         - download: current
           artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
@@ -208,7 +207,6 @@ extends:
           - name: ob_artifactBaseName
             value: BCContainerHelper_PSGallery
         steps:
-        - checkout: none
         - download: current
           artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
