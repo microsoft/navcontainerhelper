@@ -29,14 +29,14 @@ extends:
       displayName: 'Prepare BcContainerHelper'
       jobs:
       - job: PrepareModule
-        displayName: 'Prepare Module'
+        displayName: 'Prepare BCContainerHelper Module'
         pool:
           type: 'windows'
         variables:
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         - name: ob_artifactBaseName
-          value: drop_build
+          value: BCContainerHelper_Module
         steps:
         - task: PowerShell@2
           displayName: 'Prepare Module'
@@ -46,7 +46,7 @@ extends:
             script: |
               $errorActionPreference = "stop"
               try {
-                $path = Join-Path $(ob_outputDirectory) "module\BcContainerHelper"
+                $path = $(ob_outputDirectory)
                 New-Item -path $path -itemType Directory -Force | Out-Null
 
                 Write-Host "Copying files to $path"
@@ -55,10 +55,12 @@ extends:
                 Copy-Item -Path (Join-Path $filesPath "*") -Destination $path -Recurse -Force
 
                 Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path "LinuxTests") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path "CODEOWNERS") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".github") -Force -Recurse -ErrorAction Ignore
+                Remove-Item -Path (Join-Path $path ".azuredevops") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".git") -Force -Recurse -ErrorAction Ignore
                 Remove-Item -Path (Join-Path $path ".gitignore") -Force -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $path "README.md") -Force -ErrorAction Ignore
 
                 $versionFile = Join-Path $path 'Version.txt'
                 $version = (Get-Content -Path $versionFile).split('-')[0]
@@ -109,7 +111,7 @@ extends:
 
         - template: codesign.yml@PipelineTemplates
           parameters:
-            OutputPath: '$(ob_outputDirectory)\module\BcContainerHelper'
+            OutputPath: '$(ob_outputDirectory)'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
@@ -127,11 +129,11 @@ extends:
           value: drop_build
         steps:
         - download: current
-          artifact: 'BcContainerHelper'
+          artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
 
         - task: PowerShell@2
-          displayName: 'Publish to PowerShell Gallery'
+          displayName: 'Publish to Azure Storage'
           inputs:
             targetType: 'inline'
             pwsh: true
@@ -184,7 +186,7 @@ extends:
           value: drop_build
         steps:
         - download: current
-          artifact: 'BcContainerHelper'
+          artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
 
         - task: PowerShell@2
@@ -195,7 +197,7 @@ extends:
             script: |
               $errorActionPreference = "stop"
               try {
-                $modulePath = "$(Pipeline.Workspace)/BcContainerHelper/BcContainerHelper"
+                $modulePath = "$(Pipeline.Workspace)/BCContainerHelper_Module"
                 $versionFile = Join-Path $modulePath 'Version.txt'
                 $version = Get-Content -Path $versionFile
                 Write-Host "Publishing BcContainerHelper version $version to PowerShell Gallery"
