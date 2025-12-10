@@ -12,10 +12,18 @@ resources:
     type: git
     name: Infrastructure-PipelineTemplates
     ref: master
+
 variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
   - template: codesign-variables.yml@PipelineTemplates
+
+parameters:
+  - name: MockRun
+    displayName: Mock Run
+    type: boolean
+    default: false
+
 extends:
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@onebranchTemplates
   parameters:
@@ -95,14 +103,13 @@ extends:
                 Update-ModuleManifest -Path (Join-Path $outputPath "BcContainerHelper.psd1") `
                                       -RootModule "BcContainerHelper.psm1" `
                                       -ModuleVersion $version `
-                                      -Author "Freddy Kristiansen" `
+                                      -Author "Microsoft" `
                                       -FunctionsToExport $functionsToExport `
                                       -AliasesToExport $aliasesToExport `
                                       -CompanyName "Microsoft" `
                                       -ReleaseNotes $versionReleaseNotes `
                                       -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
                                       -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
-
               }
               catch {
                 Write-Host "##vso[task.logissue type=error]Error preparing module. Error was: $($_.Exception.Message)"
@@ -112,6 +119,7 @@ extends:
         - template: codesign.yml@PipelineTemplates
           parameters:
             OutputPath: '$(ob_outputDirectory)'
+            Mock: ${{ parameters.MockRun }}
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
@@ -126,19 +134,31 @@ extends:
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         - name: ob_artifactBaseName
-          value: drop_build
+          value: BCContainerHelper_Zip
         steps:
+        - checkout: none
         - download: current
           artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
 
         - task: PowerShell@2
-          displayName: 'Publish to Azure Storage'
+          displayName: 'Create Zip File of Module'
           inputs:
             targetType: 'inline'
             pwsh: true
             script: |
-              Write-Host "Upload to Azure Storage is currently disabled. Please enable and configure the following script when ready." # TODO: Remove this line when enabling the script below.
+              $modulePath = "$(Pipeline.Workspace)/BCContainerHelper_Module"
+              $versionFile = Join-Path $modulePath 'Version.txt'
+              $version = Get-Content -Path $versionFile
+
+              # Create a zip file of the module
+              $zipPath = "$(ob_outputDirectory)/BcContainerHelper-$version.zip"
+
+              Write-Host "Zipping module from $modulePath to $zipPath"
+              Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
+
+              Write-Host "##vso[task.setvariable variable=BCContainerHelperZipPath;isreadonly=true]$zipPath"
+              Write-Host "##vso[task.setvariable variable=BCContainerHelperVersion;isreadonly=true]$version"
 
         # - task: AzureCLI@2
         #   displayName: 'Upload to Azure Storage'
@@ -147,44 +167,43 @@ extends:
         #     scriptType: 'pscore'
         #     scriptLocation: 'inlineScript'
         #     inlineScript: |
-        #       $storageAccountName = "bccontainerhelper"  # TODO: Update with actual storage account name
-        #       $containerName = "modules"  # TODO: Update with actual container name
-        #       $modulePath = "$(Pipeline.Workspace)/BcContainerHelper"
+        #       $storageAccountName = "bccontainerhelper"
+        #       $containerName = "public"
+        #       $zipPath = "$(BCContainerHelperZipPath)"
+        #       $version = "$(BCContainerHelperVersion)"
 
-        #       $versionFile = Join-Path $modulePath 'BcContainerHelper/Version.txt'
-        #       $version = Get-Content -Path $versionFile
-        #       Write-Host "Uploading BcContainerHelper version $version to Azure Storage"
-
-        #       # Create a zip file of the module
-        #       $zipPath = "$(Pipeline.Workspace)/BcContainerHelper-$version.zip"
-        #       Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
-
-        #       # Upload to Azure Storage
+        #       # Upload to Azure Storage as $version.zip
         #       az storage blob upload `
         #         --account-name $storageAccountName `
         #         --container-name $containerName `
-        #         --name "BcContainerHelper-$version.zip" `
+        #         --name "$version.zip" `
         #         --file $zipPath `
         #         --auth-mode login `
         #         --overwrite
 
-        #       Write-Host "Successfully uploaded to Azure Storage"
+        #       # Upload to Azure Storage as latest.zip
+        #       az storage blob upload `
+        #         --account-name $storageAccountName `
+        #         --container-name $containerName `
+        #         --name "latest.zip" `
+        #         --file $zipPath `
+        #         --auth-mode login `
+        #         --content-cache-control "no-cache" `
+        #         --overwrite
+
+        #       Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and latest.zip"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
       dependsOn: ['PrepareModule']
-      condition: succeeded()
+      condition: and(succeeded(), ${{ eq(parameters.MockRun, false) }})
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
         pool:
           type: 'windows'
-        variables:
-        - name: ob_outputDirectory
-          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
-        - name: ob_artifactBaseName
-          value: drop_build
         steps:
+        - checkout: none
         - download: current
           artifact: BCContainerHelper_Module
           displayName: 'Download BcContainerHelper Artifact'
@@ -198,18 +217,14 @@ extends:
               $errorActionPreference = "stop"
               try {
                 $modulePath = "$(Pipeline.Workspace)/BCContainerHelper_Module"
-                $versionFile = Join-Path $modulePath 'Version.txt'
-                $version = Get-Content -Path $versionFile
-                Write-Host "Publishing BcContainerHelper version $version to PowerShell Gallery"
 
-                # Get the API key from pipeline variable
-                $apiKey = $env:PSGALLERY_API_KEY
+                $apiKey = "TOODO: Replace me"
                 if (-not $apiKey) {
                   throw "PowerShell Gallery API key not found. Please set the PSGALLERY_API_KEY variable."
                 }
 
                 # Publish to PowerShell Gallery
-                Publish-Module -Path $modulePath -NuGetApiKey $apiKey -Repository PSGallery -Verbose
+                Publish-Module -Path $modulePath -NuGetApiKey $apiKey -SkipAutomaticTags
 
                 Write-Host "Successfully published to PowerShell Gallery"
               }
@@ -217,5 +232,3 @@ extends:
                 Write-Host "##vso[task.logissue type=error]Error publishing to PowerShell Gallery. Error was $($_.Exception.Message)"
                 exit 1
               }
-          env:
-            PSGALLERY_API_KEY: $(PSGalleryApiKey)
