@@ -202,6 +202,11 @@ extends:
         displayName: 'Publish to PowerShell Gallery'
         pool:
           type: 'windows'
+        variables:
+          - name: ob_outputDirectory
+            value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+          - name: ob_artifactBaseName
+            value: BCContainerHelper_PSGallery
         steps:
         - checkout: none
         - download: current
