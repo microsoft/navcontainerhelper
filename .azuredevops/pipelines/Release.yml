@@ -34,7 +34,7 @@ extends:
           type: 'windows'
         variables:
         - name: ob_outputDirectory
-          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT/module'
         - name: ob_artifactBaseName
           value: BCContainerHelper_Module
         steps:
@@ -47,6 +47,7 @@ extends:
               $errorActionPreference = "stop"
               try {
                 $outputPath = '$(ob_outputDirectory)'
+                New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
 
                 Write-Host "Copying BCContainerHelper files to $outputPath"
                 $filesPath = '.'
@@ -110,7 +111,7 @@ extends:
 
         - template: codesign.yml@PipelineTemplates
           parameters:
-            OutputPath: '$(ob_outputDirectory)'
+            OutputPath: '$(ob_outputDirectory)/module'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
