@@ -101,40 +101,9 @@ extends:
           inputs:
             azureSubscription: 'NAVDocker-PartnerArtifacts'
             scriptType: 'pscore'
-            scriptLocation: 'inlineScript'
-            inlineScript: |
-              $storageAccountName = "bccontainerhelper"
-              $containerName = "$(AzureStorageContainer)"
-              $zipPath = "$(BCContainerHelperZipPath)"
-              $version = "$(BCContainerHelperVersion)"
-
-              # Upload to Azure Storage as $version.zip
-              az storage blob upload `
-                --account-name $storageAccountName `
-                --container-name $containerName `
-                --name "$version.zip" `
-                --file $zipPath `
-                --auth-mode login `
-                --overwrite
-
-              # Upload to Azure Storage as latest.zip or preview.zip
-              if ([bool]::Parse('${{ parameters.ProductionRelease }}')) {
-                $blobName = "latest.zip"
-              }
-              else {
-                $blobName = "preview.zip"
-              }
-
-              az storage blob upload `
-                --account-name $storageAccountName `
-                --container-name $containerName `
-                --name "$blobName" `
-                --file $zipPath `
-                --auth-mode login `
-                --content-cache-control "no-cache" `
-                --overwrite
-
-              Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and $blobName"
+            scriptLocation: 'scriptPath'
+            scriptPath: '$(Build.SourcesDirectory)/.azuredevops/scripts/UploadToAzureStorage.ps1'
+            arguments: "-StorageAccountName 'bccontainerhelper' -ContainerName '$(AzureStorageContainer)' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
