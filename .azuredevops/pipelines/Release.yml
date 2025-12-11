@@ -1,5 +1,5 @@
 trigger: none
-name: Release BCContainerHelper $(Date:yyyy).$(Date:MM)$(Date:dd)$(Rev:.r)
+name: Release BCContainerHelper $(Date:yyyy).$(Date:MM).$(Date:dd)$(Rev:.r)
 pr: none
 
 resources:
@@ -118,13 +118,6 @@ extends:
             scriptLocation: 'inlineScript'
             inlineScript: |
               $storageAccountName = "bccontainerhelper"
-              if ([bool]::Parse('${{ parameters.ProductionRelease }}')) {
-                $blobName = "latest.zip"
-              }
-              else {
-                $blobName = "preview.zip"
-              }
-
               $containerName = "$(AzureStorageContainer)"
               $zipPath = "$(BCContainerHelperZipPath)"
               $version = "$(BCContainerHelperVersion)"
@@ -138,7 +131,14 @@ extends:
                 --auth-mode login `
                 --overwrite
 
-              # Upload to Azure Storage as latest.zip
+              # Upload to Azure Storage as latest.zip or preview.zip
+              if ([bool]::Parse('${{ parameters.ProductionRelease }}')) {
+                $blobName = "latest.zip"
+              }
+              else {
+                $blobName = "preview.zip"
+              }
+
               az storage blob upload `
                 --account-name $storageAccountName `
                 --container-name $containerName `
