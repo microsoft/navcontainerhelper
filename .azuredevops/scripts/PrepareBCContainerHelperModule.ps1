@@ -19,9 +19,8 @@
     The directory path where the prepared module files will be copied.
     This directory will be created if it doesn't exist.
 
-.PARAMETER PreviewNumber
-    Optional. If specified, appends "-preview" and this number to the module version.
-    Typically used with pipeline run numbers (e.g., $(Build.BuildId) or $(Build.BuildNumber)).
+.PARAMETER ProductionRelease
+    Switch parameter indicating if this is a production release.
 
 .EXAMPLE
     .\PrepareBCContainerHelperModule.ps1 -OutputPath "C:\Build\Output"
@@ -29,14 +28,15 @@
     Prepares the module with the standard version from Version.txt
 
 .EXAMPLE
-    .\PrepareBCContainerHelperModule.ps1 -OutputPath "C:\Build\Output" -PreviewNumber 12345
+    .\PrepareBCContainerHelperModule.ps1 -OutputPath "C:\Build\Output" -ProductionRelease
 
-    Prepares a preview version of the module (e.g., 6.0.25-preview12345)
+    Prepares a production release version of the module.
 
 .EXAMPLE
-    .\PrepareBCContainerHelperModule.ps1 -OutputPath "$(Build.ArtifactStagingDirectory)/module" -PreviewNumber $(Build.BuildId)
+    .\PrepareBCContainerHelperModule.ps1 -OutputPath "$(Build.ArtifactStagingDirectory)/module"
 
-    Prepares a preview module using Azure DevOps pipeline variables
+    Prepares a preview module using Azure DevOps pipeline variables. The version will contain a suffix
+    indicating it's a preview release.
 
 .NOTES
     File Name      : PrepareBCContainerHelperModule.ps1
@@ -53,7 +53,7 @@ param(
     [string]$OutputPath,
 
     [Parameter(Mandatory = $false)]
-    [int]$PreviewNumber
+    [switch]$ProductionRelease
 )
 
 $errorActionPreference = "Stop"
@@ -78,13 +78,14 @@ try {
     $version = (Get-Content -Path $versionFile).split('-')[0]
 
     # Append preview suffix if PreviewNumber is provided
-    if ($PreviewNumber) {
-        $version = "$version-preview$PreviewNumber"
+    if (-not $ProductionRelease) {
+        $previewSuffix = "preview$($env:BUILD_BUILDID)  "
+        $fullVersion = "$version-$previewSuffix"
     }
 
-    Write-Host "BcContainerHelper version $version"
+    Write-Host "BcContainerHelper version $fullVersion"
 
-    Set-Content -Path $versionFile -Value $version
+    Set-Content -Path $versionFile -Value $fullVersion
 
     $modulePath = Join-Path $filesPath "BcContainerHelper.psm1"
     Import-Module $modulePath -DisableNameChecking
@@ -111,16 +112,24 @@ try {
     Write-Host $VersionReleaseNotes
 
     Write-Host "Update Module Manifest"
-    Update-ModuleManifest -Path (Join-Path $OutputPath "BcContainerHelper.psd1") `
-                          -RootModule "BcContainerHelper.psm1" `
-                          -ModuleVersion $version `
-                          -Author "Microsoft" `
-                          -FunctionsToExport $functionsToExport `
-                          -AliasesToExport $aliasesToExport `
-                          -CompanyName "Microsoft" `
-                          -ReleaseNotes $versionReleaseNotes `
-                          -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
-                          -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
+    $moduleManifestParams = @{
+        Path              = Join-Path $OutputPath "BcContainerHelper.psd1"
+        RootModule        = "BcContainerHelper.psm1"
+        ModuleVersion     = $version
+        Author            = "Microsoft"
+        FunctionsToExport = $functionsToExport
+        AliasesToExport   = $aliasesToExport
+        CompanyName       = "Microsoft"
+        ReleaseNotes      = $versionReleaseNotes
+        LicenseUri        = 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE'
+        ProjectUri        = 'https://github.com/microsoft/navcontainerhelper'
+    }
+
+    if (-not $ProductionRelease) {
+        $moduleManifestParams['Prerelease'] = $previewSuffix
+    }
+
+    Update-ModuleManifest @moduleManifestParams
 }
 catch {
     Write-Host "##vso[task.logissue type=error]Error preparing module. Error was: $($_.Exception.Message)"

@@ -20,6 +20,10 @@ variables:
     - template: codesign-variables.yml@PipelineTemplates
 
 parameters:
+  - name: ProductionRelease
+    displayName: Production Release
+    type: boolean
+    default: false
   - name: MockRun
     displayName: Mock Run
     type: boolean
@@ -52,7 +56,7 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PrepareBCContainerHelperModule.ps1'
-            arguments: '-OutputPath "$(ob_outputDirectory)"'
+            arguments: '-OutputPath "$(ob_outputDirectory)" -ProductionRelease ${{ parameters.ProductionRelease }}'
             pwsh: false
         - ${{ if eq(parameters.MockRun, false) }}:
           - template: codesign.yml@PipelineTemplates
@@ -108,6 +112,13 @@ extends:
         #     scriptLocation: 'inlineScript'
         #     inlineScript: |
         #       $storageAccountName = "bccontainerhelper"
+        #       if (${{ parameters.ProductionRelease }}) {
+        #         $blobName = "latest.zip"
+        #       }
+        #       else {
+        #         $blobName = "preview.zip"
+        #       }
+
         #       $containerName = "public"
         #       $zipPath = "$(BCContainerHelperZipPath)"
         #       $version = "$(BCContainerHelperVersion)"
@@ -125,13 +136,13 @@ extends:
         #       az storage blob upload `
         #         --account-name $storageAccountName `
         #         --container-name $containerName `
-        #         --name "latest.zip" `
+        #         --name "$blobName" `
         #         --file $zipPath `
         #         --auth-mode login `
         #         --content-cache-control "no-cache" `
         #         --overwrite
 
-        #       Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and latest.zip"
+        #       Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and $blobName"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
