@@ -78,6 +78,7 @@ Function Download-BcNuGetPackageToFolder {
     )
 
 try {
+    $returnValue = @()
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
         $findSelect = 'AllDescending'
@@ -341,3 +342,4 @@ catch {
 }
 Set-Alias -Name Copy-BcNuGetPackageToFolder -Value Download-BcNuGetPackageToFolder
 Export-ModuleMember -Function Download-BcNuGetPackageToFolder -Alias Copy-BcNuGetPackageToFolder
+

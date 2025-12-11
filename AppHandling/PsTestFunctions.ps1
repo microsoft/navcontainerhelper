@@ -754,8 +754,14 @@ function Run-Tests {
                 break
             }
             $result = $testResultJson | ConvertFrom-Json
+            $hasTestResults = [bool]($result.PSobject.Properties.name -eq "testResults")
         
             Write-Host -NoNewline "  Codeunit $($result.codeUnit) $($result.name) "
+
+            $totalTests = 0
+            if ($hasTestResults) {
+                $totalTests = $result.testResults.Count
+            }
 
             if ($XUnitResultFileName) {        
                 if ($ReRun) {
@@ -769,11 +775,11 @@ function Run-Tests {
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                 $XUnitAssembly.SetAttribute("run-date", (GetDT -val $result.startTime).ToString("yyyy-MM-dd"))
                 $XUnitAssembly.SetAttribute("run-time", (GetDT -val $result.startTime).ToString("HH':'mm':'ss"))
-                $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
+                $XUnitAssembly.SetAttribute("total", $totalTests)
                 $XUnitCollection = $XUnitDoc.CreateElement("collection")
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
                 $XUnitCollection.SetAttribute("name", $result.name)
-                $XUnitCollection.SetAttribute("total", $result.testResults.Count)
+                $XUnitCollection.SetAttribute("total", $totalTests)
             }
             if ($JUnitResultFileName) {        
                 if ($ReRun) {
@@ -788,7 +794,7 @@ function Run-Tests {
                 $JUnitTestSuite.SetAttribute("hostname", $hostname)
 
                 $JUnitTestSuite.SetAttribute("time", 0)
-                $JUnitTestSuite.SetAttribute("tests", $result.testResults.Count)
+                $JUnitTestSuite.SetAttribute("tests", $totalTests)
 
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
@@ -835,7 +841,7 @@ function Run-Tests {
             }
         
             $totalduration = [Timespan]::Zero
-            if ($result.PSobject.Properties.name -eq "testResults") {
+            if ($hasTestResults) {
                 $result.testResults | ForEach-Object {
                     $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
@@ -858,7 +864,7 @@ function Run-Tests {
             $failed = 0
             $skipped = 0
         
-            if ($result.PSobject.Properties.name -eq "testResults") {
+            if ($hasTestResults) {
                 $result.testResults | ForEach-Object {
                     $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
