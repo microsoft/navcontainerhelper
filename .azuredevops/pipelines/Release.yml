@@ -67,11 +67,10 @@ extends:
       displayName: 'Deploy to Azure Storage'
       dependsOn: ['PrepareModule']
       variables:
-      - ${{ if and(eq(parameters.TestRun, false), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - name: AzureStorageContainer
+        - ${{ if eq(parameters.TestRun, false) }}:
           value: 'public'
-      - ${{ if not(and(eq(parameters.TestRun, false), eq(variables['Build.SourceBranch'], 'refs/heads/main'))) }}:
-        - name: AzureStorageContainer
+        - ${{ if eq(parameters.TestRun, true) }}:
           value: 'test'
       jobs:
       - job: UploadToStorage
