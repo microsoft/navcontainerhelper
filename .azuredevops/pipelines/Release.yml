@@ -1,5 +1,5 @@
 trigger: none
-name: Release BCContainerHelper (Run - $(Build.BuildNumber))
+name: Release BCContainerHelper $(Date:yyyy).$(Date:MM)$(Date:dd)$(Rev:.r)
 pr: none
 
 resources:
