@@ -16,7 +16,7 @@ resources:
 variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
-  - ${{ if eq(parameters.MockRun, false) }}:
+  - ${{ if eq(parameters.TestRun, false) }}:
     - template: codesign-variables.yml@PipelineTemplates
 
 parameters:
@@ -24,8 +24,8 @@ parameters:
     displayName: Production Release
     type: boolean
     default: false
-  - name: MockRun
-    displayName: Mock Run
+  - name: TestRun
+    displayName: Test Run (no signing, no PSGallery deployment, Storage upload only to test storage)
     type: boolean
     default: false
 
@@ -58,7 +58,7 @@ extends:
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PrepareBCContainerHelperModule.ps1'
             arguments: '-OutputPath "$(ob_outputDirectory)" -ProductionRelease ${{ parameters.ProductionRelease }}'
             pwsh: false
-        - ${{ if eq(parameters.MockRun, false) }}:
+        - ${{ if eq(parameters.TestRun, false) }}:
           - template: codesign.yml@PipelineTemplates
             parameters:
               OutputPath: '$(ob_outputDirectory)'
@@ -66,7 +66,13 @@ extends:
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
       dependsOn: ['PrepareModule']
-      condition: and(succeeded(), ${{ eq(parameters.MockRun, false) }})
+      variables:
+      - ${{ if and(eq(parameters.TestRun, false), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
+        - name: AzureStorageContainer
+          value: 'public'
+      - ${{ if not(and(eq(parameters.TestRun, false), eq(variables['Build.SourceBranch'], 'refs/heads/main'))) }}:
+        - name: AzureStorageContainer
+          value: 'test'
       jobs:
       - job: UploadToStorage
         displayName: 'Upload to Storage Account'
@@ -104,50 +110,50 @@ extends:
               Write-Host "##vso[task.setvariable variable=BCContainerHelperZipPath;isreadonly=true]$zipPath"
               Write-Host "##vso[task.setvariable variable=BCContainerHelperVersion;isreadonly=true]$version"
 
-        # - task: AzureCLI@2
-        #   displayName: 'Upload to Azure Storage'
-        #   inputs:
-        #     azureSubscription: 'BcContainerHelper-ServiceConnection'
-        #     scriptType: 'pscore'
-        #     scriptLocation: 'inlineScript'
-        #     inlineScript: |
-        #       $storageAccountName = "bccontainerhelper"
-        #       if (${{ parameters.ProductionRelease }}) {
-        #         $blobName = "latest.zip"
-        #       }
-        #       else {
-        #         $blobName = "preview.zip"
-        #       }
+        - task: AzureCLI@2
+          displayName: 'Upload to Azure Storage'
+          inputs:
+            azureSubscription: 'NAVDocker-PartnerArtifacts'
+            scriptType: 'pscore'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              $storageAccountName = "bccontainerhelper"
+              if (${{ parameters.ProductionRelease }}) {
+                $blobName = "latest.zip"
+              }
+              else {
+                $blobName = "preview.zip"
+              }
 
-        #       $containerName = "public"
-        #       $zipPath = "$(BCContainerHelperZipPath)"
-        #       $version = "$(BCContainerHelperVersion)"
+              $containerName = "$(AzureStorageContainer)"
+              $zipPath = "$(BCContainerHelperZipPath)"
+              $version = "$(BCContainerHelperVersion)"
 
-        #       # Upload to Azure Storage as $version.zip
-        #       az storage blob upload `
-        #         --account-name $storageAccountName `
-        #         --container-name $containerName `
-        #         --name "$version.zip" `
-        #         --file $zipPath `
-        #         --auth-mode login `
-        #         --overwrite
+              # Upload to Azure Storage as $version.zip
+              az storage blob upload `
+                --account-name $storageAccountName `
+                --container-name $containerName `
+                --name "$version.zip" `
+                --file $zipPath `
+                --auth-mode login `
+                --overwrite
 
-        #       # Upload to Azure Storage as latest.zip
-        #       az storage blob upload `
-        #         --account-name $storageAccountName `
-        #         --container-name $containerName `
-        #         --name "$blobName" `
-        #         --file $zipPath `
-        #         --auth-mode login `
-        #         --content-cache-control "no-cache" `
-        #         --overwrite
+              # Upload to Azure Storage as latest.zip
+              az storage blob upload `
+                --account-name $storageAccountName `
+                --container-name $containerName `
+                --name "$blobName" `
+                --file $zipPath `
+                --auth-mode login `
+                --content-cache-control "no-cache" `
+                --overwrite
 
-        #       Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and $blobName"
+              Write-Host "Successfully uploaded to Azure Storage (storage account: $storageAccountName; container: $containerName) as $version.zip and $blobName"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
       dependsOn: ['PrepareModule']
-      condition: and(succeeded(), ${{ eq(parameters.MockRun, false) }})
+      condition: and(succeeded(), ${{ eq(parameters.TestRun, false) }})
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
