@@ -56,7 +56,7 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PrepareBCContainerHelperModule.ps1'
-            arguments: '-OutputPath "$(ob_outputDirectory)" -ProductionRelease ${{ parameters.ProductionRelease }}'
+            arguments: "-OutputPath '$(ob_outputDirectory)' -ProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
             pwsh: false
         - ${{ if eq(parameters.TestRun, false) }}:
           - template: codesign.yml@PipelineTemplates
