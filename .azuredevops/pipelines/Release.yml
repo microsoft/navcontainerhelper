@@ -91,24 +91,10 @@ extends:
         - task: PowerShell@2
           displayName: 'Create Zip File of Module'
           inputs:
-            targetType: 'inline'
+            targetType: 'filePath'
+            filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/CreateZipFile.ps1'
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -OutputDirectory '$(ob_outputDirectory)'"
             pwsh: true
-            script: |
-              $modulePath = "$(Pipeline.Workspace)/BCContainerHelper_Module"
-              $versionFile = Join-Path $modulePath 'Version.txt'
-              $version = Get-Content -Path $versionFile
-
-              # Create a zip file of the module
-              if(-not (Test-Path -Path "$(ob_outputDirectory)")) {
-                New-Item -ItemType Directory -Path "$(ob_outputDirectory)" | Out-Null
-              }
-              $zipPath = "$(ob_outputDirectory)/BcContainerHelper-$version.zip"
-
-              Write-Host "Zipping module from $modulePath to $zipPath"
-              Compress-Archive -Path "$modulePath/*" -DestinationPath $zipPath -Force
-
-              Write-Host "##vso[task.setvariable variable=BCContainerHelperZipPath;isreadonly=true]$zipPath"
-              Write-Host "##vso[task.setvariable variable=BCContainerHelperVersion;isreadonly=true]$version"
 
         - task: AzureCLI@2
           displayName: 'Upload to Azure Storage'
