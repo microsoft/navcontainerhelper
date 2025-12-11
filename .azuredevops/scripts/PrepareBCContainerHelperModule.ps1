@@ -79,7 +79,7 @@ try {
 
     # Append preview suffix if PreviewNumber is provided
     if (-not $ProductionRelease) {
-        $previewSuffix = "preview$($env:BUILD_BUILDID)  "
+        $previewSuffix = "preview$($env:BUILD_BUILDID)"
         $fullVersion = "$version-$previewSuffix"
     }
 
