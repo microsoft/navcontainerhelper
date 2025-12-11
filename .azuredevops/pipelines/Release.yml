@@ -89,6 +89,9 @@ extends:
               $version = Get-Content -Path $versionFile
 
               # Create a zip file of the module
+              if(-not (Test-Path -Path "$(ob_outputDirectory)")) {
+                New-Item -ItemType Directory -Path "$(ob_outputDirectory)" | Out-Null
+              }
               $zipPath = "$(ob_outputDirectory)/BcContainerHelper-$version.zip"
 
               Write-Host "Zipping module from $modulePath to $zipPath"
@@ -165,6 +168,7 @@ extends:
                 }
 
                 # Publish to PowerShell Gallery
+                Register-PSRepository -Default # Ensure the default repository is registered, PSGallery
                 Publish-Module -Path $modulePath -NuGetApiKey $apiKey -SkipAutomaticTags
 
                 Write-Host "Successfully published to PowerShell Gallery"
