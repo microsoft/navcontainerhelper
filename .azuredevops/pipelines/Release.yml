@@ -127,25 +127,7 @@ extends:
         - task: PowerShell@2
           displayName: 'Publish to PowerShell Gallery'
           inputs:
-            targetType: 'inline'
+            targetType: 'filePath'
+            filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PublishToPSGallery.ps1'
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey 'TOODO: Replace me'"
             pwsh: true
-            script: |
-              $errorActionPreference = "stop"
-              try {
-                $modulePath = "$(Pipeline.Workspace)/BCContainerHelper_Module"
-
-                $apiKey = "TOODO: Replace me"
-                if (-not $apiKey) {
-                  throw "PowerShell Gallery API key not found"
-                }
-
-                # Publish to PowerShell Gallery
-                Register-PSRepository -Default # Ensure the default repository is registered, PSGallery
-                Publish-Module -Path $modulePath -NuGetApiKey $apiKey -SkipAutomaticTags
-
-                Write-Host "Successfully published to PowerShell Gallery"
-              }
-              catch {
-                Write-Host "##vso[task.logissue type=error]Error publishing to PowerShell Gallery. Error was $($_.Exception.Message)"
-                exit 1
-              }
