@@ -1,5 +1,5 @@
 trigger: none
-name: Release BCContainerHelper (Preview) $(Date:yyyyMMdd).$(Rev:r)
+name: Release BCContainerHelper (Run - $(Build.BuildNumber))
 pr: none
 
 resources:
@@ -50,72 +50,10 @@ extends:
         - task: PowerShell@2
           displayName: 'Prepare Module'
           inputs:
-            targetType: 'inline'
+            targetType: 'filePath'
+            filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PrepareBCContainerHelperModule.ps1'
+            arguments: '-OutputPath "$(ob_outputDirectory)"'
             pwsh: false
-            script: |
-              $errorActionPreference = "stop"
-              try {
-                $outputPath = '$(ob_outputDirectory)'
-                New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
-
-                Write-Host "Copying BCContainerHelper files to $outputPath"
-                $filesPath = '.'
-                Get-ChildItem -Path $filesPath -Recurse | ForEach-Object { Write-Host $_.FullName }
-                Copy-Item -Path (Join-Path $filesPath "*") -Destination $outputPath -Recurse -Force
-
-                Remove-Item -Path (Join-Path $outputPath "Tests") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath "LinuxTests") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath "CODEOWNERS") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath ".github") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath ".azuredevops") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath ".git") -Force -Recurse -ErrorAction Ignore
-                Remove-Item -Path (Join-Path $outputPath ".gitignore") -Force -ErrorAction Ignore
-
-                $versionFile = Join-Path $outputPath 'Version.txt'
-                $version = (Get-Content -Path $versionFile).split('-')[0]
-                Write-Host "BcContainerHelper version $Version"
-                Set-Content -Path $versionFile -Value $version
-
-                $modulePath = Join-Path $filesPath "BcContainerHelper.psm1"
-                Import-Module $modulePath -DisableNameChecking
-
-                $functionsToExport = (Get-Module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-                $aliasesToExport = (Get-Module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
-
-                $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
-                Write-Host "Set latest generic tag version to $($labels.tag)"
-                Set-Content -Path (Join-Path $outputPath 'LatestGenericTagVersion.txt') -value $labels.tag
-
-                $releaseNotes = Get-Content -Path (Join-Path $outputPath "ReleaseNotes.txt")
-                $idx = $releaseNotes.IndexOf($version)
-                if ($idx -lt 0) {
-                    throw 'No release notes identified'
-                }
-                $versionReleaseNotes = @()
-                while ($releaseNotes[$idx]) {
-                    $versionReleaseNotes += $releaseNotes[$idx]
-                    $idx++
-                }
-
-                Write-Host "Release Notes:"
-                Write-Host $VersionReleaseNotes
-
-                Write-Host "Update Module Manifest"
-                Update-ModuleManifest -Path (Join-Path $outputPath "BcContainerHelper.psd1") `
-                                      -RootModule "BcContainerHelper.psm1" `
-                                      -ModuleVersion $version `
-                                      -Author "Microsoft" `
-                                      -FunctionsToExport $functionsToExport `
-                                      -AliasesToExport $aliasesToExport `
-                                      -CompanyName "Microsoft" `
-                                      -ReleaseNotes $versionReleaseNotes `
-                                      -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
-                                      -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
-              }
-              catch {
-                Write-Host "##vso[task.logissue type=error]Error preparing module. Error was: $($_.Exception.Message)"
-                exit 1
-              }
         - ${{ if eq(parameters.MockRun, false) }}:
           - template: codesign.yml@PipelineTemplates
             parameters:
@@ -132,7 +70,7 @@ extends:
           type: 'windows'
         variables:
         - name: ob_outputDirectory
-          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT/zip'
         - name: ob_artifactBaseName
           value: BCContainerHelper_Zip
         steps:
@@ -223,7 +161,7 @@ extends:
 
                 $apiKey = "TOODO: Replace me"
                 if (-not $apiKey) {
-                  throw "PowerShell Gallery API key not found. Please set the PSGALLERY_API_KEY variable."
+                  throw "PowerShell Gallery API key not found"
                 }
 
                 # Publish to PowerShell Gallery
