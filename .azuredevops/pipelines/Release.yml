@@ -118,7 +118,7 @@ extends:
             scriptLocation: 'inlineScript'
             inlineScript: |
               $storageAccountName = "bccontainerhelper"
-              if (${{ parameters.ProductionRelease }}) {
+              if ([bool]::Parse('${{ parameters.ProductionRelease }}')) {
                 $blobName = "latest.zip"
               }
               else {
