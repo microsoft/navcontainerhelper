@@ -17,6 +17,7 @@ variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
   - template: codesign-variables.yml@PipelineTemplates
+  - group: Engineering Systems - BCContainerHelper
 
 parameters:
   - name: ProductionRelease
@@ -90,7 +91,7 @@ extends:
             scriptType: 'pscore'
             scriptLocation: 'scriptPath'
             scriptPath: '$(Build.SourcesDirectory)/.azuredevops/scripts/UploadToAzureStorage.ps1'
-            arguments: "-StorageAccountName 'bccontainerhelper' -ContainerName 'public' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
+            arguments: "-StorageAccountName $(BCContainerHelperStorageAccount) -ContainerName '$(BCContainerHelperContainer)' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
@@ -115,5 +116,5 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PublishToPSGallery.ps1'
-            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey 'TODO: Replace me'"
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey '$(BCContainerHelperPSGalleryApiKey)'"
             pwsh: true
