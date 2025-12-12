@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Renew a Lets Encrypt Certificate for a renew free 90 days trusted certificate
  .Description
@@ -13,7 +13,7 @@
  .Parameter dnsAlias
   DNS Alias is obsolete - you do not need to specify this
  .Example
-  Renew-LetsEncryptCertificate -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword (ConvertTo-SecureString -String "S0mep@ssw0rd!" -AsPlainText -Force)
+  Renew-LetsEncryptCertificate -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
 #>
 function Renew-LetsEncryptCertificate {
     Param (
