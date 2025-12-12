@@ -1,8 +1,5 @@
 trigger: none
-${{ if eq(parameters.ProductionRelease, true) }}:
-  name: Release BCContainerHelper (Production) - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:r)
-${{ else }}:
-  name: Release BCContainerHelper (Preview) - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:r)
+name: Release BCContainerHelper - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:r)
 pr: none
 
 resources:
@@ -118,5 +115,5 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PublishToPSGallery.ps1'
-            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey 'TOODO: Replace me'"
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey 'TODO: Replace me'"
             pwsh: true
