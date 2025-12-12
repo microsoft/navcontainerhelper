@@ -16,16 +16,11 @@ resources:
 variables:
   - name: WindowsContainerImage
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
-  - ${{ if eq(parameters.TestRun, false) }}:
-    - template: codesign-variables.yml@PipelineTemplates
+  - template: codesign-variables.yml@PipelineTemplates
 
 parameters:
   - name: ProductionRelease
     displayName: Production Release
-    type: boolean
-    default: false
-  - name: TestRun
-    displayName: Test Run (no signing, no PSGallery deployment, Storage upload only to test storage)
     type: boolean
     default: false
 
@@ -58,21 +53,13 @@ extends:
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PrepareBCContainerHelperModule.ps1'
             arguments: "-OutputPath '$(ob_outputDirectory)' -ProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
             pwsh: false
-        - ${{ if eq(parameters.TestRun, false) }}:
-          - template: codesign.yml@PipelineTemplates
-            parameters:
-              OutputPath: '$(ob_outputDirectory)'
+        - template: codesign.yml@PipelineTemplates
+          parameters:
+            OutputPath: '$(ob_outputDirectory)'
 
     - stage: DeployToStorage
       displayName: 'Deploy to Azure Storage'
       dependsOn: ['PrepareModule']
-      variables:
-        - ${{ if eq(parameters.TestRun, false) }}:
-          - name: AzureStorageContainer
-            value: 'public'
-        - ${{ if eq(parameters.TestRun, true) }}:
-          - name: AzureStorageContainer
-            value: 'test'
       jobs:
       - job: UploadToStorage
         displayName: 'Upload to Storage Account'
@@ -103,12 +90,11 @@ extends:
             scriptType: 'pscore'
             scriptLocation: 'scriptPath'
             scriptPath: '$(Build.SourcesDirectory)/.azuredevops/scripts/UploadToAzureStorage.ps1'
-            arguments: "-StorageAccountName 'bccontainerhelper' -ContainerName '$(AzureStorageContainer)' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
+            arguments: "-StorageAccountName 'bccontainerhelper' -ContainerName 'public' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
 
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
       dependsOn: ['PrepareModule']
-      condition: and(succeeded(), ${{ eq(parameters.TestRun, false) }})
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
