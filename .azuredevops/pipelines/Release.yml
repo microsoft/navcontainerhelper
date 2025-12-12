@@ -1,5 +1,8 @@
 trigger: none
-name: Release BCContainerHelper (Production - ${{ parameters.ProductionRelease }} ) - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:.r)
+${{ if eq(parameters.ProductionRelease, true) }}:
+  name: Release BCContainerHelper (Production) - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:r)
+${{ else }}:
+  name: Release BCContainerHelper (Preview) - $(Date:yyyy).$(Date:MM).$(Date:dd)-$(Rev:r)
 pr: none
 
 resources:
