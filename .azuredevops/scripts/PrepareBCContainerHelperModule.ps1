@@ -77,7 +77,7 @@ try {
     $versionFile = Join-Path $OutputPath 'Version.txt'
     $version = (Get-Content -Path $versionFile).split('-')[0]
 
-    # Append preview suffix if PreviewNumber is provided
+    # Append preview suffix if this is not a production release
     if (-not $ProductionRelease) {
         $previewSuffix = "preview$($env:BUILD_BUILDID)"
         $fullVersion = "$version-$previewSuffix"
