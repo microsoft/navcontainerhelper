@@ -103,7 +103,7 @@ try {
     $releaseNotes = Get-Content -Path (Join-Path $OutputPath "ReleaseNotes.txt")
     $idx = $releaseNotes.IndexOf($version)
     if ($idx -lt 0) {
-        throw 'No release notes identified'
+        throw "No release notes identified for version $version"
     }
     $versionReleaseNotes = @()
     while ($releaseNotes[$idx]) {
