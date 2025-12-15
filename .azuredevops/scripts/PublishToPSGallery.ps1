@@ -27,7 +27,7 @@ $errorActionPreference = "stop"
 
 try {
     # Publish to PowerShell Gallery
-    Register-PSRepository -Default # Ensure the default repository is registered, PSGallery
+    Register-PSRepository -Default -ErrorAction SilentlyContinue # Ensure the default repository is registered, PSGallery
     Publish-Module -Path $ModulePath -NuGetApiKey $ApiKey -SkipAutomaticTags
 
     Write-Host "Successfully published to PowerShell Gallery"
