@@ -1,0 +1,9 @@
+{
+  "tool": "Credential Scanner",
+  "suppressions": [
+    {
+      "file": "CreateScript.ps1",
+      "_justification": "This is a default example password parameter used in the wizard script, not a real credential"
+    }
+  ]
+}

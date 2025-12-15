@@ -1,6 +1,6 @@
 {
     "GUID": "fa5f4d08-53be-4ca0-bf16-26da89afa20f",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module with AL-Go helper functions for Business Central Development",
     "CompanyName": "Microsoft",

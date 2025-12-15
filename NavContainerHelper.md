@@ -373,7 +373,7 @@ The parameter needed to specify username and password for your NAV Super user is
 
 The credentials are of type System.Management.Automation.PSCredential and can be created like this
 
-    $securePassword = ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force
+    $securePassword = ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force
     $credential = New-Object System.Management.Automation.PSCredential -argumentList "admin", $securePassword
 
 or, if you want to ask the user to enter the credentials in a dialog
@@ -451,7 +451,7 @@ If you want to publish all exposed ports on the host, you can use: --publish-all
 Example:
 
     $additionalParameters = @("--publish 8080:8080",
-                              "--publish 443:443", 
+                              "--publish 443:443",
                               "--publish 7046-7049:7046-7049")
     New-NavContainer -accept_eula `
                      -containerName "test" `
@@ -666,7 +666,7 @@ Example:
 
 You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/navcontainerhelper/blob/main/ObjectHandling/Import-ObjectsToNavContainer.ps1).
 
-You can also import a folder with .delta files using the *Import-DeltasToNavContainer* function. 
+You can also import a folder with .delta files using the *Import-DeltasToNavContainer* function.
 
 Example:
 
@@ -707,7 +707,7 @@ Example:
 If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL. Read [this](https://blogs.msdn.microsoft.com/freddyk/2017/02/26/create-a-secure-url-to-a-file/) for information about how to create a secure url for a file.
 
     $imageName = "microsoft/dynamics-nav:2018-rtm"
-    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     New-NavContainer -accept_eula `
                      -containerName "test" `
                      -Auth NavUserPassword `
@@ -719,7 +719,7 @@ If you have a database backup file (.bak), you can specify that as parameter to 
 A second option is to place the .bak file in a folder, which you share to the container and then specify the container file path to the bakfile parameter in additionalParameters, like this:
 
     $imageName = "microsoft/dynamics-nav:2018-rtm"
-    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     New-NavContainer -accept_eula `
                      -containerName "test" `
                      -Auth NavUserPassword `
@@ -731,7 +731,7 @@ A second option is to place the .bak file in a folder, which you share to the co
 A third optiopn is to specify the .bak file to the myscripts parameter and specify the path to the bakfile to be c:\run\my. All files specified in the myscripts parameter will be copied to the c:\run\my folder upon start of the container.
 
     $imageName = "microsoft/dynamics-nav:2018-rtm"
-    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     New-NavContainer -accept_eula `
                      -containerName "test" `
                      -Auth NavUserPassword `
@@ -843,7 +843,7 @@ Example:
     $imageName = "microsoft/dynamics-nav"
 
     $additionalParameters = @("-v ${hostFolder}:c:\navdbfiles")
-    $tempcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $tempcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     New-NavContainer -accept_eula `
                      -containerName "temp" `
                      -imageName $imageName `
@@ -858,7 +858,7 @@ The navstart script above will work with all standard NAV container images to ex
 
 In this example, it gets the .mdf and .ldf files from the latest cumulative update of the latest released version of NAV with W1 localization. Adding the lines below will spin up a SQL Server Developer container and attach the database files extracted by the lines above.
 
-    $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     $databaseName = "CRONUS"
     $attach_dbs = (ConvertTo-Json -Compress -Depth 99 @(@{"dbName" = "$databaseName"; "dbFiles" = @("c:\temp\${databaseName}.mdf", "c:\temp\${databaseName}.ldf") })).replace('"',"'")
     $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
@@ -876,7 +876,7 @@ Variables $databaseServer, $databaseInstance, $databaseName and $databaseCredent
 The following script sample, will create a new SQL Server container and restore a NAV 2018 database backup file (Demo Database NAV (11-0).bak) placed on the host in a folder called c:\temp\navdbfiles. The folder c:\temp\navdbfiles on the host is shared as c:\temp inside the container.
 
     $hostFolder = "c:\temp\navdbfiles"
-    $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" microsoft/mssql-server-windows-express
     $databaseServer = $dbserverid.SubString(0,12)
@@ -909,13 +909,13 @@ If you have created your external database through other means, please set these
 
 If the above script fails, you will not succeed starting a NAV container with these credentials, before your connection test succeeds.
 
-Please remove your connection test container using: 
+Please remove your connection test container using:
 
     docker rm sqlconnectiontest -f
 
 When you successfully have conducted the connection test above, you can start a NAV container using this script:
 
-    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+    $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
     New-NavContainer -accept_eula `
                      -containerName "test" `
                      -Auth NavUserPassword `
@@ -1017,7 +1017,7 @@ Example (hashtable):
                      -containerName test `
                      -imageName microsoft/dynamics-nav `
                      -auth NavUserPassword `
-                     -myScripts @{"AdditionalOutput.ps1" = $additionalOutputScript} 
+                     -myScripts @{"AdditionalOutput.ps1" = $additionalOutputScript}
 
 The output of the container should be something like:
 
@@ -1155,7 +1155,7 @@ The script will need to set 3 variables, which are used by navstart.ps1 afterwar
 
 The default script will create a self-signed certificate, and use this for securing access to NAV.
 
-**Note**, services like PowerBI and the Office Excel Add-in will not be able to trust your self signed certificate, meaning that 
+**Note**, services like PowerBI and the Office Excel Add-in will not be able to trust your self signed certificate, meaning that
 
 ### Reasons to override
 
@@ -1206,7 +1206,7 @@ The responsibility of the SetupLicense script is to ensure that a license is ava
 
 The default behavior of the setupLicense script does nothing during restart of the Docker instance.
 
-Else, the default behavior will check whether the LicenseFile parameter is set (either to a path on a share or a http download location). If the licenseFile parameter is specified, this license will be used. If no licenseFile is specified, then the CRONUS Demo license is used. 
+Else, the default behavior will check whether the LicenseFile parameter is set (either to a path on a share or a http download location). If the licenseFile parameter is specified, this license will be used. If no licenseFile is specified, then the CRONUS Demo license is used.
 
 In all specific NAV container images, the license is already imported. If you are running the generic image, the license will be imported.
 

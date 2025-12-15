@@ -1,6 +1,6 @@
 {
     "GUID": "2262fadf-b661-4818-aec8-4502802bbf42",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module with Business Central artifacts helper functions for Business Central Development",
     "CompanyName": "Microsoft",
