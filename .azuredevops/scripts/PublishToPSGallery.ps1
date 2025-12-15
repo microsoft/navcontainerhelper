@@ -26,10 +26,6 @@ param(
 $errorActionPreference = "stop"
 
 try {
-    if (-not $ApiKey) {
-        throw "PowerShell Gallery API key not found"
-    }
-
     # Publish to PowerShell Gallery
     Register-PSRepository -Default # Ensure the default repository is registered, PSGallery
     Publish-Module -Path $ModulePath -NuGetApiKey $ApiKey -SkipAutomaticTags
