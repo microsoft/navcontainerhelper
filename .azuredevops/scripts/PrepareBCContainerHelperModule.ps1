@@ -82,6 +82,9 @@ try {
         $previewSuffix = "preview$($env:BUILD_BUILDID)"
         $fullVersion = "$version-$previewSuffix"
     }
+    else {
+        $fullVersion = $version
+    }
 
     Write-Host "BcContainerHelper version $fullVersion"
 
