@@ -1,6 +1,6 @@
 {
     "GUID": "e7f1ba7d-b7f1-4c7d-ad19-d24491fbbd19",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module with Business Central online helper functions for Business Central Development",
     "CompanyName": "Microsoft",

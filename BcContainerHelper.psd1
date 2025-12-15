@@ -21,7 +21,7 @@ CompatiblePSEditions = 'Core', 'Desktop'
 GUID = '8e034fbc-8c30-446d-bbc3-5b3be5392491'
 
 # Author of this module
-Author = 'Freddy Kristiansen'
+Author = 'Microsoft'
 
 # Company or vendor of this module
 CompanyName = 'Microsoft'
