@@ -37,7 +37,7 @@ if(-not (Test-Path -Path $OutputDirectory)) {
 $zipPath = Join-Path $OutputDirectory "BcContainerHelper-$version.zip"
 
 Write-Host "Zipping module from $ModulePath to $zipPath"
-Compress-Archive -Path "$ModulePath/*" -DestinationPath $zipPath -Force
+Compress-Archive -Path "$ModulePath" -DestinationPath $zipPath -Force
 
 Write-Host "##vso[task.setvariable variable=BCContainerHelperZipPath;isreadonly=true]$zipPath"
 Write-Host "##vso[task.setvariable variable=BCContainerHelperVersion;isreadonly=true]$version"
