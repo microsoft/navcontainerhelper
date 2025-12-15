@@ -45,7 +45,7 @@ extends:
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT/module'
         - name: ob_artifactBaseName
-          value: BCContainerHelper_Module
+          value: BcContainerHelper
         steps:
         - task: PowerShell@2
           displayName: 'Prepare Module'
@@ -73,7 +73,7 @@ extends:
           value: BCContainerHelper_Zip
         steps:
         - download: current
-          artifact: BCContainerHelper_Module
+          artifact: BcContainerHelper
           displayName: 'Download BcContainerHelper Artifact'
 
         - task: PowerShell@2
@@ -81,7 +81,7 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/CreateZipFile.ps1'
-            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -OutputDirectory '$(ob_outputDirectory)'"
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BcContainerHelper' -OutputDirectory '$(ob_outputDirectory)'"
             pwsh: true
 
         - task: AzureCLI@2
@@ -108,7 +108,7 @@ extends:
             value: BCContainerHelper_PSGallery
         steps:
         - download: current
-          artifact: BCContainerHelper_Module
+          artifact: BcContainerHelper
           displayName: 'Download BcContainerHelper Artifact'
 
         - task: PowerShell@2
@@ -116,5 +116,5 @@ extends:
           inputs:
             targetType: 'filePath'
             filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PublishToPSGallery.ps1'
-            arguments: "-ModulePath '$(Pipeline.Workspace)/BCContainerHelper_Module' -ApiKey '$(BCContainerHelperPSGalleryApiKey)'"
+            arguments: "-ModulePath '$(Pipeline.Workspace)/BcContainerHelper' -ApiKey '$(BCContainerHelperPSGalleryApiKey)'"
             pwsh: true
