@@ -26,6 +26,8 @@
   If Credential is specified, the password flow will be included in the list of OAuth2 flows to try
  .Parameter includeDeviceLogin
   Include this switch if you want to include a device login prompt if no other way to authenticate succeeds
+ .Parameter authorizationCodeFlow
+  Include this switch to use OAuth2 Authorization Code flow with PKCE and local redirect server
  .Parameter deviceLoginTimeout
   Timespan indicating the timeout while waiting for user to perform devicelogin. Default is 5 minutes.
  .Parameter deviceCode
@@ -51,6 +53,7 @@ function New-BcAuthContext {
         $clientAssertion,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
+        [switch] $authorizationCodeFlow,
         [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(15),
         [string] $deviceCode = "",
         [switch] $silent
@@ -68,6 +71,11 @@ try {
 
     if ($deviceCode) {
         $includeDeviceLogin = $true
+    }
+
+    if ($authorizationCodeFlow) {
+        # Authorization Code flow with PKCE is preferred over device login
+        $includeDeviceLogin = $false
     }
 
     if ($resource) {
@@ -152,7 +160,128 @@ try {
             $scopes += "user_impersonation offline_access"
         }
 
-        if ($credential) {
+        if ($authorizationCodeFlow) {
+            # Authorization Code flow with PKCE
+            Add-Type -AssemblyName System.Web
+            Add-Type -AssemblyName System.Net.Http
+
+            # Generate PKCE parameters
+            $codeVerifier = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+            $codeChallenge = [Convert]::ToBase64String([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::ASCII.GetBytes($codeVerifier))).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+            $state = [Guid]::NewGuid().ToString()
+            
+            # Start local HTTP listener
+            $redirectUri = "http://localhost:38416/"
+            $listener = New-Object System.Net.HttpListener
+            $listener.Prefixes.Add($redirectUri)
+            
+            try {
+                $listener.Start()
+                if (!$silent) { Write-Host "Started local redirect server on $redirectUri" }
+            }
+            catch {
+                Write-Host -ForegroundColor Red "Failed to start local server on port 38416. Port may be in use."
+                throw $_
+            }
+
+            # Build authorization URL
+            $authParams = @{
+                "client_id"             = $clientID
+                "response_type"         = "code"
+                "redirect_uri"          = $redirectUri
+                "scope"                 = $scopes
+                "state"                 = $state
+                "code_challenge"        = $codeChallenge
+                "code_challenge_method" = "S256"
+                "prompt"                = "select_account"
+            }
+            
+            $authUrl = "$($authority.TrimEnd('/'))/oauth2/v2.0/authorize?" + (($authParams.GetEnumerator() | ForEach-Object { "$($_.Key)=$([System.Web.HttpUtility]::UrlEncode($_.Value))" }) -join '&')
+            
+            if (!$silent) { 
+                Write-Host -ForegroundColor Yellow "Opening browser for authentication..."
+                Write-Host -ForegroundColor Yellow "URL: $authUrl"
+            }
+            
+            # Open browser
+            Start-Process $authUrl
+            
+            # Wait for callback
+            if (!$silent) { Write-Host "Waiting for authentication response..." }
+            $context = $listener.GetContext()
+            $request = $context.Request
+            $response = $context.Response
+            
+            # Send response to browser
+            $responseHtml = "<html><body><h1>Authentication successful!</h1><p>You can close this window and return to PowerShell.</p></body></html>"
+            $buffer = [System.Text.Encoding]::UTF8.GetBytes($responseHtml)
+            $response.ContentLength64 = $buffer.Length
+            $response.OutputStream.Write($buffer, 0, $buffer.Length)
+            $response.OutputStream.Close()
+            $listener.Stop()
+            
+            # Parse query string
+            $queryString = [System.Web.HttpUtility]::ParseQueryString($request.Url.Query)
+            $code = $queryString["code"]
+            $returnedState = $queryString["state"]
+            
+            if ($returnedState -ne $state) {
+                throw "State mismatch in OAuth2 flow"
+            }
+            
+            if (!$code) {
+                $error = $queryString["error"]
+                $errorDescription = $queryString["error_description"]
+                throw "Authorization failed: $error - $errorDescription"
+            }
+            
+            # Exchange code for token
+            $TokenRequestParams = @{
+                Method = 'POST'
+                Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
+                Body   = @{
+                    "grant_type"    = "authorization_code"
+                    "client_id"     = $ClientId
+                    "code"          = $code
+                    "redirect_uri"  = $redirectUri
+                    "code_verifier" = $codeVerifier
+                    "scope"         = $scopes
+                }
+                Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
+            }
+            
+            try {
+                if (!$silent) { Write-Host "Exchanging authorization code for access token..." }
+                $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
+                $accessToken = $TokenRequest.access_token
+                $jwtToken = Parse-JWTtoken -token $accessToken
+                if (!$silent) { Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))" }
+                $authContext += @{
+                    "AccessToken"     = $accessToken
+                    "UtcExpiresOn"    = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken"    = $null
+                    "Credential"      = $null
+                    "ClientSecret"    = $null
+                    "ClientAssertion" = $null
+                    "appid"           = ""
+                    "name"            = $jwtToken.name
+                    "upn"             = $jwtToken.unique_name
+                }
+                if ($TokenRequest.PSObject.Properties.Name -eq 'refresh_token') {
+                    $authContext.RefreshToken = $TokenRequest.refresh_token
+                }
+                if ($tenantID -eq "Common") {
+                    if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
+                    $authContext.TenantId = $jwtToken.tid
+                }
+            }
+            catch {
+                Write-Host -ForegroundColor Red (GetExtendedErrorMessage $_)
+                $accessToken = $null
+            }
+        }
+
+        if (!$accessToken -and $credential) {
             $TokenRequestParams = @{
                 Method = 'POST'
                 Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
