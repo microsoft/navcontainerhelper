@@ -1436,6 +1436,8 @@ Measure-Command {
 
     if ($tmpAppFiles) {
         $Parameters = @{
+            "containerName" = (GetBuildContainer)
+            "tenant" = $tenant
             "credential" = $credential
             "appFile" = $tmpAppFiles
             "skipVerification" = $true
@@ -1459,12 +1461,6 @@ Measure-Command {
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
                 "checkAlreadyInstalled" = $true
-            }
-        }
-        else {
-            $Parameters += @{
-                "containerName" = (GetBuildContainer)
-                "tenant" = $tenant
             }
         }
         if (!$doNotPublishApps) {
