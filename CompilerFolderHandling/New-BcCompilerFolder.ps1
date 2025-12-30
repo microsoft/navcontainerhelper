@@ -58,7 +58,12 @@ try {
     }
     
     if (!$containerName) {
-        $containerName = [GUID]::NewGuid().ToString()
+        if ($bcContainerHelperConfig.UseGuidForCompilerFolderNames) {
+            $containerName = [GUID]::NewGuid().ToString()
+        }
+        else {
+            $containerName = "$type-$version-$country"
+        }
     }
 
     $compilerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "compiler\$containerName"

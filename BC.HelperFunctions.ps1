@@ -126,6 +126,7 @@ function Get-ContainerHelperConfig {
             "NuGetSearchResultsCacheRetentionPeriod" = 600 # 10 minutes
             "BcNuGetCacheFolder" = ""
             "doNotRemovePackagesFolderIfExists" = $false
+            "UseGuidForCompilerFolderNames" = $true
         }
 
         if ($isInsider) {
