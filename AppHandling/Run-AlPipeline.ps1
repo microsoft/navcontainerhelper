@@ -2587,6 +2587,8 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
+Write-Host "Publishing test app dependencies and test apps"
+
 $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
 
     $Parameters = @{
