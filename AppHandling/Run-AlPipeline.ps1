@@ -485,7 +485,7 @@ function GetInstalledApps {
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
+    if ($bcAuthContext -and $environment -and !($environment -like 'https://*' -or $environment -like 'http://*')) {
         # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
         $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
@@ -856,7 +856,7 @@ if ($bcAuthContext) {
         throw "Page scripting Tests are not supported on cloud pipelines yet!"
     }
 
-    if ($environment -notlike ('https://*')) {
+    if (!($environment -like 'https://*' -or $environment -like 'http://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
         if (!($bcEnvironment)) {
