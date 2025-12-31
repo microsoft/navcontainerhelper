@@ -182,7 +182,7 @@ try {
     }
 
     if ($bcAuthContext -and $environment) {
-        if ($environment -like 'https://*') {
+        if ($environment -like 'https://*' -or $environment -like 'http://*') {
             $useUrl = $environment
             if ($bcAuthContext.ContainsKey('Username') -and $bcAuthContext.ContainsKey('Password')) {
                 $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.Username, $bcAuthContext.Password
@@ -271,7 +271,7 @@ try {
         } -argumentList $interactionTimeout.ToString()
     }
 
-    if ($bcAuthContext -and ($environment -notlike 'https://*')) {
+    if ($bcAuthContext -and !($environment -like 'https://*' -or $environment -like 'http://*')) {
         if ($bcAuthContext.scopes -notlike "https://projectmadeira.com/*") {
             Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($bcAuthContext.Scopes)', should have been 'https://projectmaderia.com/'"
         }
