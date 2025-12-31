@@ -2747,7 +2747,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    $installedApp = $installedApps | Where-Object { $_.Id -eq $id } | Select-Object -First 1
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id } | Select-Object -Unique
     if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
