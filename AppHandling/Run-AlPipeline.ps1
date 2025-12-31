@@ -2591,33 +2591,29 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
 }
 
 Write-Host "Publishing test app dependencies and test apps"
-$appsBeforeTestApps | Out-Host
 
-$appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
+$Parameters = @{
+    "containerName" = (GetBuildContainer)
+    "tenant" = $tenant
+    "credential" = $credential
+    "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
+    "skipVerification" = $true
+    "sync" = $true
+    "install" = $true
+    "upgrade" = $true
+    "ignoreIfAppExists" = $true
+}
 
-    $Parameters = @{
-        "containerName" = (GetBuildContainer)
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = $_
-        "skipVerification" = $true
-        "sync" = $true
-        "install" = $true
-        "upgrade" = $true
-        "ignoreIfAppExists" = $true
+if ($bcAuthContext) {
+    $Parameters += @{
+        "bcAuthContext" = $bcAuthContext
+        "environment" = $environment
+        "checkAlreadyInstalled" = $true
     }
+}
 
-    if ($bcAuthContext) {
-        $Parameters += @{
-            "bcAuthContext" = $bcAuthContext
-            "environment" = $environment
-            "checkAlreadyInstalled" = $true
-        }
-    }
-
-    if (!$doNotPublishApps) {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
+if (!$doNotPublishApps) {
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
