@@ -56,8 +56,9 @@ try {
     if ($version -lt "16.0.0.0") {
         throw "Containerless compiling is not supported with versions before 16.0"
     }
-    
-    if (!$containerName) {
+
+    $containerNameSpecified = ($containerName -ne '')
+    if (!$containerNameSpecified) {
         if ($bcContainerHelperConfig.UseGuidForCompilerFolderNames) {
             $containerName = [GUID]::NewGuid().ToString()
         }
@@ -65,10 +66,16 @@ try {
             $containerName = "$type-$version-$country"
         }
     }
-
     $compilerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "compiler\$containerName"
+    if ($containerNameSpecified) {
+        # If a container name was specified, always recreate the folder
+        if (Test-Path $compilerFolder) {
+            Remove-Item -Path $compilerFolder -Force -Recurse -ErrorAction Ignore
+        }
+    }
+    # Reuse compiler folder if it already exists
     if (Test-Path $compilerFolder) {
-        Remove-Item -Path $compilerFolder -Force -Recurse -ErrorAction Ignore
+        return $compilerFolder
     }
     New-Item -Path $compilerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
