@@ -1137,11 +1137,9 @@ function GetAppInfo {
     $package = $null
     try {
         foreach($path in $appFiles) {
-            Write-Host -NoNewline $path
             $relativePath = Resolve-Path -Path $path -Relative
             if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
                 $appInfo = $appInfoCache."$relativePath"
-                Write-Host " - from cache"
             }
             else {
                 if ($alToolExists) {
@@ -1160,7 +1158,6 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
-                    Write-Host " - using altool"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1188,7 +1185,6 @@ function GetAppInfo {
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     $packageStream.Close()
-                    Write-Host " - using navapp"
                 }
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
