@@ -485,7 +485,7 @@ function GetInstalledApps {
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
+    if ($bcAuthContext -and $environment -and !($environment -like 'https://*' -or $environment -like 'http://*')) {
         # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
         $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
@@ -856,7 +856,7 @@ if ($bcAuthContext) {
         throw "Page scripting Tests are not supported on cloud pipelines yet!"
     }
 
-    if ($environment -notlike ('https://*')) {
+    if (!($environment -like 'https://*' -or $environment -like 'http://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
         if (!($bcEnvironment)) {
@@ -2587,31 +2587,28 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
+$Parameters = @{
+    "containerName" = (GetBuildContainer)
+    "tenant" = $tenant
+    "credential" = $credential
+    "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
+    "skipVerification" = $true
+    "sync" = $true
+    "install" = $true
+    "upgrade" = $true
+    "ignoreIfAppExists" = $true
+}
 
-    $Parameters = @{
-        "containerName" = (GetBuildContainer)
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = $_
-        "skipVerification" = $true
-        "sync" = $true
-        "install" = $true
-        "upgrade" = $true
-        "ignoreIfAppExists" = $true
+if ($bcAuthContext) {
+    $Parameters += @{
+        "bcAuthContext" = $bcAuthContext
+        "environment" = $environment
+        "checkAlreadyInstalled" = $true
     }
+}
 
-    if ($bcAuthContext) {
-        $Parameters += @{
-            "bcAuthContext" = $bcAuthContext
-            "environment" = $environment
-            "checkAlreadyInstalled" = $true
-        }
-    }
-
-    if (!$doNotPublishApps) {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
+if (!$doNotPublishApps) {
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
@@ -2745,7 +2742,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id } | Select-Object -Unique
     if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
