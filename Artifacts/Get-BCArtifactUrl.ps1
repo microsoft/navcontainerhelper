@@ -116,7 +116,20 @@ try {
         }
 
         if (-not $country) { $country = 'w1' }
-        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
+        $insiderParams = @{
+            country            = $country
+            storageAccount     = 'bcinsider'
+            select             = 'All'
+            doNotCheckPlatform = $doNotCheckPlatform
+            accept_insiderEula = $accept_insiderEula
+        }
+        if ($before) {
+            $insiderParams['before'] = $before
+        }
+        if ($after) {
+            $insiderParams['after'] = $after
+        }
+        $insiders = Get-BcArtifactUrl @insiderParams
         $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
         $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
 

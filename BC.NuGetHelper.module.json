@@ -1,6 +1,6 @@
 {
     "GUID": "5ef27830-ae76-422f-8439-db8db89e9ece",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module with NuGet helper functions for Business Central Development",
     "CompanyName": "Microsoft",
