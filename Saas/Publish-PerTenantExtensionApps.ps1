@@ -22,7 +22,7 @@
   Azure DevOps doesn't update logs until a newline is added.
  .Parameter hideInstalledExtensionsOutput
   Add this parameter to hide the output that lists installed extensions on the specified environment before and after installation of new and updated PTE extensions.
- .Parameter UnpublishOldVersions
+ .Parameter unpublishOldVersions
   Add this switch to unpublish old versions of apps after upgrading to a new version.
 #>
 function Publish-PerTenantExtensionApps {
@@ -48,7 +48,7 @@ function Publish-PerTenantExtensionApps {
         [string] $schedule = '',
         [switch] $useNewLine,
         [switch] $hideInstalledExtensionsOutput,
-        [switch] $UnpublishOldVersions
+        [switch] $unpublishOldVersions
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -246,7 +246,7 @@ try {
                             Write-Host "Error: $($_.Exception.Message). Retrying in $sleepSeconds seconds"
                         }
                     }
-                    if ($UnpublishOldVersions -and $oldApp -and ($appDepVer -ge [System.Version]"25.4.0.0")) { # New unpublish API available from 25.4
+                    if ($unpublishOldVersions -and $oldApp -and ($appDepVer -ge [System.Version]"25.4.0.0")) { # New unpublish API available from 25.4
                         Write-Host @newLine "Unpublishing old version"
                         Invoke-RestMethod `
                             -Method Post `
