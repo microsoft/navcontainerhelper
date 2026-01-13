@@ -521,9 +521,13 @@ function GetInstalledApps {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
+    $seen = @{}
     $installedApps | ForEach-Object {
-        Write-Host "- $($_.AppId):$($_.Name)"
-        return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        if (-not $seen.ContainsKey($_.AppId)) {
+            $seen[$_.AppId] = $true
+            Write-Host "- $($_.AppId):$($_.Name)"
+            return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        }
     }
     Write-GroupEnd
 }
@@ -2742,7 +2746,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
-    $installedApp = $installedApps | Where-Object { $_.Id -eq $id } | Select-Object -Unique
+    $installedApp = $installedApps | Where-Object { $_.Id -eq $id }
     if (-not $installedApp) {
         throw "App with $id is not installed, cannot run tests"
     }
