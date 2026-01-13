@@ -1,6 +1,6 @@
 {
     "GUID": "8e034fbc-8c30-446d-bbc3-5b3be5392491",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module, which makes it easier to work with Business Central Containers on Docker.",
     "CompanyName": "Microsoft",

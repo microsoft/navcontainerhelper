@@ -1,6 +1,6 @@
 {
     "GUID": "25a65b43-3a76-4782-8515-06de2d4bae21",
-    "Author": "Freddy Kristiansen",
+    "Author": "Microsoft",
     "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "Base PowerShell module for BC.* modules",
     "CompanyName": "Microsoft",
