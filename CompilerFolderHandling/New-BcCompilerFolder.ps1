@@ -75,7 +75,12 @@ try {
     }
     # Reuse compiler folder if it already exists
     if (Test-Path $compilerFolder) {
-        return $compilerFolder
+        if ($containerNameSpecified) {
+            Remove-Item -Path $compilerFolder -Force -Recurse -ErrorAction Ignore
+        }
+        else {
+            return $compilerFolder
+        }
     }
     New-Item -Path $compilerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
