@@ -140,7 +140,7 @@ try {
                 $appFile = $_
                 Write-Host @newline "$([System.IO.Path]::GetFileName($appFile)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $appFile
-                $oldApp = $null;
+                $oldApp = $null
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {
