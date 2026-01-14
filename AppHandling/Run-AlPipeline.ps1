@@ -1138,6 +1138,9 @@ if (!$createContainer -or $filesOnly) {
     $additionalCountries = @()
 }
 
+if ($PipelineInitialize) {
+    Write-Host -ForegroundColor Yellow "PipelineInitialize override"; Write-Host $PipelineInitialize.ToString()
+}
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
@@ -1266,6 +1269,9 @@ else {
 }
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+if ($PipelineFinalize) {
+    Write-Host -ForegroundColor Yellow "PipelineFinalize override"; Write-Host $PipelineFinalize.ToString()
 }
 Write-GroupEnd
 
