@@ -1081,6 +1081,7 @@ function GetAppInfo {
     if ($cacheAppInfoPath) {
         if (Test-Path $cacheAppInfoPath) {
             $appInfoCache = Get-Content -Path $cacheAppInfoPath -Encoding utf8 | ConvertFrom-Json
+            $appInfoCachec | ConvertTo-Json -Depth 99 | Out-Host
         }
         else {
             $appInfoCache = @{}
