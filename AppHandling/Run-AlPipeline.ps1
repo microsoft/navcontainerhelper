@@ -2597,27 +2597,25 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$Parameters = @{
-    "containerName" = (GetBuildContainer)
-    "tenant" = $tenant
-    "credential" = $credential
-    "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
-    "skipVerification" = $true
-    "sync" = $true
-    "install" = $true
-    "upgrade" = $true
-    "ignoreIfAppExists" = $true
-}
-
-if ($bcAuthContext) {
-    $Parameters += @{
-        "bcAuthContext" = $bcAuthContext
-        "environment" = $environment
-        "checkAlreadyInstalled" = $true
-    }
-}
-
 if (!$doNotPublishApps) {
+    $Parameters = @{
+        "containerName" = (GetBuildContainer)
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
+        "skipVerification" = $true
+        "sync" = $true
+        "install" = $true
+        "upgrade" = $true
+        "ignoreIfAppExists" = $true
+    }
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+            "checkAlreadyInstalled" = $true
+        }
+    }
     Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 }
 
