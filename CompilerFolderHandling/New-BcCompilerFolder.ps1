@@ -307,7 +307,7 @@ try {
         Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
         $templatesFolder = Join-Path $cacheFolder "compiler\extension\templates"
         if (Test-Path $templatesFolder) {
-            Write-Host "Removing Templatest Folder"
+            Write-Host "Removing Templates Folder"
             Remove-Item $templatesFolder -Recurse -Force
         }
     }
