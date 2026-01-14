@@ -236,7 +236,7 @@ try {
         Write-Host "Copying DLLs from cache"
         Copy-Item -Path $dllsPath -Filter '*.dll' -Destination $compilerFolder -Recurse -Force
         Write-Host "Copying symbols from cache"
-        Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $compilerFolder -Recurse -Force
+        Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
         # If a vsix file was specified, the compiler folder has been populated
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
