@@ -1,11 +1,13 @@
-name: CICD
+name: CI
 
 on:
   workflow_dispatch:
   push:
     paths-ignore:
       - '**.md'
+      - '.azuredevops/**'
       - '.github/**'
+      - '!.github/workflows/CI.yaml'
     branches: [ main ]
 
 permissions:
@@ -35,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-    
+
       - name: Analyze
         id: Analyze
         run: |
@@ -59,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-    
+
       - name: Run Tests
         run: |
           try {
@@ -96,7 +98,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-    
+
       - name: Run Tests
         run: |
           try {
@@ -133,7 +135,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-    
+
       - name: Run Tests
         run: |
           try {
@@ -155,109 +157,3 @@ jobs:
             $host.SetShouldExit(1)
           }
 
-  Deploy:
-    runs-on: [ windows-latest ]
-    needs: [ PS5, PS7, Linux ]
-    if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    steps:
-      - name: 'Az CLI login'
-        uses: azure/login@v2
-        with:
-            client-id: ${{ secrets.AZURE_CLIENT_ID }}
-            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-            enable-AzPSSession: true
-            
-      - name: Install Azure Powershell Modules
-        run: |
-          if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
-            Install-Module -Name 'Az.Storage' -Force -AllowClobber
-          }
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy
-        run: |
-          try {
-            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
-            New-Item -path $path -itemType Directory | Out-Null
-            Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
-
-            Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".gitignore") -Force
-            Remove-Item -Path (Join-Path $path "README.md") -Force
-
-            $version = (Get-Content -Path (Join-Path $path 'Version.txt')).split('-')[0]
-            $prerelease = "preview$(620+$ENV:GITHUB_RUN_NUMBER)"
-            Set-Content -Path (Join-Path $path 'Version.txt') -value "$version-$prerelease"
-          
-            Write-Host "BcContainerHelper version $Version$prerelease"
-          
-            $modulePath = Join-Path $ENV:GITHUB_WORKSPACE "BcContainerHelper.psm1"
-            Import-Module $modulePath -DisableNameChecking
-          
-            $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
-            Write-Host "Set latest generic tag version to $($labels.tag)"
-            Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
-            
-            $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-            $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
-          
-            $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
-            $idx = $releaseNotes.IndexOf($version)
-            if ($idx -lt 0) {
-                throw 'No release notes identified'
-            }
-            $versionReleaseNotes = @()
-            while ($releaseNotes[$idx]) {
-                $versionReleaseNotes += $releaseNotes[$idx]
-                $idx++
-            }
-          
-            Write-Host "Release Notes:"
-            Write-Host $VersionReleaseNotes
-          
-            Write-Host "Update Module Manifest"
-            Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
-                                  -RootModule "BcContainerHelper.psm1" `
-                                  -ModuleVersion $version `
-                                  -Prerelease $prerelease `
-                                  -Author "Freddy Kristiansen" `
-                                  -FunctionsToExport $functionsToExport `
-                                  -AliasesToExport $aliasesToExport `
-                                  -CompanyName "Microsoft" `
-                                  -ReleaseNotes $versionReleaseNotes `
-                                  -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/main/LICENSE' `
-                                  -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
-
-            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
-            [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('${{ secrets.CodeSignCertificatePfx }}')))
-
-            Remove-Module BcContainerHelper
-          
-            Write-Host $path
-           
-            Write-Host "Signing scripts"
-            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
-            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
-                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
-            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
-
-            Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
-            New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
-          
-            Compress-Archive -path $path -DestinationPath "$($path).zip"
-            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Properties @{"CacheControl" = "no-cache"} -Force | Out-Null
-          
-            Write-Host "Publishing Module"
-            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
-          }
-          catch {
-            Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
-            $host.SetShouldExit(1)
-          }
