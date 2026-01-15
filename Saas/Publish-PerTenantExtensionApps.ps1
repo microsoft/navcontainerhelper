@@ -22,8 +22,8 @@
   Azure DevOps doesn't update logs until a newline is added.
  .Parameter hideInstalledExtensionsOutput
   Add this parameter to hide the output that lists installed extensions on the specified environment before and after installation of new and updated PTE extensions.
- .Parameter unpublishOldVersions
-  Add this switch to unpublish old versions of apps after upgrading to a new version.
+ .Parameter unpublishPreviousVersions
+  Add this switch to unpublish previous versions of apps after upgrading to a new version.
 #>
 function Publish-PerTenantExtensionApps {
     [CmdletBinding(DefaultParameterSetName="AC")]
@@ -48,7 +48,7 @@ function Publish-PerTenantExtensionApps {
         [string] $schedule = '',
         [switch] $useNewLine,
         [switch] $hideInstalledExtensionsOutput,
-        [switch] $unpublishOldVersions
+        [switch] $unpublishPreviousVersions
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -140,7 +140,7 @@ try {
                 $appFile = $_
                 Write-Host @newline "$([System.IO.Path]::GetFileName($appFile)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $appFile
-                $oldApp = $null
+                $previousApp = $null
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {
@@ -150,7 +150,7 @@ try {
                         }
                         else {
                             Write-Host @newLine "upgrading"
-                            $oldApp = $existingApp
+                            $previousApp = $existingApp
                             $existingApp = $null
                         }
                     }
@@ -247,11 +247,11 @@ try {
                             Write-Host "Error: $($_.Exception.Message). Retrying in $sleepSeconds seconds"
                         }
                     }
-                    if ($unpublishOldVersions -and $oldApp -and ($appDepVer -ge [System.Version]"25.4.0.0")) { # New unpublish API available from 25.4
-                        Write-Host @newLine "Unpublishing old version"
+                    if ($unpublishPreviousVersions -and $previousApp -and ($appDepVer -ge [System.Version]"25.4.0.0")) { # New unpublish API available from 25.4
+                        Write-Host @newLine "Unpublishing previous version"
                         Invoke-RestMethod `
                             -Method Post `
-                            -Uri "$automationApiUrl/companies($companyId)/extensions($($oldApp.packageId))/Microsoft.NAV.unpublish" `
+                            -Uri "$automationApiUrl/companies($companyId)/extensions($($previousApp.packageId))/Microsoft.NAV.unpublish" `
                             -Headers (GetAuthHeaders) | Out-Null
                     }
                 }
