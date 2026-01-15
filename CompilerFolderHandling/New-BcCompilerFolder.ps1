@@ -238,11 +238,11 @@ try {
             Write-Host "Copying DLLs from cache using Robocopy"
             & robocopy $dllsPath $compilerFolder\dlls *.dll /E | Out-Null
             Write-Host "Copying symbols from cache using Robocopy"
-            & robocopy $symbolsPath $compilerFolder\symbols *.* /E | Out-Null
+            & robocopy $symbolsPath $compilerFolder\symbols * /E | Out-Null
             # If a vsix file was specified, the compiler folder has been populated
             if (!$vsixFile) {
                 Write-Host "Copying compiler from cache using Robocopy"
-                & robocopy $compilerPath $compilerFolder\compiler *.* /E | Out-Null
+                & robocopy $compilerPath $compilerFolder\compiler * /E | Out-Null
             }
         }
         else {
