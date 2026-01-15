@@ -1139,7 +1139,7 @@ function GetAppInfo {
     $packageStream = $null
     $package = $null
     try {
-        $appInfoCache.Name | Out-Host
+        $appInfoCache | ConvertTo-Json -Depth 10 | Out-Host
         Write-Host "Processing app files:"
         foreach($path in $appFiles) {
             $relativePath = Resolve-Path -Path $path -Relative
