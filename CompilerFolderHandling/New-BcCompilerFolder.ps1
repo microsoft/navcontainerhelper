@@ -241,8 +241,14 @@ try {
             & robocopy $symbolsPath $compilerFolder\symbols * /E /MT /NFL /NDL /NJH /NJS /NP | Out-Null
             # If a vsix file was specified, the compiler folder has been populated
             if (!$vsixFile) {
-                Write-Host "Copying compiler from cache using Robocopy"
-                & robocopy $compilerPath $compilerFolder\compiler * /E /MT /NFL /NDL /NJH /NJS /NP | Out-Null
+                if ($IsAdministrator) {
+                    Write-Host "Create symbolic link for compiler from cache"
+                    New-Item -ItemType SymbolicLink -Path "$compilerFolder/compiler" -Target $compilerPath | Out-Null
+                }
+                else {
+                    Write-Host "Copying compiler from cache using Robocopy"
+                    & robocopy $compilerPath $compilerFolder\compiler * /E /MT /NFL /NDL /NJH /NJS /NP | Out-Null
+                }
             }
         }
         else {
@@ -252,8 +258,8 @@ try {
             Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
             # If a vsix file was specified, the compiler folder has been populated
             if (!$vsixFile) {
-                Write-Host "Copying compiler from cache"
-                Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+                Write-Host "Create symbolic link for compiler from cache"
+                New-Item -ItemType SymbolicLink -Path "$compilerFolder/compiler" -Target $compilerPath | Out-Null
             }
         }
     }
