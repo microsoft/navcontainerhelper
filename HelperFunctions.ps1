@@ -1154,7 +1154,9 @@ function GetAppInfo {
                     if ($alToolDll) {
                         $arguments = @($alToolDll) + $arguments
                     }
+                    Write-Host -nonewline "run $command $arguments"
                     $manifest = CmdDo -Command $command -arguments $arguments -returnValue -silent | ConvertFrom-Json
+                    Write-host " - done"
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
