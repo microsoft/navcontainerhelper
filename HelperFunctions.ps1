@@ -1094,6 +1094,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'linux'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
+            Write-Host "Use $command as altool executable."
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
             $alToolExists = $true
         }
@@ -1108,6 +1109,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'darwin'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
+            Write-Host "Use $command as altool executable."
             & chmod +x $command
             $alToolExists = $true
         }
@@ -1122,6 +1124,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'win32'
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
+        Write-Host "Use $command as altool executable (Exists = $alToolExists)."
     }
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
@@ -1136,10 +1139,14 @@ function GetAppInfo {
     $packageStream = $null
     $package = $null
     try {
+        $appInfoCache.Name | Out-Host
+        Write-Host "Processing app files:"
         foreach($path in $appFiles) {
             $relativePath = Resolve-Path -Path $path -Relative
+            Write-Host -nonewline "- $relativePath"
             if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
                 $appInfo = $appInfoCache."$relativePath"
+                Write-Host " (from cache)"
             }
             else {
                 if ($alToolExists) {
@@ -1158,6 +1165,7 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
+                    Write-Host " (using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1185,8 +1193,10 @@ function GetAppInfo {
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     $packageStream.Close()
+                    Write-Host " (using DLLs)"
                 }
                 if ($cacheAppInfoPath) {
+                    Write-Host " - caching"
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
                     $cacheUpdated = $true
                 }
