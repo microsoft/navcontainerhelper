@@ -236,13 +236,13 @@ try {
         if ($IsWindows) {
             # Use Robocopy to copy on Windows for performance
             Write-Host "Copying DLLs from cache using Robocopy"
-            & robocopy $dllsPath $compilerFolder\dlls *.dll /E | Out-Null
+            & robocopy $dllsPath $compilerFolder\dlls *.dll /E | Out-Host
             Write-Host "Copying symbols from cache using Robocopy"
-            & robocopy $symbolsPath $compilerFolder\symbols * /E | Out-Null
+            & robocopy $symbolsPath $compilerFolder\symbols * /E | Out-Host
             # If a vsix file was specified, the compiler folder has been populated
             if (!$vsixFile) {
                 Write-Host "Copying compiler from cache using Robocopy"
-                & robocopy $compilerPath $compilerFolder\compiler * /E | Out-Null
+                & robocopy $compilerPath $compilerFolder\compiler * /E | Out-Host
             }
         }
         else {
