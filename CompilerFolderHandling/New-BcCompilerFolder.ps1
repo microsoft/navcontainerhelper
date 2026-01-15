@@ -233,14 +233,28 @@ try {
 
     # If a cacheFolder was specified, the cache folder has been populated
     if ($cacheFolder) {
-        Write-Host "Copying DLLs from cache"
-        Copy-Item -Path $dllsPath -Filter '*.dll' -Destination $compilerFolder -Recurse -Force
-        Write-Host "Copying symbols from cache"
-        Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
-        # If a vsix file was specified, the compiler folder has been populated
-        if (!$vsixFile) {
-            Write-Host "Copying compiler from cache"
-            Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+        if ($IsWindows) {
+            # Use Robocopy to copy on Windows for performance
+            Write-Host "Copying DLLs from cache using Robocopy"
+            & robocopy $dllsPath $compilerFolder\dlls *.dll /E | Out-Null
+            Write-Host "Copying symbols from cache using Robocopy"
+            & robocopy $symbolsPath $compilerFolder\symbols *.* /E | Out-Null
+            # If a vsix file was specified, the compiler folder has been populated
+            if (!$vsixFile) {
+                Write-Host "Copying compiler from cache using Robocopy"
+                & robocopy $compilerPath $compilerFolder\compiler *.* /E | Out-Null
+            }
+        }
+        else {
+            Write-Host "Copying DLLs from cache"
+            Copy-Item -Path $dllsPath -Filter '*.dll' -Destination $compilerFolder -Recurse -Force
+            Write-Host "Copying symbols from cache"
+            Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
+            # If a vsix file was specified, the compiler folder has been populated
+            if (!$vsixFile) {
+                Write-Host "Copying compiler from cache"
+                Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+            }
         }
     }
 
