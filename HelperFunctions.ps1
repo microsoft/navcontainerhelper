@@ -1139,24 +1139,19 @@ function GetAppInfo {
     $packageStream = $null
     $package = $null
     try {
-        $appInfoCache | ConvertTo-Json -Depth 10 | Out-Host
-        Write-Host "Processing app files:"
         foreach($path in $appFiles) {
             $relativePath = Resolve-Path -Path $path -Relative
-            Write-Host -nonewline "- $relativePath"
             if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
                 $appInfo = $appInfoCache."$relativePath"
-                Write-Host " (from cache)"
             }
             else {
+                Write-Host -nonewline "- $relativePath"
                 if ($alToolExists) {
                     $arguments = @('GetPackageManifest', """$path""")
                     if ($alToolDll) {
                         $arguments = @($alToolDll) + $arguments
                     }
-                    Write-Host -nonewline "run $command $arguments"
                     $manifest = CmdDo -Command $command -arguments $arguments -returnValue -silent | ConvertFrom-Json
-                    Write-host " - done"
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
@@ -1198,7 +1193,6 @@ function GetAppInfo {
                     Write-Host " (using DLLs)"
                 }
                 if ($cacheAppInfoPath) {
-                    Write-Host " - caching"
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
                     $cacheUpdated = $true
                 }
