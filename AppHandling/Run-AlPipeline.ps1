@@ -485,7 +485,7 @@ function GetInstalledApps {
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
+    if ($bcAuthContext -and $environment -and !($environment -like 'https://*' -or $environment -like 'http://*')) {
         # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
         $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
@@ -521,9 +521,13 @@ function GetInstalledApps {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
+    $seen = @{}
     $installedApps | ForEach-Object {
-        Write-Host "- $($_.AppId):$($_.Name)"
-        return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        if (-not $seen.ContainsKey($_.AppId)) {
+            $seen[$_.AppId] = $true
+            Write-Host "- $($_.AppId):$($_.Name)"
+            return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        }
     }
     Write-GroupEnd
 }
@@ -856,7 +860,7 @@ if ($bcAuthContext) {
         throw "Page scripting Tests are not supported on cloud pipelines yet!"
     }
 
-    if ($environment -notlike ('https://*')) {
+    if (!($environment -like 'https://*' -or $environment -like 'http://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
         if (!($bcEnvironment)) {
@@ -1134,6 +1138,9 @@ if (!$createContainer -or $filesOnly) {
     $additionalCountries = @()
 }
 
+if ($PipelineInitialize) {
+    Write-Host -ForegroundColor Yellow "PipelineInitialize override"; Write-Host $PipelineInitialize.ToString()
+}
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
@@ -1262,6 +1269,9 @@ else {
 }
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+if ($PipelineFinalize) {
+    Write-Host -ForegroundColor Yellow "PipelineFinalize override"; Write-Host $PipelineFinalize.ToString()
 }
 Write-GroupEnd
 
@@ -2587,20 +2597,18 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
-
+if (!$doNotPublishApps) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
         "credential" = $credential
-        "appFile" = $_
+        "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
         "upgrade" = $true
         "ignoreIfAppExists" = $true
     }
-
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
@@ -2608,10 +2616,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
             "checkAlreadyInstalled" = $true
         }
     }
-
-    if (!$doNotPublishApps) {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
