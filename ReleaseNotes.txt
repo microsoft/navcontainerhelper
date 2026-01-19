@@ -4,6 +4,7 @@ Issue 3986 Endless loop when errors occur during the execution of AL tests with 
 Issue 3986 Execution of AL tests fails for test codeunits without test functions
 Issue 4062 Error "Unable to load one or more of the requested types" when running tests on newer Artifacts having version 2.2. of Microsoft.Internal.AntiSSRF.dll 
 Get-BCArtifactUrl: Add Support for -before and -after Parameters in NextMinor and NextMajor
+Publish-PerTenantExtensionApps: Add support to unpublish previously installed apps after upgrade
 
 
 6.1.10
