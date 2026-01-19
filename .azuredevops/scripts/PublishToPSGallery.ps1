@@ -30,7 +30,7 @@ try {
     # Ensure the default repository is registered, PSGallery
     if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
         Write-Host "PSGallery repository not found. Registering..."
-        Register-PSRepository -Name 'PSGallery' -SourceLocation 'https://www.powershellgallery.com/api/v2/' -PublishLocation 'https://www.powershellgallery.com/api/v2/package/' -InstallationPolicy "Trusted"
+        Register-PSRepository -Default -Verbose
     }
 
     # Verify PSGallery is properly configured
