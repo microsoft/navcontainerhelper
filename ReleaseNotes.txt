@@ -24,6 +24,7 @@ Issue 3952 Get-AlLanguageExtensionFromArtifacts fails on new BC artifacts
 Add support for TestType field when running tests
 Issue 3943 Error downloading symbols for Microsoft_System
 Add support for RequiredTestIsolation field when running tests
+Fix package ID length adjustment logic in Get-BcNuGetPackageId function
 Catch errors when page scripting tests are failing
 
 6.1.6
