@@ -26,23 +26,22 @@ param(
 $errorActionPreference = "stop"
 
 try {
-    # Publish to PowerShell Gallery
+    # Publish to PowerShell Gallery using PSResourceGet
     # Ensure the default repository is registered, PSGallery
-    if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
+    if (-not (Get-PSResourceRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
         Write-Host "PSGallery repository not found. Registering..."
-        Register-PSRepository -Default -Verbose
+        Register-PSResourceRepository -PSGallery -Verbose
     }
 
     # Verify PSGallery is properly configured
-    $psGallery = Get-PSRepository -Name 'PSGallery' -ErrorAction Stop
+    $psGallery = Get-PSResourceRepository -Name 'PSGallery' -ErrorAction Stop
     Write-Host "PSGallery repository found:"
-    Write-Host "  SourceLocation: $($psGallery.SourceLocation)"
-    Write-Host "  PublishLocation: $($psGallery.PublishLocation)"
-    Write-Host "  InstallationPolicy: $($psGallery.InstallationPolicy)"
+    Write-Host "  Uri: $($psGallery.Uri)"
+    Write-Host "  Trusted: $($psGallery.Trusted)"
 
     # Publish to PowerShell Gallery with explicit repository name
     Write-Host "Publishing module from: $ModulePath"
-    Publish-Module -Path $ModulePath -NuGetApiKey $ApiKey -Repository 'PSGallery' -SkipAutomaticTags -Verbose
+    Publish-PSResource -Path $ModulePath -ApiKey $ApiKey -Repository 'PSGallery' -SkipModuleManifestValidate -Verbose
 
     Write-Host "Successfully published to PowerShell Gallery"
 }
