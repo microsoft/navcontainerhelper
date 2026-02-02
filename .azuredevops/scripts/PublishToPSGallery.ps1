@@ -40,8 +40,13 @@ try {
     Write-Host "  Trusted: $($psGallery.Trusted)"
 
     # Publish to PowerShell Gallery with explicit repository name
-    Write-Host "Publishing module from: $ModulePath"
-    Publish-PSResource -Path $ModulePath -ApiKey $ApiKey -Repository 'PSGallery' -SkipModuleManifestValidate -Verbose
+    # Use the specific module manifest to avoid publishing nested/sub-modules
+    $moduleManifestPath = Join-Path $ModulePath 'BcContainerHelper.psd1'
+    if (-not (Test-Path $moduleManifestPath)) {
+        throw "Module manifest not found at: $moduleManifestPath"
+    }
+    Write-Host "Publishing module from: $ModulePath (manifest: $moduleManifestPath)"
+    Publish-PSResource -Path $moduleManifestPath -ApiKey $ApiKey -Repository 'PSGallery' -SkipModuleManifestValidate -Verbose
 
     Write-Host "Successfully published to PowerShell Gallery"
 }
