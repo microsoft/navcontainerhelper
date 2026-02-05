@@ -122,7 +122,7 @@ extends:
             pwsh: true
             script: |
               $errorActionPreference = "stop"
-              $ModulePath = '$(Pipeline.Workspace)/BcContainerHelper'
+              $ModulePath = '$(Pipeline.Workspace)' # Path where the module artifact is downloaded by the pipeline
               $ApiKey = '$(BCContainerHelperPSGalleryApiKey)'
 
               try {
