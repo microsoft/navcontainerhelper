@@ -1,3 +1,5 @@
+6.1.12
+
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
 Issue 3986 Endless loop when errors occur during the execution of AL tests with external environments
