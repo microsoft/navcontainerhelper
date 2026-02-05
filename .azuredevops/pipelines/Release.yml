@@ -33,6 +33,8 @@ extends:
         suppressionsFile: $(Build.SourcesDirectory)/.azuredevops/pipelines/CredScanSuppressions.json
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
+    release:
+      category: NonAzure
     stages:
     - stage: PrepareModule
       displayName: 'Prepare BcContainerHelper'
