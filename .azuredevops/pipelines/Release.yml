@@ -93,8 +93,8 @@ extends:
             scriptPath: '$(Build.SourcesDirectory)/.azuredevops/scripts/UploadToAzureStorage.ps1'
             arguments: "-StorageAccountName $(BCContainerHelperStorageAccount) -ContainerName '$(BCContainerHelperContainer)' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
 
-    - stage: DeployToPSGallery
-      displayName: 'Deploy to PowerShell Gallery'
+    - stage: Test_ReleaseToPSGallery
+      displayName: 'Release to PowerShell Gallery'
       dependsOn: ['PrepareModule']
       variables:
         ob_release_environment: 'Test'
