@@ -106,7 +106,7 @@ extends:
         templateContext:
           inputs:
           - input: pipelineArtifact  # Type of the artifact
-            name: BcContainerHelper
+            artifactName: BcContainerHelper
         pool:
           type: release
         variables:
