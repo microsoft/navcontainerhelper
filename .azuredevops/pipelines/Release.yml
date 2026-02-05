@@ -96,6 +96,8 @@ extends:
     - stage: DeployToPSGallery
       displayName: 'Deploy to PowerShell Gallery'
       dependsOn: ['PrepareModule']
+      variables:
+        ob_release_environment: 'Test'
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
