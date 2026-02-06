@@ -156,7 +156,7 @@ try {
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $appJsonObject.application }
+        $dependencies += @{"publisher" = ""; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
@@ -185,7 +185,12 @@ try {
         $dependency = $dependencies[$depidx]
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
-            ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            if ($dependency.Name -eq 'Application') {
+                # For Application package, search by name only (ignore AppId and Publisher)
+                ($_.Name -eq $dependency.Name -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            } else {
+                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            }
         } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
         $addDependencies = @()
         if ($existingApp) {
@@ -197,7 +202,12 @@ try {
         else {
             Write-Host "Dependency App not found"
             $copyCompilerFolderApps = @($compilerFolderApps | Where-Object {
-                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                if ($dependency.Name -eq 'Application') {
+                    # For Application package, search by name only (ignore AppId and Publisher)
+                    ($_.Name -eq $dependency.Name -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                } else {
+                    ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                }
             })
             $copyCompilerFolderApps | ForEach-Object {
                 $copyCompilerFolderApp = $_
@@ -206,7 +216,7 @@ try {
                 Copy-Item -Path $copyCompilerFolderApp.path -Destination $appSymbolsFolder -Force
                 if ($copyCompilerFolderApp.Application) {
                     if (!($dependencies | where-Object { $_.Name -eq 'Application'})) {
-                        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = 'c1335042-3002-4257-bf8a-75c898ccb1b8'; "version" = $copyCompilerFolderApp.Application }
+                        $dependencies += @{"publisher" = ""; "name" = "Application"; "appId" = ''; "version" = $copyCompilerFolderApp.Application }
                     }
                 }
                 if (!($dependencies | where-Object { ($_.Name -eq "System") -and ($_.Publisher -eq "Microsoft") })) {
