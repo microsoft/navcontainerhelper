@@ -2,6 +2,7 @@
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
+Improve SaaS Environment recognition and allow overwriting Page Scripting Test execution in Run-AlPipeline
 Issue 3986 Endless loop when errors occur during the execution of AL tests with external environments
 Issue 3986 Execution of AL tests fails for test codeunits without test functions
 Get-BCArtifactUrl: Add Support for -before and -after Parameters in NextMinor and NextMajor
