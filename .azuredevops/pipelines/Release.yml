@@ -33,6 +33,8 @@ extends:
         suppressionsFile: $(Build.SourcesDirectory)/.azuredevops/pipelines/CredScanSuppressions.json
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
+    release:
+      category: NonAzure
     stages:
     - stage: PrepareModule
       displayName: 'Prepare BcContainerHelper'
@@ -93,28 +95,63 @@ extends:
             scriptPath: '$(Build.SourcesDirectory)/.azuredevops/scripts/UploadToAzureStorage.ps1'
             arguments: "-StorageAccountName $(BCContainerHelperStorageAccount) -ContainerName '$(BCContainerHelperContainer)' -ZipPath '$(BCContainerHelperZipPath)' -Version '$(BCContainerHelperVersion)' -IsProductionRelease:([bool]::Parse('${{ parameters.ProductionRelease }}'))"
 
-    - stage: DeployToPSGallery
-      displayName: 'Deploy to PowerShell Gallery'
+    - stage: PPE_ReleaseToPSGallery
+      displayName: 'Release to PowerShell Gallery'
       dependsOn: ['PrepareModule']
+      variables:
+        ob_release_environment: 'PPE'
       jobs:
       - job: PublishToPSGallery
         displayName: 'Publish to PowerShell Gallery'
+        templateContext:
+          inputs:
+          - input: pipelineArtifact  # Type of the artifact
+            artifactName: BcContainerHelper
         pool:
-          type: 'windows'
+          type: release
         variables:
           - name: ob_outputDirectory
             value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
           - name: ob_artifactBaseName
             value: BCContainerHelper_PSGallery
         steps:
-        - download: current
-          artifact: BcContainerHelper
-          displayName: 'Download BcContainerHelper Artifact'
-
         - task: PowerShell@2
           displayName: 'Publish to PowerShell Gallery'
           inputs:
-            targetType: 'filePath'
-            filePath: '$(Build.SourcesDirectory)/.azuredevops/scripts/PublishToPSGallery.ps1'
-            arguments: "-ModulePath '$(Pipeline.Workspace)/BcContainerHelper' -ApiKey '$(BCContainerHelperPSGalleryApiKey)'"
+            targetType: 'inline'
             pwsh: true
+            script: |
+              $errorActionPreference = "stop"
+              $ModulePath = '$(Pipeline.Workspace)' # Path where the module artifact is downloaded by the pipeline
+              $ApiKey = '$(BCContainerHelperPSGalleryApiKey)'
+
+              try {
+                  # Publish to PowerShell Gallery using PSResourceGet
+                  # Ensure the default repository is registered, PSGallery
+                  if (-not (Get-PSResourceRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
+                      Write-Host "PSGallery repository not found. Registering..."
+                      Register-PSResourceRepository -PSGallery -Verbose
+                  }
+
+                  # Verify PSGallery is properly configured
+                  $psGallery = Get-PSResourceRepository -Name 'PSGallery' -ErrorAction Stop
+                  Write-Host "PSGallery repository found:"
+                  Write-Host "  Uri: $($psGallery.Uri)"
+                  Write-Host "  Trusted: $($psGallery.Trusted)"
+
+                  # Publish to PowerShell Gallery with explicit repository name
+                  # Use the specific module manifest to avoid publishing nested/sub-modules
+                  $moduleManifestPath = Join-Path $ModulePath 'BcContainerHelper.psd1'
+                  if (-not (Test-Path $moduleManifestPath)) {
+                      throw "Module manifest not found at: $moduleManifestPath"
+                  }
+                  Write-Host "Publishing module from: $ModulePath (manifest: $moduleManifestPath)"
+                  Publish-PSResource -Path $moduleManifestPath -ApiKey $ApiKey -Repository 'PSGallery' -SkipModuleManifestValidate -Verbose
+
+                  Write-Host "Successfully published to PowerShell Gallery"
+              }
+              catch {
+                  Write-Host "##vso[task.logissue type=error]Error publishing to PowerShell Gallery. Error was $($_.Exception.Message)"
+                  Write-Host "##vso[task.logissue type=error]Full error details: $($_.Exception | Format-List * -Force | Out-String)"
+                  exit 1
+              }
