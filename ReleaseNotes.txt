@@ -5,6 +5,7 @@ Upgrade BC-Replay version to 0.1.119
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
 Issue 3986 Endless loop when errors occur during the execution of AL tests with external environments
 Issue 3986 Execution of AL tests fails for test codeunits without test functions
+Fix bug where NuGet cache was not cleared for runtime package feeds
 Get-BCArtifactUrl: Add Support for -before and -after Parameters in NextMinor and NextMajor
 Publish-PerTenantExtensionApps: Add support to unpublish previously installed apps after upgrade
 
