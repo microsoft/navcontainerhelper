@@ -1751,6 +1751,7 @@ function QueryArtifactsFromIndex {
         # Checking whether platform exists in the index for the country
         $platformUrl = "$indexesContainerUrl/platform.json"
         $platformFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.platform.json"
+        Write-Host "Platformurl: $platformUrl"
         Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
         $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
     }
