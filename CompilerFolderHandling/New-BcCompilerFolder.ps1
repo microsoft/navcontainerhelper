@@ -236,7 +236,7 @@ try {
         Write-Host "Copying DLLs from cache"
         Copy-Item -Path $dllsPath -Filter '*.dll' -Destination $compilerFolder -Recurse -Force
         Write-Host "Copying symbols from cache"
-        Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
+        Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $compilerFolder -Recurse -Force
         # If a vsix file was specified, the compiler folder has been populated
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
@@ -307,7 +307,7 @@ try {
         Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
         $templatesFolder = Join-Path $cacheFolder "compiler\extension\templates"
         if (Test-Path $templatesFolder) {
-            Write-Host "Removing Templates Folder"
+            Write-Host "Removing Templatest Folder"
             Remove-Item $templatesFolder -Recurse -Force
         }
     }
