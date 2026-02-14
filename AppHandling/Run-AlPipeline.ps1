@@ -205,6 +205,8 @@
   Override function parameter for docker pull
  .Parameter NewBcContainer
   Override function parameter for New-BcContainer
+ .Parameter NewBcCompilerFolder
+  Override function parameter for New-BcCompilerFolder
  .Parameter SetBcContainerKeyVaultAadAppAndCertificate
   Override function parameter for Set-BcContainerKeyVaultAadAppAndCertificate
  .Parameter ImportTestToolkitToBcContainer
@@ -273,6 +275,8 @@
   Override function parameter Get-BcContainerAppRuntimePackage
  .Parameter RemoveBcContainer
   Override function parameter for Remove-BcContainer
+ .Parameter RemoveBcCompilerFolder
+  Override function parameter for Remove-BcCompilerFolder
  .Parameter GetBestGenericImageName
   Override function parameter for Get-BestGenericImageName
  .Parameter GetBcContainerEventLog
@@ -395,6 +399,7 @@ Param(
     [scriptblock] $PipelineInitialize,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
+    [scriptblock] $NewBcCompilerFolder,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
@@ -413,6 +418,7 @@ Param(
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
     [scriptblock] $RemoveBcContainer,
+    [scriptblock] $RemoveBcCompilerFolder,
     [scriptblock] $GetBestGenericImageName,
     [scriptblock] $GetBcContainerEventLog,
     [scriptblock] $InstallMissingDependencies,
@@ -485,7 +491,7 @@ function GetInstalledApps {
         [string] $packagesFolder,
         [bool] $filesOnly
     )
-    if ($bcAuthContext -and $environment -and $environment -notlike ('https://*')) {
+    if ($bcAuthContext -and $environment -and !($environment -like 'https://*' -or $environment -like 'http://*')) {
         # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
         $installedExtensions = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
@@ -521,9 +527,13 @@ function GetInstalledApps {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
     }
     Write-GroupStart -Message "Installed Apps"
+    $seen = @{}
     $installedApps | ForEach-Object {
-        Write-Host "- $($_.AppId):$($_.Name)"
-        return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        if (-not $seen.ContainsKey($_.AppId)) {
+            $seen[$_.AppId] = $true
+            Write-Host "- $($_.AppId):$($_.Name)"
+            return @{ "Id" = "$($_.AppId)"; "Name" = "$($_.Name)"; "Publisher" = "$($_.Publisher)"; "Version" = "$($_.Version)" }
+        }
     }
     Write-GroupEnd
 }
@@ -727,11 +737,13 @@ function GetCompilerFolder {
 '@
         Write-PSCallStack
         Write-Host "Creating CompilerFolder '$artifactUrl'"
-        $compilerFolder = New-BcCompilerFolder `
-            -artifactUrl $artifactUrl `
-            -cacheFolder $artifactCachePath `
-            -vsixFile $vsixFile `
-            -containerName $containerName
+        $parameters = @{
+            "artifactUrl" = $artifactUrl
+            "cacheFolder" = $artifactCachePath
+            "vsixFile" = $vsixFile
+            "containerName" = $containerName
+        }
+        $compilerFolder = Invoke-Command -ScriptBlock $NewBcCompilerFolder -ArgumentList $parameters
         Write-Host "CompilerFolder $compilerFolder created"
     } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating CompilerFolder took $([int]$_.TotalSeconds) seconds" }
     $script:existingCompilerFolder = $compilerFolder
@@ -740,7 +752,10 @@ function GetCompilerFolder {
 
 function RemoveCompilerFolder {
     if ($script:existingCompilerFolder) {
-        Remove-BcCompilerFolder -compilerFolder $script:existingCompilerFolder
+        $parameters = @{
+            "compilerFolder" = $script:existingCompilerFolder
+        }
+        Invoke-Command -ScriptBlock $RemoveBcCompilerFolder -ArgumentList $parameters
         $script:existingCompilerFolder = ''
     }
 }
@@ -856,7 +871,7 @@ if ($bcAuthContext) {
         throw "Page scripting Tests are not supported on cloud pipelines yet!"
     }
 
-    if ($environment -notlike ('https://*')) {
+    if (!($environment -like 'https://*' -or $environment -like 'http://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
         if (!($bcEnvironment)) {
@@ -1134,6 +1149,9 @@ if (!$createContainer -or $filesOnly) {
     $additionalCountries = @()
 }
 
+if ($PipelineInitialize) {
+    Write-Host -ForegroundColor Yellow "PipelineInitialize override"; Write-Host $PipelineInitialize.ToString()
+}
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
@@ -1145,6 +1163,12 @@ if ($NewBcContainer) {
 }
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
+}
+if ($NewBcCompilerFolder) {
+    Write-Host -ForegroundColor Yellow "NewBcCompilerFolder override"; Write-Host $NewBcCompilerFolder.ToString()
+}
+else {
+    $NewBcCompilerFolder = { Param([Hashtable]$parameters) New-BcCompilerFolder @parameters }
 }
 if ($SetBcContainerKeyVaultAadAppAndCertificate) {
     Write-Host -ForegroundColor Yellow "SetBcContainerKeyVaultAadAppAndCertificate override"; Write-Host $SetBcContainerKeyVaultAadAppAndCertificate.ToString()
@@ -1248,6 +1272,12 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+if ($RemoveBcCompilerFolder) {
+    Write-Host -ForegroundColor Yellow "RemoveBcCompilerFolder override"; Write-Host $RemoveBcCompilerFolder.ToString()
+}
+else {
+    $RemoveBcCompilerFolder = { Param([Hashtable]$parameters) Remove-BcCompilerFolder @parameters }
+}
 if ($GetBestGenericImageName) {
     Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
 }
@@ -1262,6 +1292,9 @@ else {
 }
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+if ($PipelineFinalize) {
+    Write-Host -ForegroundColor Yellow "PipelineFinalize override"; Write-Host $PipelineFinalize.ToString()
 }
 Write-GroupEnd
 
@@ -2587,20 +2620,18 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
-
+if (!$doNotPublishApps) {
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
         "credential" = $credential
-        "appFile" = $_
+        "appFile" = ($appsBeforeTestApps+$testApps+$bcptTestApps)
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
         "upgrade" = $true
         "ignoreIfAppExists" = $true
     }
-
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
@@ -2608,10 +2639,7 @@ $appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
             "checkAlreadyInstalled" = $true
         }
     }
-
-    if (!$doNotPublishApps) {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }

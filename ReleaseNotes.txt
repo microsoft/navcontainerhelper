@@ -7,6 +7,10 @@ Issue 3986 Endless loop when errors occur during the execution of AL tests with 
 Issue 3986 Execution of AL tests fails for test codeunits without test functions
 Get-BCArtifactUrl: Add Support for -before and -after Parameters in NextMinor and NextMajor
 Publish-PerTenantExtensionApps: Add support to unpublish previously installed apps after upgrade
+Add support for using a pre-installed Business Central when running Run-AlPipeline (i.e. http://)
+appsBeforeTestApps, testApps and bcptTestApps are now sorted by dependencies before installed in Run-AlPipeline
+When two projects reference the same folder during build (e.g. one for build and one for test run), installedApps would have the apps twice
+Increase performance when using compilerfolders on Windows
 
 6.1.10
 Better performance when downloading NuGet packages by adding another cache folder, which defaults to c:\bcnuget.cache
