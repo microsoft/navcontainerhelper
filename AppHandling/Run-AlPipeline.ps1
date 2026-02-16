@@ -545,7 +545,7 @@ function RunPageScriptingTests {
     )
 
     # Install npm package for page scripting tests
-    pwsh -command { npm i @microsoft/bc-replay@0.1.67 --save --silent }
+    pwsh -command { npm i @microsoft/bc-replay@0.1.119 --save --silent }
 
     ${env:containerUsername} = $credential.UserName
     ${env:containerPassword} = $credential.Password | Get-PlainText
@@ -3198,3 +3198,4 @@ finally {
 }
 }
 Export-ModuleMember -Function Run-AlPipeline
+
