@@ -134,9 +134,13 @@ try {
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             Copy-Item -path "C:\Applications\testframework\TestRunner" -Destination "c:\run\my" -Recurse -Force
             # Copy System.Threading.Tasks.Extensions.dll to TestRunner\Internal to prevent LoaderException (issue #4062)
-            $threadingDll = Get-ChildItem -Path "$env:ProgramFiles\Microsoft Dynamics NAV" -Recurse -Filter 'System.Threading.Tasks.Extensions.dll' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-            if ($threadingDll) {
+            $threadingDll = "C:\Test Assemblies\System.Threading.Tasks.Extensions.dll"
+            if (Test-Path $threadingDll) {
+                Write-Host "Copying System.Threading.Tasks.Extensions.dll to TestRunner\Internal"
                 Copy-Item -Path $threadingDll -Destination "c:\run\my\TestRunner\Internal" -Force
+            }
+            else {
+                Write-Host "System.Threading.Tasks.Extensions.dll not found at $threadingDll"
             }
         }
         $auth = $config.ClientServicesCredentialType
@@ -205,8 +209,9 @@ try {
             # Pre-load AntiSSRF.dll with assembly resolver to prevent LoaderException (issue #4062)
             $antiSSRFPath = Join-Path (Get-Location) "Internal\Microsoft.Internal.AntiSSRF.dll"
             if (Test-Path $antiSSRFPath) {
-                $threadingDllPath = Get-ChildItem -Path "$env:ProgramFiles\Microsoft Dynamics NAV" -Recurse -Filter 'System.Threading.Tasks.Extensions.dll' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-                if ($threadingDllPath) {
+                $threadingDllPath = "C:\Test Assemblies\System.Threading.Tasks.Extensions.dll"
+                if (Test-Path $threadingDllPath) {
+                    Write-Host "Pre-loading AntiSSRF.dll with assembly resolver for System.Threading.Tasks.Extensions.dll"
                     $Threading = [Reflection.Assembly]::LoadFile($threadingDllPath)
                     $onAssemblyResolve = [System.ResolveEventHandler] {
                         param($sender, $e)
@@ -222,6 +227,9 @@ try {
                     finally {
                         [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolve)
                     }
+                }
+                else {
+                    Write-Host "System.Threading.Tasks.Extensions.dll not found at $threadingDllPath"
                 }
             }
     
