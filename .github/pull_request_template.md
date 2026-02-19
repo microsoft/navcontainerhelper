@@ -6,9 +6,8 @@ Related to issue: #
 
 ### ✅ Checklist
 
-- [ ] Add tests (E2E, unit tests)
+- [ ] Add tests (`Tests` / `LinuxTests`)
 - [ ] Update ReleaseNotes.txt
-- [ ] Update documentation (e.g. for new settings or scenarios)
 - [ ] Add telemetry
 
 <!-- Include more checklist entries, if needed -->
