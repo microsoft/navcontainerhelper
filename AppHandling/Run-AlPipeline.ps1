@@ -3014,8 +3014,9 @@ Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running Page Scripting Tests for additional country $testCountry"
 }
+$containerName = (GetBuildContainer)
 $Parameters = @{
-    "containerName" = (GetBuildContainer)
+    "containerName" = $containerName
     "credential" = $credential
     "pageScriptingTests" = $pageScriptingTests
     "restoreDatabases" = $restoreDatabases
