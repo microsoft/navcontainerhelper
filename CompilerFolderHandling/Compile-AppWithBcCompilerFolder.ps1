@@ -235,10 +235,10 @@ function Compile-AppWithBcCompilerFolder {
         $systemSymbolsApp = @($existingApps | Where-Object { ($_.Name -eq "System") -and ($_.Publisher -eq "Microsoft") })
         if ($systemSymbolsApp.Count -ne 1) {
             if ($systemSymbolsApp.Count -eq 0) {
-                throw "Unable to locate system symbols. No System.app file found in symbols folder: $symbolsFolder"
+                throw "Unable to locate system symbols. No System.app file found in symbols folder: $appSymbolsFolder"
             }
             else {
-                throw "Multiple system symbols found ($($systemSymbolsApp.Count) instances). Only one System.app is expected. Please cleanup the symbols folder: $symbolsFolder"
+                throw "Multiple system symbols found ($($systemSymbolsApp.Count) instances). Only one System.app is expected. Please cleanup the symbols folder: $appSymbolsFolder"
             }
         }
         $platformversion = $systemSymbolsApp.Version
