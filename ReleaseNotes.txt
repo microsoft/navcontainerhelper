@@ -1,6 +1,7 @@
 6.1.12
 Compile-AppWithBcCompilerFolder: Fix uninitialized variable in missing System symbols error message
 Upgrade BC-Replay version to 0.1.119
+Improve SaaS Environment recognition and allow overwriting Page Scripting Test execution in Run-AlPipeline
 Run-BCPTTestsInBcContainer: fix ends with error "Unable to load one or more of the requested types"
 
 6.1.11
