@@ -1094,6 +1094,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'linux'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
+            Write-Host "Use $command as altool executable."
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
             $alToolExists = $true
         }
@@ -1108,6 +1109,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'darwin'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
+            Write-Host "Use $command as altool executable."
             & chmod +x $command
             $alToolExists = $true
         }
@@ -1122,6 +1124,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'win32'
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
+        Write-Host "Use $command as altool executable (Exists = $alToolExists)."
     }
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
@@ -1142,6 +1145,7 @@ function GetAppInfo {
                 $appInfo = $appInfoCache."$relativePath"
             }
             else {
+                Write-Host -nonewline "- $relativePath"
                 if ($alToolExists) {
                     $arguments = @('GetPackageManifest', """$path""")
                     if ($alToolDll) {
@@ -1158,6 +1162,7 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
+                    Write-Host " (using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1185,6 +1190,7 @@ function GetAppInfo {
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     $packageStream.Close()
+                    Write-Host " (using DLLs)"
                 }
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
@@ -1745,6 +1751,7 @@ function QueryArtifactsFromIndex {
         # Checking whether platform exists in the index for the country
         $platformUrl = "$indexesContainerUrl/platform.json"
         $platformFile = Join-Path (GetTempRunnerPath) "bcContainerHelper.platform.json"
+        Write-Host "Platformurl: $platformUrl"
         Download-File -sourceUrl $platformUrl -destinationFile $platformFile -Description "Platform index"
         $platformArtifacts = @([System.IO.File]::ReadAllText($platformFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json | ForEach-Object { $_.Version })
     }
