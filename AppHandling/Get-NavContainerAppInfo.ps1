@@ -79,7 +79,7 @@ try {
 
         function AddAnApp { Param($anApp)
             #Write-Host "AddAnApp $($anapp.Name) $($anapp.Version)"
-            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
+            $alreadyAdded = $script:installedApps | Where-Object { [string]$_.AppId -eq [string]$anApp.AppId -and [string]$_.Version -eq [string]$anApp.Version }
             if (-not ($alreadyAdded)) {
                 #Write-Host "add dependencies"
                 AddDependencies -anApp $anApp
