@@ -2308,14 +2308,28 @@ if (-not `$restartingInstance) {
                     Set-NavserverInstance -ServerInstance $serverInstance -stop
                     Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
                     Remove-NavDatabase -DatabaseName $databaseName
-                    Write-Host "Exporting Application to $DatabaseName"
                     Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
+                }
+
+                # mitigate issue with Microsoft.SqlServer.SmoExtended assembly
+                # Could not load type 'Microsoft.SqlServer.Management.Common.TransferException' (caused by legacy loaded assemblies in upper stack)
+                Remove-BcContainerSession -ContainerName $containerName
+
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+                    $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                    [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                    $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                    $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                    $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+
+                    Write-Host "Exporting Application to $DatabaseName"
                     Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
                     Write-Host "Removing Application from tenant"
                     Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
                     Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                     Set-NavserverInstance -ServerInstance $serverInstance -start
                 }
+
                 $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
                 New-BcContainerTenant -containerName $containerName -tenantId default -allowAppDatabaseWrite:$allowAppDatabaseWrite
             }
