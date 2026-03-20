@@ -1,6 +1,9 @@
 6.1.12
 Upgrade BC-Replay version to 0.1.119
 Run-BCPTTestsInBcContainer: fix ends with error "Unable to load one or more of the requested types"
+Reduce New-PSSession ContainerId OpenTimeout from 30s to 5s to minimize impact when session creation fails. This can be extended again via bcContainerHelperConfig.sessionOpenTimeout
+Add new setting usePwshForBC28, which is default false to instruct Invoke-ScriptInBcContainer to use pwsh (PS5) instead of powershell (PS7) when invoking scripts in BC 28+ containers (https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues#business-central-admin-shell-modules-fail-in-powershell7-remote-sessions)
+
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths

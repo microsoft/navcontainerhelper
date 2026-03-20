@@ -37,6 +37,9 @@ function Get-BcContainerSession {
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
+        if ($platformVersion.Major -ge 28 -and $usePwsh) {
+            $usePwsh = $bcContainerHelperConfig.usePwshForBc28
+        }
         $configurationName = 'Microsoft.PowerShell'
         if ($usePwsh) {
             $configurationName = 'PowerShell.7'
@@ -77,7 +80,7 @@ function Get-BcContainerSession {
                         Write-Host "Creating $configurationName session using ContainerId"
                     }
                     $containerId = Get-BcContainerId -containerName $containerName
-                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName -SessionOption (New-PSSessionOption -OpenTimeout $bcContainerHelperConfig.sessionOpenTimeout)
                 }
                 catch {
                     if ($bcContainerHelperConfig.debugMode) {
