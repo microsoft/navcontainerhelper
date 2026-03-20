@@ -130,7 +130,12 @@ function Invoke-ScriptInBcContainer {
         if ($usePwsh) {
             [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
             if ($platformVersion -ge [System.Version]"24.0.0.0") {
-                $shell = 'pwsh'
+                if ($platformVersion.Major -ge 28 -and -not $bcContainerHelperConfig.usePwshForBc28) {
+                    $shell = 'powershell'
+                }
+                else {
+                    $shell = 'pwsh'
+                }
             }
         }
         $hostOutputFile = "$file.output"
