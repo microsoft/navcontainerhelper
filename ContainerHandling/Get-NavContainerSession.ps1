@@ -80,7 +80,7 @@ function Get-BcContainerSession {
                         Write-Host "Creating $configurationName session using ContainerId"
                     }
                     $containerId = Get-BcContainerId -containerName $containerName
-                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName -SessionOption (New-PSSessionOption -OpenTimeout $bcContainerHelperConfig.sessionOpenTimeout)
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
                 catch {
                     if ($bcContainerHelperConfig.debugMode) {
