@@ -37,8 +37,10 @@ function Get-BcContainerSession {
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
-        if ($platformVersion.Major -ge 28) {
-            $usePwsh = $bcContainerHelperConfig.usePwshForBc28
+        if ($platformVersion.Major -ge 28 -and $usePwsh) {
+            # When using PowerShell 7 sessions for BC28 and later, use the usePwshSessionForBc28 setting to determine whether to use PowerShell 7 or 5.
+            # https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues#business-central-admin-shell-modules-fail-in-powershell7-remote-sessions
+            $usePwsh = $bcContainerHelperConfig.usePwshSessionForBc28
         }
         $configurationName = 'Microsoft.PowerShell'
         if ($usePwsh) {
