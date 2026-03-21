@@ -37,7 +37,7 @@ function Get-BcContainerSession {
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
-        if ($platformVersion.Major -ge 28 -and $usePwsh) {
+        if ($platformVersion.Major -ge 28) {
             $usePwsh = $bcContainerHelperConfig.usePwshForBc28
         }
         $configurationName = 'Microsoft.PowerShell'
