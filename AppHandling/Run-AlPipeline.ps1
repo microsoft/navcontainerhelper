@@ -1578,7 +1578,6 @@ Measure-Command {
                         return
                     }
                 }
-                Write-Host "ADD TO APPSBEFOREAPPS (A) - $_"
                 $appsBeforeApps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
@@ -1693,7 +1692,6 @@ Measure-Command {
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
             Write-Host "Move $($_.Name) to $packagesFolder"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
-            Write-Host "ADD TO APPSBEFOREAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
             $appsBeforeApps += @(Join-Path $packagesFolder $_.Name)
         }
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
@@ -1790,7 +1788,6 @@ Measure-Command {
                         return
                     }
                 }
-                Write-Host "ADD TO APPSBEFORETESTAPPS (A) - $_"
                 $appsBeforeTestApps += @($_)
             }
         }
@@ -1875,7 +1872,6 @@ Measure-Command {
     if ($useCompilerFolder) {
         Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
-        Write-Host "ADD TO APPSBEFORETESTAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
         $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
@@ -2007,7 +2003,6 @@ Measure-Command {
                         return
                     }
                 }
-                Write-Host "ADD TO APPSBEFORETESTAPPS (C) - $_"
                 $appsBeforeTestApps += @($_)
             }
         }
@@ -2539,15 +2534,12 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($bcptTestApp) {
-        Write-Host "ADD TO BCPTTESTAPPS (A) $appFile"
         $bcptTestApps += $appFile
     }
     if ($testApp) {
-        Write-Host "ADD TO TESTAPPS (A) $appFile"
         $testApps += $appFile
     }
     if ($app) {
-        Write-Host "ADD TO APPS (A) $appFile"
         $apps += $appFile
         $appsFolder += @{ "$appFile" = $folder }
     }
@@ -2765,15 +2757,6 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
         }
     }
 }
-
-Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
-Write-Host "AppsBeforeTestApps:"
-$appsBeforeTestApps | ForEach-Object { Write-Host " - $_" }
-Write-Host "TestApps:"
-$testApps | ForEach-Object { Write-Host " - $_" }
-Write-Host "BcptTestApps:"
-$bcptTestApps | ForEach-Object { Write-Host " - $_" }
-Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
 
 if (!$doNotPublishApps) {
     $Parameters = @{
