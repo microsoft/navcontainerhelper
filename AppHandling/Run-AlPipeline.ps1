@@ -1572,12 +1572,6 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                if ($installOnlyReferencedApps) {
-                    $appJson = Get-AppJsonFromAppFile -appFile $_
-                    if ($missingAppDependencies -notcontains $appJson.Id) {
-                        return
-                    }
-                }
                 $appsBeforeApps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
@@ -1781,12 +1775,6 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
-                if ($installOnlyReferencedApps) {
-                    $appJson = Get-AppJsonFromAppFile -appFile $_
-                    if ($missingTestAppDependencies -notcontains $appJson.Id) {
-                        return
-                    }
-                }
                 $appsBeforeTestApps += @($_)
             }
         }
@@ -1996,12 +1984,6 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
-                if ($installOnlyReferencedApps) {
-                    $appJson = Get-AppJsonFromAppFile -appFile $_
-                    if ($missingTestAppDependencies -notcontains $appJson.Id) {
-                        return
-                    }
-                }
                 $appsBeforeTestApps += @($_)
             }
         }
@@ -2594,6 +2576,10 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
+    if ($installOnlyReferencedApps) {
+        $appsBeforeApps = Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies
+    }
+
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
@@ -2685,6 +2671,10 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
+}
+
+if ($installOnlyReferencedApps) {
+    $appsBeforeTestApps = Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies
 }
 
 Write-Host "Apps:"
