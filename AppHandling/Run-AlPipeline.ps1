@@ -1592,6 +1592,14 @@ Measure-Command {
         }
     }
 
+    if ($appsBeforeApps -and $installOnlyReferencedApps) {
+        if ($missingAppDependencies.Count -eq 0) {
+            $appsBeforeApps = @()
+        } else {
+            $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
+        }
+    }
+
     if ($tmpAppFiles) {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
@@ -1786,6 +1794,14 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            $appsBeforeTestApps = @()
+        } else {
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 
@@ -1995,6 +2011,14 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            $appsBeforeTestApps = @()
+        } else {
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 
@@ -2582,14 +2606,6 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($installOnlyReferencedApps) {
-        if ($missingAppDependencies.Count -eq 0) {
-            $appsBeforeApps = @()
-        } else {
-            $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
-        }
-    }
-
     $Parameters = @{
         "containerName" = (GetBuildContainer)
         "tenant" = $tenant
@@ -2689,13 +2705,6 @@ if ($appsBeforeTestApps.Count -eq 0) {
     Write-Host "- None"
 } else {
     $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
-}
-if ($installOnlyReferencedApps) {
-    if ($missingTestAppDependencies.Count -eq 0) {
-        $appsBeforeTestApps = @()
-    } else {
-        $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
-    }
 }
 
 Write-Host "Apps:"
