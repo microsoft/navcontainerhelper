@@ -2665,6 +2665,31 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
 }
 
+Write-Host "Apps:"
+if ($apps.Count -eq 0) {
+    Write-Host "- None"
+} else {
+    $apps | ForEach-Object { Write-Host "- $_" }
+}
+Write-Host "Apps before test apps:"
+if ($appsBeforeTestApps.Count -eq 0) {
+    Write-Host "- None"
+} else {
+    $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
+}
+Write-Host "Test Apps:"
+if ($testApps.Count -eq 0) {
+    Write-Host "- None"
+} else {
+    $testApps | ForEach-Object { Write-Host "- $_" }
+}
+Write-Host "BCPT Test Apps:"
+if ($bcptTestApps.Count -eq 0) {
+    Write-Host "- None"
+} else {
+    $bcptTestApps | ForEach-Object { Write-Host "- $_" }
+}
+
 $alreadyInstalledApps = @()
 if (!($bcAuthContext)) {
     $Parameters = @{
