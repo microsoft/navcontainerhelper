@@ -1548,12 +1548,6 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    Write-Host "Missing App dependencies"
-    $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
-    Write-Host "Missing Test App dependencies"
-    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-    Write-Host "-------------------"
-
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1594,8 +1588,10 @@ Measure-Command {
 
     if ($appsBeforeApps -and $installOnlyReferencedApps) {
         if ($missingAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
             $appsBeforeApps = @()
         } else {
+            # Sort app files and include only missing app dependencies
             $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
         }
     }
@@ -1799,8 +1795,10 @@ Measure-Command {
 
     if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
         if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
             $appsBeforeTestApps = @()
         } else {
+            # Sort app files and include only missing app dependencies
             $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
@@ -2016,8 +2014,10 @@ Measure-Command {
 
     if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
         if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
             $appsBeforeTestApps = @()
         } else {
+            # Sort app files and include only missing app dependencies
             $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
@@ -2697,39 +2697,6 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
-}
-
-Write-Host "Before sorting apps:"
-Write-Host "Apps before test apps:"
-if ($appsBeforeTestApps.Count -eq 0) {
-    Write-Host "- None"
-} else {
-    $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
-}
-
-Write-Host "Apps:"
-if ($apps.Count -eq 0) {
-    Write-Host "- None"
-} else {
-    $apps | ForEach-Object { Write-Host "- $_" }
-}
-Write-Host "Apps before test apps:"
-if ($appsBeforeTestApps.Count -eq 0) {
-    Write-Host "- None"
-} else {
-    $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
-}
-Write-Host "Test Apps:"
-if ($testApps.Count -eq 0) {
-    Write-Host "- None"
-} else {
-    $testApps | ForEach-Object { Write-Host "- $_" }
-}
-Write-Host "BCPT Test Apps:"
-if ($bcptTestApps.Count -eq 0) {
-    Write-Host "- None"
-} else {
-    $bcptTestApps | ForEach-Object { Write-Host "- $_" }
 }
 
 $alreadyInstalledApps = @()
