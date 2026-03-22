@@ -1765,6 +1765,7 @@ Measure-Command {
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installTestApps | ForEach-Object{
+        Write-Host "Processing $_"
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
@@ -2000,6 +2001,13 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
+                if ($installOnlyReferencedApps) {
+                    $appJson = Get-AppJsonFromAppFile -appFile $_
+                    if ($missingTestAppDependencies -notcontains $appJson.Id) {
+                        return
+                    }
+                }
+                Write-Host "ADD TO APPSBEFORETESTAPPS (C) - $_"
                 $appsBeforeTestApps += @($_)
             }
         }
