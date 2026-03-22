@@ -1874,7 +1874,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
-        Write-Host "ADD TO APPSBEFOREAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
+        Write-Host "ADD TO APPSBEFORETESTAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
         $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
@@ -2757,6 +2757,15 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
         }
     }
 }
+
+Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
+Write-Host "AppsBeforeTestApps:
+$appsBeforeTestApps | ForEach-Object { Write-Host " - $_" }
+Write-Host "TestApps:
+$testApps | ForEach-Object { Write-Host " - $_" }
+Write-Host "BcptTestApps:
+$bcptTestApps | ForEach-Object { Write-Host " - $_" }
+Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
 
 if (!$doNotPublishApps) {
     $Parameters = @{
