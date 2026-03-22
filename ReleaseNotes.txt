@@ -7,6 +7,7 @@ Add support for using a pre-installed Business Central when running Run-AlPipeli
 appsBeforeTestApps, testApps and bcptTestApps are now sorted by dependencies before installed in Run-AlPipeline
 When two projects reference the same folder during build (e.g. one for build and one for test run), installedApps would have the apps twice
 Increase performance when using compilerfolders on Windows
+Issue 4112 In a multi-project repository, using CompilerFolders and online environments or custom images, installOnlyReferencedApps is ignored
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
