@@ -1568,6 +1568,13 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
+                if ($installOnlyReferencedApps) {
+                    $appJson = Get-AppJsonFromAppFile -appFile $_
+                    if ($missingAppDependencies -notcontains $appJson.Id) {
+                        Write-Host "SKIP (not a referenced dependency) - $_"
+                        return
+                    }
+                }
                 Write-Host "ADD TO APPSBEFOREAPPS (A) - $_"
                 $appsBeforeApps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
