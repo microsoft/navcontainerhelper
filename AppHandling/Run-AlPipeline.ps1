@@ -2759,11 +2759,11 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
 }
 
 Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
-Write-Host "AppsBeforeTestApps:
+Write-Host "AppsBeforeTestApps:"
 $appsBeforeTestApps | ForEach-Object { Write-Host " - $_" }
-Write-Host "TestApps:
+Write-Host "TestApps:"
 $testApps | ForEach-Object { Write-Host " - $_" }
-Write-Host "BcptTestApps:
+Write-Host "BcptTestApps:"
 $bcptTestApps | ForEach-Object { Write-Host " - $_" }
 Write-Host "+++++++++++++++++++++++++++++++++++++++++++++"
 
