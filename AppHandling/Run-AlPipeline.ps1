@@ -2673,7 +2673,16 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
 }
 
+Write-Host "Before sorting apps:"
+Write-Host "Apps before test apps:"
+if ($appsBeforeTestApps.Count -eq 0) {
+    Write-Host "- None"
+} else {
+    $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
+}
 if ($installOnlyReferencedApps) {
+    Write-Host "Míssing Test App Dependencies:"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
 }
 
