@@ -2577,7 +2577,7 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     if ($installOnlyReferencedApps) {
-        $appsBeforeApps = Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies
+        $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
     }
 
     $Parameters = @{
@@ -2674,7 +2674,7 @@ if ($testCountry) {
 }
 
 if ($installOnlyReferencedApps) {
-    $appsBeforeTestApps = Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies
+    $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
 }
 
 Write-Host "Apps:"
