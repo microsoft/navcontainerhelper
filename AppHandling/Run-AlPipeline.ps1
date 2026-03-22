@@ -1548,6 +1548,12 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
+    Write-Host "Missing App dependencies"
+    $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
+    Write-Host "Missing Test App dependencies"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+    Write-Host "-------------------"
+
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
