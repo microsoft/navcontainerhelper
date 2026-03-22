@@ -2577,7 +2577,11 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     if ($installOnlyReferencedApps) {
-        $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
+        if ($missingAppDependencies.Count -eq 0) {
+            $appsBeforeApps = @()
+        } else {
+            $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
+        }
     }
 
     $Parameters = @{
@@ -2681,9 +2685,11 @@ if ($appsBeforeTestApps.Count -eq 0) {
     $appsBeforeTestApps | ForEach-Object { Write-Host "- $_" }
 }
 if ($installOnlyReferencedApps) {
-    Write-Host "Míssing Test App Dependencies:"
-    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-    $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
+    if ($missingTestAppDependencies.Count -eq 0) {
+        $appsBeforeTestApps = @()
+    } else {
+        $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
+    }
 }
 
 Write-Host "Apps:"
