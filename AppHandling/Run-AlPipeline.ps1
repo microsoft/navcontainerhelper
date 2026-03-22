@@ -1568,6 +1568,7 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
+                Write-Host "ADD TO APPSBEFOREAPPS (A) - $_"
                 $appsBeforeApps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
@@ -1682,6 +1683,7 @@ Measure-Command {
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
             Write-Host "Move $($_.Name) to $packagesFolder"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
+            Write-Host "ADD TO APPSBEFOREAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
             $appsBeforeApps += @(Join-Path $packagesFolder $_.Name)
         }
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
