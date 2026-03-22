@@ -500,6 +500,7 @@ function GetInstalledApps {
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
             @{ "AppId" = $_.id; "Publisher" = $_.publisher; "Name" = $_.displayName; "Version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
         }
+        $message = "Apps in environment $environment"
     }
     elseif ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
@@ -507,6 +508,7 @@ function GetInstalledApps {
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+        $message = "Apps in compiler folder"
     }
     elseif ($filesOnly) {
         # Make sure container has been created
@@ -520,6 +522,7 @@ function GetInstalledApps {
                 "Version"               = $appJson.version
             }
         }
+        $message = "Apps in packages folder"
     }
     else {
         $Parameters = @{
@@ -528,8 +531,9 @@ function GetInstalledApps {
             "tenantSpecificProperties" = $true
         }
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
+        $message = "Installed apps"
     }
-    Write-GroupStart -Message "Installed Apps"
+    Write-GroupStart -Message $message
     $seen = @{}
     $installedApps | ForEach-Object {
         if (-not $seen.ContainsKey($_.AppId)) {
@@ -1571,7 +1575,6 @@ Measure-Command {
                 if ($installOnlyReferencedApps) {
                     $appJson = Get-AppJsonFromAppFile -appFile $_
                     if ($missingAppDependencies -notcontains $appJson.Id) {
-                        Write-Host "SKIP (not a referenced dependency) - $_"
                         return
                     }
                 }
@@ -1780,6 +1783,13 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
+                if ($installOnlyReferencedApps) {
+                    $appJson = Get-AppJsonFromAppFile -appFile $_
+                    if ($missingTestAppDependencies -notcontains $appJson.Id) {
+                        return
+                    }
+                }
+                Write-Host "ADD TO APPSBEFORETESTAPPS (A) - $_"
                 $appsBeforeTestApps += @($_)
             }
         }
@@ -1864,6 +1874,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
+        Write-Host "ADD TO APPSBEFOREAPPS (B) - $((Join-Path $packagesFolder $_.Name))"
         $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
@@ -2520,12 +2531,15 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($bcptTestApp) {
+        Write-Host "ADD TO BCPTTESTAPPS (A) $appFile"
         $bcptTestApps += $appFile
     }
     if ($testApp) {
+        Write-Host "ADD TO TESTAPPS (A) $appFile"
         $testApps += $appFile
     }
     if ($app) {
+        Write-Host "ADD TO APPS (A) $appFile"
         $apps += $appFile
         $appsFolder += @{ "$appFile" = $folder }
     }
