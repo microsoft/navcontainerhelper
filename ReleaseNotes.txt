@@ -1,6 +1,7 @@
 6.1.12
 Upgrade BC-Replay version to 0.1.119
 Run-BCPTTestsInBcContainer: fix ends with error "Unable to load one or more of the requested types"
+Disable PSSessions for BC v28+ containers by default to avoid 30s timeout per container interaction caused by PS7 remote session issues. Uses docker exec with pwsh instead. Set usePsSessionForBc28 to true to re-enable sessions. See https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
