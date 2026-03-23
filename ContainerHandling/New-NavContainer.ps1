@@ -16,6 +16,8 @@
   Name of the image you want to use for your Container
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
+ .Parameter platformArtifactUrl
+  Url for platform artifact to use. Use this when you want to use a different platform than the one related to artifactUrl.
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -202,6 +204,7 @@ function New-BcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $imageName = "",
         [string] $artifactUrl = "", 
+        [string] $platformArtifactUrl = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -296,7 +299,7 @@ function New-BcContainer {
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
                     -parameterValues $PSBoundParameters `
-                    -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
+                    -includeParameters @("containerName","artifactUrl","platformArtifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
 
     $defaultNewContainerParameters = $bcContainerHelperConfig.defaultNewContainerParameters
@@ -477,6 +480,10 @@ try {
         throw "You have to specify artifactUrl or imageName when creating a new container."            
     }
 
+    if ($platformArtifactUrl -and -not $artifactUrl) {
+        throw "You have to specify artifactUrl when using platformArtifactUrl."
+    }
+
     # Remove if it already exists
     Remove-BcContainer $containerName
 
@@ -491,7 +498,7 @@ try {
             }
         }
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
@@ -564,6 +571,7 @@ try {
 
             $imageName = New-Bcimage `
                 -artifactUrl $artifactUrl `
+                -platformArtifactUrl $platformArtifactUrl `
                 -imageName $imagename `
                 -isolation $isolation `
                 -baseImage $useGenericImage `
@@ -586,6 +594,7 @@ try {
             }
 
             $artifactUrl = ""
+            $platformArtifactUrl = ""
             $alwaysPull = $false
             $useGenericImage = ""
             $doNotGetBestImageName = $true
@@ -888,7 +897,7 @@ try {
     if ($artifactUrl) {
         $parameters += getVolumeMountParameter -volumes $allVolumes -hostPath $downloadsPath -containerPath "c:\dl"
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
@@ -938,6 +947,7 @@ try {
                        "--label platform=$dvdPlatform"
                        "--label country=$dvdCountry"
                        "--env artifactUrl=$artifactUrl"
+                       "--env platformArtifactUrl=$platformArtifactUrl"
                        )
     }
     elseif ("$dvdPath" -ne "") {
