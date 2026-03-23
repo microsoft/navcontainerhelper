@@ -245,6 +245,14 @@ try {
             }
         }
 
+        if ($testPage -eq 130455) {
+            # Verify Tests-TestRunner is installed — its absence (known issue on BC 27.5+) causes a cryptic "Cannot open page 130455" error
+            $testRunnerAppId = '23de40a6-dfe8-4f80-80db-d70f83ce8caf'
+            if (!(Get-BcContainerAppInfo -containerName $containerName | Where-Object { $_.AppId -eq $testRunnerAppId })) {
+                throw "Tests-TestRunner (app $testRunnerAppId) is not installed in container '$containerName'. Page 130455 will not exist and tests cannot run. This is a known issue with BC 27.5+ artifacts where Tests-TestRunner is absent from the container image — Import-TestToolkitToBcContainer will not install it even though it reports success. See https://github.com/microsoft/navcontainerhelper/issues/4113"
+            }
+        }
+
         if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
             $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
             Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {

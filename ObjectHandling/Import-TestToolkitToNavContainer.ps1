@@ -169,6 +169,9 @@ try {
             }
     
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+            if (!$includeTestFrameworkOnly -and !$includeTestLibrariesOnly -and !($appFiles | Where-Object { $_ -like "*Microsoft_Test Runner*" })) {
+                Write-Warning "Tests-TestRunner app was not found in the BC artifacts and will not be installed. Page 130455 will be unavailable and Run-TestsInBcContainer will fail. See https://github.com/microsoft/navcontainerhelper/issues/4113"
+            }
 
             $publishParams = @{}
             if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $name = [System.IO.Path]::GetFileName($_); ($name -eq "Microsoft_Performance Toolkit.app" -or ($name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $name -notlike "*.runtime.app")) })) {

@@ -439,7 +439,16 @@ function GetTestToolkitApps {
             if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
             }
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+            $testRunnerApps = @(Get-ChildItem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+            if ($testRunnerApps.Count -eq 0) {
+                # BC 27+ may no longer populate C:\Applications\TestFramework\TestRunner\
+                # Fall back to searching the versioned applications folder directly
+                $testRunnerApps = @(Get-ChildItem -Path "C:\Applications.*\*.*" -recurse -filter "Microsoft_Test Runner_*.app" -ErrorAction SilentlyContinue)
+                if ($testRunnerApps.Count -eq 0) {
+                    Write-Warning "Tests-TestRunner app not found in BC artifacts. Page 130455 will not be available and Run-TestsInBcContainer will fail. See https://github.com/microsoft/navcontainerhelper/issues/4113"
+                }
+            }
+            $apps += $testRunnerApps
 
             if (!$includeTestRunnerOnly) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
