@@ -441,9 +441,11 @@ function GetTestToolkitApps {
             }
             $testRunnerApps = @(Get-ChildItem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
             if ($testRunnerApps.Count -eq 0) {
-                # BC 27+ may no longer populate C:\Applications\TestFramework\TestRunner\
-                # Fall back to searching the versioned applications folder directly
-                $testRunnerApps = @(Get-ChildItem -Path "C:\Applications.*\*.*" -recurse -filter "Microsoft_Test Runner_*.app" -ErrorAction SilentlyContinue)
+                # BC 27+ moved test runner apps out of C:\Applications\TestFramework\TestRunner\ into C:\Applications.*\
+                # Page 130455 also moved to a separate TestRunner-Internal app (538ca7e3) in BC 27+
+                $testRunnerApps = @('Microsoft_Test Runner_*.app', 'Microsoft_TestRunner-Internal_*.app' | ForEach-Object {
+                    Get-ChildItem -Path "C:\Applications.*\*.*" -recurse -filter $_ -ErrorAction SilentlyContinue | Select-Object -First 1
+                } | Where-Object { $_ })
                 if ($testRunnerApps.Count -eq 0) {
                     Write-Warning "Tests-TestRunner app not found in BC artifacts. Page 130455 will not be available and Run-TestsInBcContainer will fail. See https://github.com/microsoft/navcontainerhelper/issues/4113"
                 }
