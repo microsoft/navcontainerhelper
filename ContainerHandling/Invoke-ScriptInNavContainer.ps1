@@ -31,6 +31,14 @@ function Invoke-ScriptInBcContainer {
     )
 
     $file = ''
+    [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+    if ($useSession -and $usePwsh) {
+        # Check if we should disable PS sessions for BC v28+ due to known PS7 remote session issues
+        # https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues#business-central-admin-shell-modules-fail-in-powershell7-remote-sessions
+        if ($platformVersion.Major -ge 28 -and -not $bcContainerHelperConfig.usePsSessionForBc28) {
+            $useSession = $false
+        }
+    }
     if (!$useSession) {
         $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
         $containerFile = Get-BcContainerPath -containerName $containerName -path $file
@@ -128,7 +136,6 @@ function Invoke-ScriptInBcContainer {
         }
         $shell = 'powershell'
         if ($usePwsh) {
-            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
             if ($platformVersion -ge [System.Version]"24.0.0.0") {
                 $shell = 'pwsh'
             }
