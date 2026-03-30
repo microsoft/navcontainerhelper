@@ -2935,13 +2935,13 @@ $testAppIds.Keys | ForEach-Object {
         Write-Host "Running tests for App $id"
     }
     if ($folder) {
-        Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
+        Get-ChildItem -Path $folder -Filter "DisabledTests.json" -Recurse | ForEach-Object {
             $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
     }
-    Get-ChildItem -Path $baseFolder -Filter "$id.disabledTests.json" -Recurse | ForEach-Object {
+    Get-ChildItem -Path $baseFolder -Filter "$id.DisabledTests.json" -Recurse | ForEach-Object {
         $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
         Write-Host "Disabled Tests:`n$disabledTestsStr"
         $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
