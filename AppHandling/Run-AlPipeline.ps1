@@ -1357,7 +1357,7 @@ if ($BackupBcContainerDatabases) {
     Write-Host -ForegroundColor Yellow "BackupBcContainerDatabases override"; Write-Host $BackupBcContainerDatabases.ToString()
 }
 else {
-    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) Backup-BcContainerDatabases @parameters }
+    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) if ($parameters.containerName) { Backup-BcContainerDatabases @parameters } }
 }
 if ($RestoreDatabasesInBcContainer) {
     Write-Host -ForegroundColor Yellow "RestoreDatabasesInBcContainer override"; Write-Host $RestoreDatabasesInBcContainer.ToString()
