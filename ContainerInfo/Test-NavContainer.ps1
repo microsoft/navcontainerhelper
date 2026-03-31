@@ -18,7 +18,9 @@ function Test-BcContainer {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if (!(Get-Command 'docker' -ErrorAction SilentlyContinue)) {
+        return $false
+    }
     if ($containerName) {
         $id = ""
         $a = "-a"
@@ -32,13 +34,13 @@ try {
         }
         if ($id) {
             $inspect = docker inspect $id | ConvertFrom-Json
-            ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
+            return ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
         } else {
-            $false
+            return $false
         }
     }
     else {
-        $false
+        return $false
     }
 }
 catch {
