@@ -500,6 +500,7 @@ function GetInstalledApps {
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
             @{ "AppId" = $_.id; "Publisher" = $_.publisher; "Name" = $_.displayName; "Version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
         }
+        $message = "Apps in environment $environment"
     }
     elseif ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
@@ -507,6 +508,7 @@ function GetInstalledApps {
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+        $message = "Apps in compiler folder"
     }
     elseif ($filesOnly) {
         # Make sure container has been created
@@ -520,6 +522,7 @@ function GetInstalledApps {
                 "Version"               = $appJson.version
             }
         }
+        $message = "Apps in packages folder"
     }
     else {
         $Parameters = @{
@@ -528,8 +531,9 @@ function GetInstalledApps {
             "tenantSpecificProperties" = $true
         }
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
+        $message = "Installed apps"
     }
-    Write-GroupStart -Message "Installed Apps"
+    Write-GroupStart -Message $message
     $seen = @{}
     $installedApps | ForEach-Object {
         if (-not $seen.ContainsKey($_.AppId)) {
@@ -1467,7 +1471,7 @@ $sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
 if ($unknownAppDependencies) {
     $unknownAppDependencies | ForEach-Object { Write-Host "- $_" }
-    $missingAppDependencies = $unknownAppDependencies | ForEach-Object { $_.Split(':')[0] }
+    $missingAppDependencies = @($unknownAppDependencies | ForEach-Object { $_.Split(':')[0] })
 }
 else {
     Write-Host "- None"
@@ -1483,7 +1487,7 @@ else {
     Write-Host "External TestApp dependencies"
     if ($unknownTestAppDependencies) {
         $unknownTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $missingTestAppDependencies = $unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] }
+        $missingTestAppDependencies = @($unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] })
     }
     else {
         Write-Host "- None"
@@ -1579,6 +1583,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles $_ -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeApps -and $installOnlyReferencedApps) {
+        if ($missingAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
         }
     }
 
@@ -1776,6 +1790,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeTestApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 
@@ -1985,6 +2009,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeTestApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 
