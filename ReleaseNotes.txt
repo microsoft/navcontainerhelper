@@ -9,6 +9,7 @@ When two projects reference the same folder during build (e.g. one for build and
 Increase performance when using compilerfolders on Windows
 Issue 4112 In a multi-project repository, using CompilerFolders and online environments or custom images, installOnlyReferencedApps is ignored
 Disable PSSessions for BC v28+ containers by default due to known PS7 remote session issue. Uses docker exec instead. Set usePsSessionForBc28 to true to re-enable. See https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues
+Create new PSSession after executing Invoke-SqlCmd cmdlet to prevent assemblies conflict with Business Central cmdlets while creating new container using either useCleanDatabase or useNewDatabase switch on New-BcContainer (#4051)
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
