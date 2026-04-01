@@ -1474,7 +1474,7 @@ $sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
 if ($unknownAppDependencies) {
     $unknownAppDependencies | ForEach-Object { Write-Host "- $_" }
-    $missingAppDependencies = $unknownAppDependencies | ForEach-Object { $_.Split(':')[0] }
+    $missingAppDependencies = @($unknownAppDependencies | ForEach-Object { $_.Split(':')[0] })
 }
 else {
     Write-Host "- None"
@@ -1490,7 +1490,7 @@ else {
     Write-Host "External TestApp dependencies"
     if ($unknownTestAppDependencies) {
         $unknownTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $missingTestAppDependencies = $unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] }
+        $missingTestAppDependencies = @($unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] })
     }
     else {
         Write-Host "- None"
