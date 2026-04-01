@@ -89,8 +89,6 @@
   File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
   Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
- .Parameter databaseFolder
-  Folder in which you want the exported database(s) from the build container to be placed. If empty, databases will not be exported.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -341,7 +339,6 @@ Param(
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [string] $pageScriptingTestResultsFile = "PageScriptingTestResults.xml",
     [string] $pageScriptingTestResultsFolder = "PageScriptingTestResults",
-    [string] $databaseFolder = "",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
     [string] $testResultsFormat = "JUnit",
@@ -1357,7 +1354,7 @@ if ($BackupBcContainerDatabases) {
     Write-Host -ForegroundColor Yellow "BackupBcContainerDatabases override"; Write-Host $BackupBcContainerDatabases.ToString()
 }
 else {
-    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) if ($parameters.containerName) { Backup-BcContainerDatabases @parameters } }
+    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) Backup-BcContainerDatabases @parameters }
 }
 if ($RestoreDatabasesInBcContainer) {
     Write-Host -ForegroundColor Yellow "RestoreDatabasesInBcContainer override"; Write-Host $RestoreDatabasesInBcContainer.ToString()
@@ -2848,12 +2845,6 @@ Write-GroupStart -Message "Backing up databases"
 Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = (GetBuildContainer)}
 Write-GroupEnd
 }
-}
-
-if ($databaseFolder) {
-Write-GroupStart -Message "Backing up databases for build output"
-Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = $script:existingContainerName; "bakFolder" = $databaseFolder}
-Write-GroupEnd
 }
 
 $allPassed = $true
