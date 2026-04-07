@@ -1,3 +1,5 @@
+6.1.13
+
 6.1.12
 Issue 4107 UnPublish-NavContainerApp: Pass publisher and version to Sync-NAVApp to avoid ambiguity when multiple apps share the same name
 Compile-AppWithBcCompilerFolder: Fix uninitialized variable in missing System symbols error message
