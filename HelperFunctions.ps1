@@ -1092,6 +1092,7 @@ function GetAppInfo {
     $alToolDll = ''
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
@@ -1106,6 +1107,7 @@ function GetAppInfo {
     }
     elseif ($isMacOS) {
         $alcPath = Join-Path $binPath 'darwin'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             & chmod +x $command
@@ -1120,11 +1122,9 @@ function GetAppInfo {
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
     }
     $alcDllPath = $alcPath
     if (!($isLinux -or $isMacOS) -and !$isPsCore) {
@@ -1333,28 +1333,45 @@ function RunAlTool {
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/linux/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & chmod +x $command
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/darwin/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     else {
         $command = Join-Path $path 'extension/bin/win32/altool.exe'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool.exe'
+        }
     }
     CmdDo -Command $command -arguments $arguments -returnValue -silent
 }

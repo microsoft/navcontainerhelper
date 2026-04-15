@@ -320,6 +320,9 @@ try {
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
                 $alcPath = 'C:\build\vsix\extension\bin'
                 $alToolExe = Join-Path $alcPath 'win32\altool.exe'
+                if (-not (Test-Path $alToolExe)) {
+                    $alToolExe = Join-Path $alcPath 'altool.exe'
+                }
                 $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
                 if ($alToolExists) {
                     $manifest = & "$alToolExe" GetPackageManifest "$($_.FullName)" | ConvertFrom-Json
@@ -498,6 +501,9 @@ try {
                                 # Import types needed to invoke the compiler
                                 $alcPath = 'C:\build\vsix\extension\bin'
                                 $alToolExe = Join-Path $alcPath 'win32\altool.exe'
+                                if (-not (Test-Path $alToolExe)) {
+                                    $alToolExe = Join-Path $alcPath 'altool.exe'
+                                }
                                 $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
                                 if ($alToolExists) {
                                     $manifest = & "$alToolExe" GetPackageManifest "$symbolsFile" | ConvertFrom-Json
