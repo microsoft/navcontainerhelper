@@ -1,7 +1,17 @@
+6.1.13
+
 6.1.12
+Issue 4107 UnPublish-NavContainerApp: Pass publisher and version to Sync-NAVApp to avoid ambiguity when multiple apps share the same name
 Compile-AppWithBcCompilerFolder: Fix uninitialized variable in missing System symbols error message
 Upgrade BC-Replay version to 0.1.119
+Improve SaaS Environment recognition and allow overwriting Page Scripting Test execution in Run-AlPipeline
 Run-BCPTTestsInBcContainer: fix ends with error "Unable to load one or more of the requested types"
+Add support for using a pre-installed Business Central when running Run-AlPipeline (i.e. http://)
+appsBeforeTestApps, testApps and bcptTestApps are now sorted by dependencies before installed in Run-AlPipeline
+When two projects reference the same folder during build (e.g. one for build and one for test run), installedApps would have the apps twice
+Increase performance when using compilerfolders on Windows
+Issue 4112 In a multi-project repository, using CompilerFolders and online environments or custom images, installOnlyReferencedApps is ignored
+Disable PSSessions for BC v28+ containers by default due to known PS7 remote session issue. Uses docker exec instead. Set usePsSessionForBc28 to true to re-enable. See https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues
 
 6.1.11
 Temporarily avoid using dotnet 10 for assemblyProbingPaths
@@ -10,7 +20,6 @@ Issue 3986 Execution of AL tests fails for test codeunits without test functions
 Issue 4062 Error "Unable to load one or more of the requested types" when running tests on newer Artifacts having version 2.2. of Microsoft.Internal.AntiSSRF.dll 
 Get-BCArtifactUrl: Add Support for -before and -after Parameters in NextMinor and NextMajor
 Publish-PerTenantExtensionApps: Add support to unpublish previously installed apps after upgrade
-
 
 6.1.10
 Better performance when downloading NuGet packages by adding another cache folder, which defaults to c:\bcnuget.cache
