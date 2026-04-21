@@ -51,8 +51,8 @@ try {
         }
         if ($accessToken) {
             # Check the AccessToken since Microsoft Graph V2 requires a SecureString
-            $graphAccesTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
-            if ($graphAccesTokenParameter.ParameterType -eq [securestring]) {
+            $graphAccessTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
+            if ($graphAccessTokenParameter.ParameterType -eq [securestring]) {
                 Connect-MgGraph -AccessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
             }
             else {

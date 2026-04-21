@@ -1,6 +1,6 @@
 <#
  .Synopsis
-  Function for creatig a notification recipient for a Business Central tenant.
+  Function for creating a notification recipient for a Business Central tenant.
  .Description
   Function for creating a notification recipient for a Business Central tenant.
   Submit Email and Name.

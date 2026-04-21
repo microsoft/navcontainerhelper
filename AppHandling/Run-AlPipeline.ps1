@@ -20,7 +20,7 @@
   If set to true, the `errorLog` argument is used when compiling the apps. The generated file will be named <appname>.errorLog.json and is placed in the same folder as the app file.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
-  Only speficy imagename if you are going to create multiple containers from the same artifacts.
+  Only specify imageName if you are going to create multiple containers from the same artifacts.
  .Parameter enableTaskScheduler
   Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
  .Parameter assignPremiumPlan
@@ -66,7 +66,7 @@
  .Parameter additionalCountries
   Array or comma separated list of countries to test
  .Parameter restoreDatabases
-  Array or comma seperated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
+  Array or comma separated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
  .Parameter appVersion
   Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
@@ -88,7 +88,7 @@
  .Parameter pageScriptingTestResultsFile
   File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
-  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result details will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -162,7 +162,7 @@
 . Parameter enableCodeAnalyzersOnTestApps
   Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
-  Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
+  Use custom AL Cops into the container and include them, in addition to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
@@ -184,7 +184,7 @@
  .Parameter AppSourceCopMandatoryAffixes
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
-  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma separated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter features
@@ -730,7 +730,7 @@ function GetBuildContainer {
             Write-Host "Reusing existing docker container"
         }
         else {
-            Write-Host "Creaing docker container"
+            Write-Host "Creating docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }

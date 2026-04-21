@@ -561,7 +561,7 @@ function Run-ConnectionTest {
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
-        throw "Cannnot open Extension Management page"
+        throw "Cannot open Extension Management page"
     }
     Write-Host "Extension Management opened successfully"
 
