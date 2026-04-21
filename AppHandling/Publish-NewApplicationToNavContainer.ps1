@@ -9,7 +9,7 @@
  .Parameter appFile
   Path of the appFile
  .Parameter appDotNetPackagesFolder
-  Location of prokect specific dotnet reference assemblies. Default means that the app only uses standard DLLs.
+  Location of project specific dotnet reference assemblies. Default means that the app only uses standard DLLs.
   If your project is using custom DLLs, you will need to place them in this folder and the folder needs to be shared with the container.
  .Parameter credential
   Credentials of the container super user if using NavUserPassword authentication
@@ -32,7 +32,7 @@
  .Parameter restoreApps
   Specify whether or not you want to restore previously installed apps in the container
  .Parameter replaceDependencies
-  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+  With this parameter, you can specify a hashtable, describing that the specified dependencies in the apps being published should be replaced
   If your application doesn't use the same appId, Publisher, Name and version as the original baseapp, you need to specify this if you want to restore apps
  .Example
   Publish-NewApplicationToBcContainer -containerName test `

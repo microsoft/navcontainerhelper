@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container in which you want to get the companies
   .Parameter tenant
-  Name of tenant you want to get the commpanies for in the container
+  Name of tenant you want to get the companies for in the container
  .Example
   Get-CompanyInBcContainer -containerName bcserver
 #>

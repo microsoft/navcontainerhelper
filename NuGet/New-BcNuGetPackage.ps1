@@ -33,7 +33,7 @@
   The default is '{publisher}.{name}.{id}'
  .Parameter dependencyVersionTemplate
   Template to calculate the version field of the dependencies, default is {version}
-  The template can contain {version} which will be replaced with the verson from the corresponding dependency from app.json
+  The template can contain {version} which will be replaced with the version from the corresponding dependency from app.json
   The template can also contain {major},{minor},{build} and {revision} which will be replaced with the fields from the version
   The template can also contain {major+1},{minor+1},{build+1} and {revision+1} which will be replaced with the fields from the version incremented by 1 
  .Parameter applicationDependencyId
@@ -41,7 +41,7 @@
   The default is 'Microsoft.Application'
  .Parameter applicationDependency
   Version/Template of the application dependency, default is the Application version from the app.json file
-  The template can contain {version} which will be replaced with the verson from the corresponding dependency from app.json
+  The template can contain {version} which will be replaced with the version from the corresponding dependency from app.json
   The template can also contain {major},{minor},{build} and {revision} which will be replaced with the fields from the version
   The template can also contain {major+1},{minor+1},{build+1} and {revision+1} which will be replaced with the fields from the version incremented by 1 
  .Parameter platformDependencyId
@@ -49,11 +49,11 @@
   The default is 'Microsoft.Platform'
  .Parameter platformDependency
   Version/Template of the platform dependency, default is the Platform version from the app.json file
-  The template can contain {version} which will be replaced with the verson from the corresponding dependency from app.json
+  The template can contain {version} which will be replaced with the version from the corresponding dependency from app.json
   The template can also contain {major},{minor},{build} and {revision} which will be replaced with the fields from the version
   The template can also contain {major+1},{minor+1},{build+1} and {revision+1} which will be replaced with the fields from the version incremented by 1 
  .Parameter destinationFolder
-  Folder to create the NuGet package in. Defeault it to create a temporary folder and delete it after the NuGet package has been created
+  Folder to create the NuGet package in. Default it to create a temporary folder and delete it after the NuGet package has been created
  .Example
   $package = New-BcNuGetPackage -appfile "C:\Users\freddyk\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
  .Example
