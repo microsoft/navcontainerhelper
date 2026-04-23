@@ -1293,8 +1293,12 @@ function DownloadLatestAlLanguageExtension {
         }
     }
 
-    $mutexName = "DownloadAlLanguageExtension"
-    $mutex = New-Object System.Threading.Mutex($false, $mutexName)
+    $mutexName = "Global\DownloadAlLanguageExtension"
+    $createdNew = $false
+    $security = New-Object System.Security.AccessControl.MutexSecurity
+    $rule = New-Object System.Security.AccessControl.MutexAccessRule([System.Security.Principal.SecurityIdentifier]::new([System.Security.Principal.WellKnownSidType]::WorldSid, $null), [System.Security.AccessControl.MutexRights]::FullControl, [System.Security.AccessControl.AccessControlType]::Allow)
+    $security.AddAccessRule($rule)
+    $mutex = New-Object System.Threading.Mutex($false, $mutexName, [ref]$createdNew, $security)
     try {
         try {
             if (!$mutex.WaitOne(1000)) {
