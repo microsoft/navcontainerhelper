@@ -71,7 +71,7 @@ try {
 
                 $versions | % {
                     $version = $_
-                    # If not trimed starting / will result in <no name> folder in the beginning
+                    # If not trimmed starting / will result in <no name> folder in the beginning
                     if($blobPath.Trim("/") -ne "") {
                         $outPath = Join-Path $blobPath.Trim("/") $version
                     } else {

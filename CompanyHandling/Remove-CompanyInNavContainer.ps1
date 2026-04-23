@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container from which you want to remove the company
   .Parameter tenant
-  Name of tenant you want to remove the commpany from in the container
+  Name of tenant you want to remove the company from in the container
  .Parameter companyName
   Name of the company you want to remove
  .Example

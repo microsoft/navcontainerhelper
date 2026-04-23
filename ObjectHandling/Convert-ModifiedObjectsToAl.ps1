@@ -24,7 +24,7 @@
  .Parameter alProjectFolder
   Specify the path of a location, where you want to receive the resulting AL objects.
  .Parameter alFilePattern
-  Specify the file pattern (or multiple seperated by comma) of the files you want to copy to the alProjectFolder. Default is *.
+  Specify the file pattern (or multiple separated by comma) of the files you want to copy to the alProjectFolder. Default is *.
   If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\BcContainerHelper
  .Parameter alFileStructure
   Specify a function, which will determine the location of the individual al source files
