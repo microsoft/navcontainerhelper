@@ -1371,6 +1371,7 @@ function Disable-SslVerification
     if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
     {
 $sslCallbackCode = @"
+    #pragma warning disable 1691
     #pragma warning disable SYSLIB0014
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
@@ -1382,6 +1383,7 @@ $sslCallbackCode = @"
         public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
     }
     #pragma warning restore SYSLIB0014
+    #pragma warning restore 1691
 "@
         Add-Type -TypeDefinition $sslCallbackCode
     }
