@@ -2220,6 +2220,17 @@ if (-not `$restartingInstance) {
         }
     }
 
+    if ($Version.Major -lt 29) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            if (Test-Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.*') {
+                Write-Host "Removing .NET 10 assemblies (not supported by this BC version)"
+                Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.WindowsDesktop.App\10.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
     if ($includeAL) {
         $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
