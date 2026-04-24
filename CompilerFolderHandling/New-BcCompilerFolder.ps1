@@ -177,6 +177,18 @@ try {
         }
     }
 
+    # Copy manifest.json for .NET version resolution during compilation
+    # Always download artifacts to get the manifest (Download-Artifacts caches internally)
+    if (-not $appArtifactPath) {
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $appArtifactPath = $artifactPaths[0]
+    }
+    $manifestSource = Join-Path $appArtifactPath "manifest.json"
+    if (Test-Path $manifestSource) {
+        $manifestDest = if ($cacheFolder) { $cacheFolder } else { $compilerFolder }
+        Copy-Item -Path $manifestSource -Destination (Join-Path $manifestDest "manifest.json") -Force
+    }
+
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
     if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)) {
         if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {
@@ -241,6 +253,11 @@ try {
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
             Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+        }
+        # Copy manifest.json from cache to compiler folder
+        $cachedManifest = Join-Path $cacheFolder "manifest.json"
+        if (Test-Path $cachedManifest) {
+            Copy-Item -Path $cachedManifest -Destination (Join-Path $compilerFolder "manifest.json") -Force
         }
     }
 
