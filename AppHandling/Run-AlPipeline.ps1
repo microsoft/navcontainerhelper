@@ -20,7 +20,7 @@
   If set to true, the `errorLog` argument is used when compiling the apps. The generated file will be named <appname>.errorLog.json and is placed in the same folder as the app file.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
-  Only speficy imagename if you are going to create multiple containers from the same artifacts.
+  Only specify imageName if you are going to create multiple containers from the same artifacts.
  .Parameter enableTaskScheduler
   Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
  .Parameter assignPremiumPlan
@@ -66,7 +66,7 @@
  .Parameter additionalCountries
   Array or comma separated list of countries to test
  .Parameter restoreDatabases
-  Array or comma seperated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
+  Array or comma separated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
  .Parameter appVersion
   Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
@@ -88,7 +88,7 @@
  .Parameter pageScriptingTestResultsFile
   File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
-  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result details will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -162,7 +162,7 @@
 . Parameter enableCodeAnalyzersOnTestApps
   Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
-  Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
+  Use custom AL Cops into the container and include them, in addition to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
@@ -184,7 +184,7 @@
  .Parameter AppSourceCopMandatoryAffixes
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
-  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma separated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter features
@@ -500,6 +500,7 @@ function GetInstalledApps {
         $installedApps = $installedExtensions | Where-Object { $_.IsInstalled } | ForEach-Object {
             @{ "AppId" = $_.id; "Publisher" = $_.publisher; "Name" = $_.displayName; "Version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
         }
+        $message = "Apps in environment $environment"
     }
     elseif ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
@@ -507,6 +508,7 @@ function GetInstalledApps {
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+        $message = "Apps in compiler folder"
     }
     elseif ($filesOnly) {
         # Make sure container has been created
@@ -520,6 +522,7 @@ function GetInstalledApps {
                 "Version"               = $appJson.version
             }
         }
+        $message = "Apps in packages folder"
     }
     else {
         $Parameters = @{
@@ -528,8 +531,9 @@ function GetInstalledApps {
             "tenantSpecificProperties" = $true
         }
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Where-Object { $_.IsInstalled })
+        $message = "Installed apps"
     }
-    Write-GroupStart -Message "Installed Apps"
+    Write-GroupStart -Message $message
     $seen = @{}
     $installedApps | ForEach-Object {
         if (-not $seen.ContainsKey($_.AppId)) {
@@ -726,7 +730,7 @@ function GetBuildContainer {
             Write-Host "Reusing existing docker container"
         }
         else {
-            Write-Host "Creaing docker container"
+            Write-Host "Creating docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }
@@ -1467,7 +1471,7 @@ $sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
 if ($unknownAppDependencies) {
     $unknownAppDependencies | ForEach-Object { Write-Host "- $_" }
-    $missingAppDependencies = $unknownAppDependencies | ForEach-Object { $_.Split(':')[0] }
+    $missingAppDependencies = @($unknownAppDependencies | ForEach-Object { $_.Split(':')[0] })
 }
 else {
     Write-Host "- None"
@@ -1483,7 +1487,7 @@ else {
     Write-Host "External TestApp dependencies"
     if ($unknownTestAppDependencies) {
         $unknownTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $missingTestAppDependencies = $unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] }
+        $missingTestAppDependencies = @($unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] })
     }
     else {
         Write-Host "- None"
@@ -1579,6 +1583,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles $_ -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeApps -and $installOnlyReferencedApps) {
+        if ($missingAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeApps -includeOnlyAppIds $missingAppDependencies)
         }
     }
 
@@ -1776,6 +1790,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeTestApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 
@@ -1985,6 +2009,16 @@ Measure-Command {
         }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($appsBeforeTestApps -and $installOnlyReferencedApps) {
+        if ($missingTestAppDependencies.Count -eq 0) {
+            # No missing apps dependencies
+            $appsBeforeTestApps = @()
+        } else {
+            # Sort app files and include only missing app dependencies
+            $appsBeforeTestApps = @(Sort-AppFilesByDependencies -appFiles $appsBeforeTestApps -includeOnlyAppIds $missingTestAppDependencies)
         }
     }
 

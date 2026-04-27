@@ -935,6 +935,12 @@ try {
             $parameters += @("--env isBcSandbox=N")
         }
 
+        # Copy manifest.json for use during compilation (.NET version resolution, etc.)
+        $manifestSource = Join-Path $appArtifactPath "manifest.json"
+        if (Test-Path $manifestSource) {
+            Copy-Item -Path $manifestSource -Destination (Join-Path $containerFolder "manifest.json") -Force
+        }
+
         $dvdVersion = $appmanifest.Version
         $dvdCountry = $appManifest.Country
         $dvdPlatform = $appManifest.Platform

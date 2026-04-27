@@ -561,7 +561,7 @@ function Run-ConnectionTest {
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
-        throw "Cannnot open Extension Management page"
+        throw "Cannot open Extension Management page"
     }
     Write-Host "Extension Management opened successfully"
 
@@ -1371,6 +1371,7 @@ function Disable-SslVerification
     if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
     {
 $sslCallbackCode = @"
+    #pragma warning disable
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
 
@@ -1380,6 +1381,7 @@ $sslCallbackCode = @"
         public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
         public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
     }
+    #pragma warning restore
 "@
         Add-Type -TypeDefinition $sslCallbackCode
     }

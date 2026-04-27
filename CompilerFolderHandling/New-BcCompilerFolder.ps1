@@ -137,7 +137,7 @@ try {
         Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
         $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
-        # Use questionmark as diffent versions of BC have different casing of the folder name (extensions/Extensions and applications/Applications)
+        # Use questionmark as different versions of BC have different casing of the folder name (extensions/Extensions and applications/Applications)
         $extensionsFolder = Join-Path $appArtifactPath '?xtensions' -Resolve
         if ($extensionsFolder) {
             Write-Host "Copying app files from $extensionsFolder"
@@ -174,6 +174,12 @@ try {
             else {
                 Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
+        }
+        # Copy manifest.json for .NET version resolution during compilation
+        $manifestSource = Join-Path $appArtifactPath "manifest.json"
+        if (Test-Path $manifestSource) {
+            $manifestDest = if ($cacheFolder) { $cacheFolder } else { $compilerFolder }
+            Copy-Item -Path $manifestSource -Destination (Join-Path $manifestDest "manifest.json") -Force
         }
     }
 
@@ -241,6 +247,11 @@ try {
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
             Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+        }
+        # Copy manifest.json from cache to compiler folder
+        $cachedManifest = Join-Path $cacheFolder "manifest.json"
+        if (Test-Path $cachedManifest) {
+            Copy-Item -Path $cachedManifest -Destination (Join-Path $compilerFolder "manifest.json") -Force
         }
     }
 

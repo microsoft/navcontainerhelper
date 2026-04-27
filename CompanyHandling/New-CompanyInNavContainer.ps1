@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container in which you want to create the company
   .Parameter tenant
-  Name of tenant you want to create the commpany for in the container
+  Name of tenant you want to create the company for in the container
  .Parameter companyName
   Name of the new company
  .Parameter evaluationCompany
