@@ -166,6 +166,9 @@ try {
         }
         catch {}
     }
+    if ($requiredDotNetMajor -eq 0) {
+        $requiredDotNetMajor = Get-DotNetMajorVersionForPlatform -platformVersion $platformversion
+    }
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
             $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion, $requiredDotNetMajor)

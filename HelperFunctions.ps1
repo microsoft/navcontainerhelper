@@ -1001,6 +1001,26 @@ function testPfxCertificate([string] $pfxFile, [SecureString] $pfxPassword, [str
     }
 }
 
+function Get-DotNetMajorVersionForPlatform {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [System.Version]$platformVersion
+    )
+    if ($platformVersion.Major -lt 23) {
+        return 0
+    }
+    # Platform 23.x used .NET 6
+    if ($platformVersion.Major -lt 24) {
+        return 6
+    }
+    # Platform 24.x - 28.x uses .NET 8
+    if ($platformVersion.Major -lt 29) {
+        return 8
+    }
+    # Platform 29.x+ uses .NET 10
+    return 10
+}
+
 function GetHash {
     param(
         [string] $str
