@@ -5,6 +5,7 @@ Fix System.IO.Pipelines assembly load failure in PS7 WinRM sessions on container
 Add handling for .NET 10 
 
 6.1.12
+Add support for framework-dependent AL Language VSIX (flat bin/ layout without platform-specific subdirectories)
 Issue 4107 UnPublish-NavContainerApp: Pass publisher and version to Sync-NAVApp to avoid ambiguity when multiple apps share the same name
 Compile-AppWithBcCompilerFolder: Fix uninitialized variable in missing System symbols error message
 Upgrade BC-Replay version to 0.1.119
