@@ -174,82 +174,109 @@ function DockerDo {
 
     $result = $true
     $arguments = ("$command " + [string]::Join(" ", $parameters) + " $imageName")
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = "docker.exe"
-    $pinfo.RedirectStandardError = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
 
+    # Retry logic for docker pull to handle transient CDN/WAF errors.
+    # Azure Front Door occasionally blocks MCR requests, returning an HTML error page
+    # ("The request is blocked") instead of a proper registry response. This causes docker
+    # to report "pull access denied" even though the image exists. Retrying with exponential
+    # backoff (2s, 4s, 8s, 16s, 32s) resolves these intermittent failures.
+    $maxRetries = 0
+    if ($command -eq "pull") {
+        $maxRetries = 5
+    }
+    $attempt = 0
+    $waitTime = 2
 
-    $outtask = $null
-    $errtask = $p.StandardError.ReadToEndAsync()
-    $out = ""
-    $err = ""
-    
-    do {
-        if ($outtask -eq $null) {
-            $outtask = $p.StandardOutput.ReadLineAsync()
-        }
-        $outtask.Wait(100) | Out-Null
-        if ($outtask.IsCompleted) {
-            $outStr = $outtask.Result
-            if ($outStr -eq $null) {
-                break
+    while ($true) {
+        $attempt++
+
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = "docker.exe"
+        $pinfo.RedirectStandardError = $true
+        $pinfo.RedirectStandardOutput = $true
+        $pinfo.UseShellExecute = $false
+        $pinfo.Arguments = $arguments
+        $p = New-Object System.Diagnostics.Process
+        $p.StartInfo = $pinfo
+        $p.Start() | Out-Null
+
+        $outtask = $null
+        $errtask = $p.StandardError.ReadToEndAsync()
+        $out = ""
+        $err = ""
+
+        do {
+            if ($outtask -eq $null) {
+                $outtask = $p.StandardOutput.ReadLineAsync()
             }
-            if (!$silent) {
-                Write-Host $outStr
-            }
-            $out += $outStr
-            $outtask = $null
-            if ($outStr.StartsWith("Please login")) {
-                $registry = $imageName.Split("/")[0]
-                if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
-                    throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
+            $outtask.Wait(100) | Out-Null
+            if ($outtask.IsCompleted) {
+                $outStr = $outtask.Result
+                if ($outStr -eq $null) {
+                    break
                 }
-                else {
-                    throw "You need to login to $registry prior to pulling images."
+                if (!$silent) {
+                    Write-Host $outStr
                 }
-            }
-        }
-        elseif ($outtask.IsCanceled) {
-            break
-        }
-        elseif ($outtask.IsFaulted) {
-            break
-        }
-    } while (!($p.HasExited))
-
-    $err = $errtask.Result
-    $p.WaitForExit();
-
-    if ($p.ExitCode -ne 0) {
-        $result = $false
-        if (!$silent) {
-            $out = $out.Trim()
-            $err = $err.Trim()
-            if ($command -eq "run" -and "$out" -ne "") {
-                Docker rm $out -f
-            }
-            $errorMessage = ""
-            if ("$err" -ne "") {
-                $errorMessage += "$err`r`n"
-                if ($err.Contains("authentication required")) {
+                $out += $outStr
+                $outtask = $null
+                if ($outStr.StartsWith("Please login")) {
                     $registry = $imageName.Split("/")[0]
                     if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
-                        $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
+                        throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
                     }
                     else {
-                        $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
+                        throw "You need to login to $registry prior to pulling images."
                     }
                 }
             }
-            $errorMessage += "ExitCode: " + $p.ExitCode + "`r`nCommandline: docker $arguments"
-            Write-Error -Message $errorMessage
+            elseif ($outtask.IsCanceled) {
+                break
+            }
+            elseif ($outtask.IsFaulted) {
+                break
+            }
+        } while (!($p.HasExited))
+
+        $err = $errtask.Result
+        $p.WaitForExit();
+
+        if ($p.ExitCode -ne 0) {
+            # Detect transient CDN/WAF blocks: the error output contains HTML markup or
+            # the Azure Front Door "The request is blocked" message rather than a real registry error.
+            # Only retry for pull commands; other commands fail immediately as before.
+            if ($attempt -le $maxRetries -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+                Write-Host "Docker pull failed due to a transient error (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
+                Start-Sleep -Seconds $waitTime
+                $waitTime = $waitTime * 2
+                continue
+            }
+
+            $result = $false
+            if (!$silent) {
+                $out = $out.Trim()
+                $err = $err.Trim()
+                if ($command -eq "run" -and "$out" -ne "") {
+                    Docker rm $out -f
+                }
+                $errorMessage = ""
+                if ("$err" -ne "") {
+                    $errorMessage += "$err`r`n"
+                    if ($err.Contains("authentication required")) {
+                        $registry = $imageName.Split("/")[0]
+                        if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
+                            $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
+                        }
+                        else {
+                            $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
+                        }
+                    }
+                }
+                $errorMessage += "ExitCode: " + $p.ExitCode + "`r`nCommandline: docker $arguments"
+                Write-Error -Message $errorMessage
+            }
         }
+        break
     }
     $result
 }
