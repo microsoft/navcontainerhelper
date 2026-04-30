@@ -188,8 +188,9 @@ try {
         } -ArgumentList (Join-Path $bcContainerHelperConfig.hostHelperFolder "extensions\$containerName\my\TestRunner"), $params, $suiteCode, $serviceUrl, $testPage | Wait-Job
 
         if ($job.State -ne "Completed") {
-            Write-Host "Running performance test failed"
-            $job | Receive-Job
+            $jobOutput = $job | Receive-Job | Out-String
+            $job | Remove-Job | Out-Null
+            throw "Running BCPT performance test failed. Job state: $($job.State). Output: $jobOutput"
         }
         $job | Remove-Job | Out-Null
     }
@@ -255,6 +256,9 @@ try {
             -Method 'GET' `
             -Query 'bcptLogEntries'
         
+        if (-not $response.value -or @($response.value).Count -eq 0) {
+            Write-Host "::warning::BCPT tests produced no log entries. The test suite may have failed to start or the test codeunits exited without recording any measurements. Check the suite configuration and verify the test codeunit IDs match those in the BCPT suite definition."
+        }
         $response.value
     }
 }
