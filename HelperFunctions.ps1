@@ -242,10 +242,11 @@ function DockerDo {
         $p.WaitForExit();
 
         if ($p.ExitCode -ne 0) {
-            # Detect transient CDN/WAF blocks: the error output contains HTML markup or
-            # the Azure Front Door "The request is blocked" message rather than a real registry error.
+            # Detect transient Azure Front Door CDN/WAF blocks on MCR.
+            # When this happens, docker reports "pull access denied ... denied: <!DOCTYPE html..."
+            # containing an HTML page with "The request is blocked" from Azure Front Door.
             # Only retry for pull commands; other commands fail immediately as before.
-            if ($attempt -le $maxRetries -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+            if ($attempt -le $maxRetries -and $err -match 'pull access denied') {
                 Write-Host "Docker pull failed due to a transient error (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
                 Start-Sleep -Seconds $waitTime
                 $waitTime = $waitTime * 2
