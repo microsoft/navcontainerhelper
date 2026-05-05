@@ -1,3 +1,5 @@
+6.1.15
+
 6.1.14
 Add retry with exponential backoff in DockerDo for transient MCR pull failures caused by Azure Front Door CDN/WAF blocks
 Fix System.IO.Pipelines assembly load failure in PS7 WinRM sessions on containers with .NET 10
