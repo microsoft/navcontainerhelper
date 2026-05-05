@@ -240,14 +240,18 @@ function DockerDo {
 
         $err = $errtask.Result
         $p.WaitForExit();
+        $p.Dispose();
 
         if ($p.ExitCode -ne 0) {
             # Detect transient Azure Front Door CDN/WAF blocks on MCR.
             # When this happens, docker reports "pull access denied ... denied: <!DOCTYPE html..."
             # containing an HTML page with "The request is blocked" from Azure Front Door.
-            # Only retry for pull commands; other commands fail immediately as before.
-            if ($attempt -le $maxRetries -and $err -match 'pull access denied') {
-                Write-Host "Docker pull failed due to a transient error (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
+            # Only retry for pull commands when the HTML WAF/CDN block signature is present;
+            # genuine auth failures and missing-image errors do not contain HTML and fail immediately.
+            if ($attempt -le $maxRetries -and $err -match 'pull access denied' -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+                if (!$silent) {
+                    Write-Host "Docker pull failed due to a CDN/WAF block (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
+                }
                 Start-Sleep -Seconds $waitTime
                 $waitTime = $waitTime * 2
                 continue
