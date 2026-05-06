@@ -175,6 +175,12 @@ try {
                 Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
         }
+        # Copy manifest.json for .NET version resolution during compilation
+        $manifestSource = Join-Path $appArtifactPath "manifest.json"
+        if (Test-Path $manifestSource) {
+            $manifestDest = if ($cacheFolder) { $cacheFolder } else { $compilerFolder }
+            Copy-Item -Path $manifestSource -Destination (Join-Path $manifestDest "manifest.json") -Force
+        }
     }
 
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
@@ -241,6 +247,11 @@ try {
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
             Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
+        }
+        # Copy manifest.json from cache to compiler folder
+        $cachedManifest = Join-Path $cacheFolder "manifest.json"
+        if (Test-Path $cachedManifest) {
+            Copy-Item -Path $cachedManifest -Destination (Join-Path $compilerFolder "manifest.json") -Force
         }
     }
 

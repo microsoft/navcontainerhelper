@@ -110,6 +110,14 @@ function Get-BcContainerSession {
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
+            # Preload System.IO.Pipelines explicitly to avoid FileNotFoundException from NAV/BC cmdlets (.NET 10 Migration)
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                $pipelinesPath = Join-Path $PSHOME 'System.IO.Pipelines.dll'
+                if (Test-Path $pipelinesPath) {
+                    [System.Reflection.Assembly]::LoadFrom($pipelinesPath) | Out-Null
+                }
+            }
+
             $runPath = "c:\Run"
             $myPath = Join-Path $runPath "my"
 

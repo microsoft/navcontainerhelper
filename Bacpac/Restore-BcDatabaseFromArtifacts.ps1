@@ -6,6 +6,8 @@
   Windows Authentication to the SQL Server is required.
  .Parameter artifactUrl
   Url for application artifact to use for locating database .bak file
+ .Parameter platformArtifactUrl
+  Url for platform artifact to use. Use this when you want to use a different platform than the one related to artifactUrl.
  .Parameter databaseServer
   database Server on which you want to restore the database(s)
  .Parameter databaseInstance
@@ -29,6 +31,7 @@ function Restore-BcDatabaseFromArtifacts {
     Param(
         [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
+        [string] $platformArtifactUrl = "",
         [Parameter(Mandatory=$true)]
         [string] $databaseServer,
         [Parameter(Mandatory=$false)]
@@ -45,7 +48,7 @@ function Restore-BcDatabaseFromArtifacts {
         [switch] $useSqlServerModule = $bcContainerHelperConfig.useSqlServerModule
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl","platformArtifactUrl")
 try {
 
     if ($databaseServer -eq 'host.containerhelper.internal') {
@@ -60,12 +63,16 @@ try {
     $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\Import-BcContainerHelper.ps1")).FullName
     Write-Host $containerHelperPath
 
-    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule )
+    if ($platformArtifactUrl -and -not $artifactUrl) {
+        throw "You have to specify artifactUrl when using platformArtifactUrl."
+    }
+
+    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $platformArtifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule )
         $ErrorActionPreference = "Stop"
         try {
             . "$containerHelperPath"
             Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
-            $artifactPath = Download-Artifacts $artifactUrl -includePlatform
+            $artifactPath = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform
             
             $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\*\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.dll")
             if (!($ManagementModule)) {
@@ -228,7 +235,7 @@ try {
             throw
         }
     
-    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule.IsPresent
+    } -ArgumentList $containerHelperPath, $artifactUrl, $platformArtifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule.IsPresent
 
     if (!$async) {
         While ($job.State -eq "Running") {

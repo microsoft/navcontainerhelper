@@ -314,8 +314,33 @@ function Compile-AppWithBcCompilerFolder {
             $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
         }
         elseif ($platformversion.Major -ge 22) {
-            if ($dotNetRuntimeVersionInstalled -ge [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr) {
-                $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
+            # Determine the correct .NET runtime version for assembly probing paths
+            # If the artifact ships a manifest.json with a dotNetVersion, use the matching installed runtime
+            $dotNetVersionForProbing = $dotNetRuntimeVersionInstalled
+            $manifestFile = Join-Path $compilerFolder "manifest.json"
+            if (Test-Path $manifestFile) {
+                try {
+                    $manifest = Get-Content $manifestFile -Encoding UTF8 | ConvertFrom-Json
+                    if ($manifest.dotNetVersion) {
+                        $requiredDotNetMajor = ([System.Version]$manifest.dotNetVersion).Major
+                        $dotNetCorePath = 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App'
+                        if (Test-Path $dotNetCorePath) {
+                            $matchingVersion = Get-ChildItem $dotNetCorePath | ForEach-Object {
+                                try { [System.Version]$_.Name } catch {}
+                            } | Where-Object { $_.Major -eq $requiredDotNetMajor } | Sort-Object -Descending | Select-Object -First 1
+                            if ($matchingVersion -and (Test-Path "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$matchingVersion")) {
+                                Write-Host "Using .NET $matchingVersion for assembly probing (artifact requires .NET $requiredDotNetMajor)"
+                                $dotNetVersionForProbing = $matchingVersion
+                            }
+                        }
+                    }
+                }
+                catch {
+                    Write-Host "Warning: Could not read manifest.json from compiler folder: $($_.Exception.Message)"
+                }
+            }
+            if ($dotNetVersionForProbing -ge [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr) {
+                $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetVersionForProbing", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetVersionForProbing") + $probingPaths
             }
             else {
                 $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths

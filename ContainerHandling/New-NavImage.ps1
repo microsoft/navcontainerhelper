@@ -6,6 +6,8 @@
   The function returns the imagename of the image created
  .Parameter artifactUrl
   Url for application artifact to use
+ .Parameter platformArtifactUrl
+  Url for platform artifact to use. Use this when you want to use a different platform than the one related to artifactUrl.
  .Parameter imageName
   Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
@@ -40,6 +42,7 @@ function New-BcImage {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
+        [string] $platformArtifactUrl = "",
         [string] $imageName = "myimage",
         [string] $baseImage = "",
         [string] $databaseBackupPath = "",
@@ -99,7 +102,7 @@ function RoboCopyFiles {
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
                     -parameterValues $PSBoundParameters `
-                    -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","registryCredential","multitenant","filesOnly")
+                    -includeParameters @("containerName","artifactUrl","platformArtifactUrl","isolation","imageName","baseImage","registryCredential","multitenant","filesOnly")
 try {
 
     if ($memory -eq "") {
@@ -195,7 +198,11 @@ try {
         $hostOs = "ltsc2016"
     }
 
-    $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+    if ($platformArtifactUrl -and -not $artifactUrl) {
+        throw "You have to specify artifactUrl when using platformArtifactUrl."
+    }
+
+    $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform
     $appArtifactPath = $artifactPaths[0]
     $platformArtifactPath = $artifactPaths[1]
 
