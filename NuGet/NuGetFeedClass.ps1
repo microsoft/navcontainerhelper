@@ -172,7 +172,8 @@ class NuGetFeed {
             $matching = @($matching | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
         }
         else {
-            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName&take=50"
+            # prerelase=true in order to find packages, which not yet has been published as prod
+            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName&take=50&prerelease=true"
             try {
                 Write-Host -ForegroundColor Yellow "Search package using $queryUrl"
                 $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"

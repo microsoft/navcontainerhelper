@@ -44,7 +44,7 @@ try {
     Write-Host "Initializing ACME State"
     $state = New-ACMEState -Path $stateDir
     
-    Write-Host "Registring Contact EMail address and accept Terms Of Service"
+    Write-Host "Registering Contact EMail address and accept Terms Of Service"
     Get-ACMEServiceDirectory $state -ServiceName "LetsEncrypt" -PassThru | Out-Null
     New-ACMENonce $state | Out-Null
     New-ACMEAccountKey $state -PassThru | Out-Null

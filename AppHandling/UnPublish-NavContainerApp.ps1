@@ -68,7 +68,14 @@ try {
             Uninstall-NavApp -ServerInstance $ServerInstance -Name $name -Tenant $tenant @params
             if ($doNotSaveData -and $doNotSaveSchema) {
                 Write-Host "Cleaning Schema from $name on $tenant"
-                Sync-NAVApp -ServerInstance $ServerInstance -Name $name -Tenant $tenant -mode Clean -force:$force
+                $syncParams = @{}
+                if ($publisher) {
+                    $syncParams += @{ 'Publisher' = $publisher }
+                }
+                if ($version) {
+                    $syncParams += @{ 'Version' = $version }
+                }
+                Sync-NAVApp -ServerInstance $ServerInstance -Name $name -Tenant $tenant -mode Clean -force:$force @syncParams
             }
         }
         $params = @{}

@@ -174,7 +174,7 @@ The docker run command created by the New-NavContainer call above will be someth
 
 all parameters starting with --env means that docker is going to set an environment variable in the container. This is the way to transfer parameters to the NAV container. All the --env parameters will be used by the PowerShell scripts inside the container. All the non --env parameters will be used by the docker run command.
 
-The --name parameter specifies the name of the container and the --hostname specifies the hostname of the contianer.
+The --name parameter specifies the name of the container and the --hostname specifies the hostname of the container.
 
 --volume parameters shared folders from the docker host to the container and --detach means that the container process will be detached from the process starting it.
 

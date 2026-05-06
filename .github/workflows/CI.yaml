@@ -2,7 +2,7 @@ name: CI
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     paths-ignore:
       - '**.md'
       - '.azuredevops/**'
@@ -156,3 +156,4 @@ jobs:
             Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
+

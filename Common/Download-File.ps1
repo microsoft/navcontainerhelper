@@ -6,7 +6,7 @@
  .Parameter sourceUrl
   Url from which the file will get downloaded
  .Parameter destinationFile
-  Destinatin for the downloaded file
+  Destination for the downloaded file
  .Parameter description
   Description for the download process
  .Parameter Headers

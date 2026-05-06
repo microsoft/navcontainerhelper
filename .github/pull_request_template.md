@@ -1,0 +1,13 @@
+### ❔What, Why & How
+
+<!-- Include description of the changes that will help reviewers in their task -->
+
+Related to issue: #
+
+### ✅ Checklist
+
+- [ ] Add tests (`Tests` / `LinuxTests`)
+- [ ] Update ReleaseNotes.txt
+- [ ] Add telemetry
+
+<!-- Include more checklist entries, if needed -->

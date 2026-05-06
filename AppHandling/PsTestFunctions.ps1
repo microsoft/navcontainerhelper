@@ -11,7 +11,21 @@ $antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'M
 # Load DLL's
 Add-type -Path $newtonSoftDllPath
 if (Test-Path $antiSSRFdll) {
-    Add-Type -Path $antiSSRFdll
+    $Threading = [Reflection.Assembly]::LoadFile((Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'System.Threading.Tasks.Extensions.dll'))
+    $onAssemblyResolve = [System.ResolveEventHandler] {
+        param($sender, $e)
+        if ($e.Name -like "System.Threading.Tasks.Extensions, Version=*, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51") {
+            return $Threading
+        }
+        return $null
+    }
+    [System.AppDomain]::CurrentDomain.add_AssemblyResolve($onAssemblyResolve)
+    try {
+        Add-Type -Path $antiSSRFdll
+    }
+    finally {
+        [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolve)
+    }
 }
 Add-type -Path $clientDllPath
 
@@ -547,7 +561,7 @@ function Run-ConnectionTest {
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
-        throw "Cannnot open Extension Management page"
+        throw "Cannot open Extension Management page"
     }
     Write-Host "Extension Management opened successfully"
 
@@ -1357,6 +1371,7 @@ function Disable-SslVerification
     if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
     {
 $sslCallbackCode = @"
+    #pragma warning disable
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
 
@@ -1366,6 +1381,7 @@ $sslCallbackCode = @"
         public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
         public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
     }
+    #pragma warning restore
 "@
         Add-Type -TypeDefinition $sslCallbackCode
     }

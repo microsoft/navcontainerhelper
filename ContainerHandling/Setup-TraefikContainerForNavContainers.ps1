@@ -27,7 +27,7 @@
  .Parameter doNotPublishAdminPort
   Add this switch to avoid publishing the traefik admin port 8080 on the host
  .Parameter additionalParameters
-  Additional parameters for the traefik container. Example @("-e OVH_ENDPOINT=my-ovh-endpoing")
+  Additional parameters for the traefik container. Example @("-e OVH_ENDPOINT=my-ovh-endpoint")
  .Example
   Setup-TraefikContainerForBcContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
@@ -168,7 +168,7 @@ try {
     $expanded | Out-File (Join-Path $traefikForBcBasePath "config\traefik.toml") -Encoding ASCII
 
     if ($overrideDefaultBinding) {
-        Write-Host "Change standard port as Traefik will handle that. Content previously avaiable on port 80 will be available on 8180"
+        Write-Host "Change standard port as Traefik will handle that. Content previously available on port 80 will be available on 8180"
         Set-WebBinding -Name 'Default Web Site' -BindingInformation "*:80:" -PropertyName Port -Value 8180
         New-NetFirewallRule -DisplayName "Allow 8180" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8180
     }

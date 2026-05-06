@@ -133,6 +133,15 @@ try {
     if ($connectFromHost) {
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             Copy-Item -path "C:\Applications\testframework\TestRunner" -Destination "c:\run\my" -Recurse -Force
+            # Copy System.Threading.Tasks.Extensions.dll to TestRunner\Internal to prevent LoaderException (issue #4062)
+            $threadingDll = "C:\Test Assemblies\System.Threading.Tasks.Extensions.dll"
+            if (Test-Path $threadingDll) {
+                Write-Host "Copying System.Threading.Tasks.Extensions.dll to TestRunner\Internal"
+                Copy-Item -Path $threadingDll -Destination "c:\run\my\TestRunner\Internal" -Force
+            }
+            else {
+                Write-Host "System.Threading.Tasks.Extensions.dll not found at $threadingDll"
+            }
         }
         $auth = $config.ClientServicesCredentialType
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
@@ -146,6 +155,30 @@ try {
 
         $Job = Start-Job -ScriptBlock { Param( $location, [HashTable] $params, $suitecode, $serviceUrl, $testPage)
             Set-Location $location
+
+            # Pre-load AntiSSRF.dll with assembly resolver to prevent LoaderException (issue #4062)
+            $antiSSRFPath = Join-Path $location "Internal\Microsoft.Internal.AntiSSRF.dll"
+            if (Test-Path $antiSSRFPath) {
+                $threadingDllPath = Join-Path $location "Internal\System.Threading.Tasks.Extensions.dll"
+                if (Test-Path $threadingDllPath) {
+                    $Threading = [Reflection.Assembly]::LoadFile($threadingDllPath)
+                    $onAssemblyResolve = [System.ResolveEventHandler] {
+                        param($sender, $e)
+                        if ($e.Name -like "System.Threading.Tasks.Extensions, Version=*, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51") {
+                            return $Threading
+                        }
+                        return $null
+                    }
+                    [System.AppDomain]::CurrentDomain.add_AssemblyResolve($onAssemblyResolve)
+                    try {
+                        Add-Type -Path $antiSSRFPath
+                    }
+                    finally {
+                        [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolve)
+                    }
+                }
+            }
+
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
                 -SuiteCode $suitecode `
@@ -172,6 +205,33 @@ try {
             Write-Host "Using Suitecode $suitecode"
             Write-Host "Service Url $serviceUrl"
             Write-Host "Running Performance Tests$($durationString)..."
+
+            # Pre-load AntiSSRF.dll with assembly resolver to prevent LoaderException (issue #4062)
+            $antiSSRFPath = Join-Path (Get-Location) "Internal\Microsoft.Internal.AntiSSRF.dll"
+            if (Test-Path $antiSSRFPath) {
+                $threadingDllPath = "C:\Test Assemblies\System.Threading.Tasks.Extensions.dll"
+                if (Test-Path $threadingDllPath) {
+                    Write-Host "Pre-loading AntiSSRF.dll with assembly resolver for System.Threading.Tasks.Extensions.dll"
+                    $Threading = [Reflection.Assembly]::LoadFile($threadingDllPath)
+                    $onAssemblyResolve = [System.ResolveEventHandler] {
+                        param($sender, $e)
+                        if ($e.Name -like "System.Threading.Tasks.Extensions, Version=*, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51") {
+                            return $Threading
+                        }
+                        return $null
+                    }
+                    [System.AppDomain]::CurrentDomain.add_AssemblyResolve($onAssemblyResolve)
+                    try {
+                        Add-Type -Path $antiSSRFPath
+                    }
+                    finally {
+                        [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolve)
+                    }
+                }
+                else {
+                    Write-Host "System.Threading.Tasks.Extensions.dll not found at $threadingDllPath"
+                }
+            }
     
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
