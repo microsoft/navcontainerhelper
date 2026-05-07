@@ -240,9 +240,10 @@ function DockerDo {
 
         $err = $errtask.Result
         $p.WaitForExit();
+        $exitCode = $p.ExitCode
         $p.Dispose();
 
-        if ($p.ExitCode -ne 0) {
+        if ($exitCode -ne 0) {
             # Detect transient Azure Front Door CDN/WAF blocks on MCR.
             # When this happens, docker reports "pull access denied ... denied: <!DOCTYPE html..."
             # containing an HTML page with "The request is blocked" from Azure Front Door.
@@ -277,7 +278,7 @@ function DockerDo {
                         }
                     }
                 }
-                $errorMessage += "ExitCode: " + $p.ExitCode + "`r`nCommandline: docker $arguments"
+                $errorMessage += "ExitCode: " + $exitCode + "`r`nCommandline: docker $arguments"
                 Write-Error -Message $errorMessage
             }
         }
