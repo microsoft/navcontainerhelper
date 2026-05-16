@@ -1,5 +1,6 @@
 6.1.15
 Add retry with exponential backoff in DockerDo for transient MCR pull failures caused by Azure Front Door CDN/WAF blocks
+Add support for framework-dependent AL Language VSIX (flat bin/ layout without platform-specific subdirectories)
 
 6.1.14
 Fix System.IO.Pipelines assembly load failure in PS7 WinRM sessions on containers with .NET 10

@@ -271,6 +271,7 @@ try {
         $alToolExePath = Join-Path $containerCompilerPath "extension/bin/$($compilerPlatform)/altool"
 
         if (Test-Path $alcExePath) {
+            # Old VSIX layout with platform-specific subdirs
             if (Test-Path $alToolExePath) {
                 # Set execute permissions on altool
                 if ($isLinux) {
@@ -286,12 +287,16 @@ try {
                 & chmod +x $alcExePath
             }
         } else {
-            # Patch alc.runtimeconfig.json for use with Linux or macOS
-            Write-Host "Patching alc.runtimeconfig.json for use with $($compilerPlatform)"
+            # New VSIX layout (flat bin/) or old layout needing runtimeconfig patching
             $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/win32/alc.runtimeconfig.json'
+            if (-not (Test-Path $alcConfigPath)) {
+                $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/alc.runtimeconfig.json'
+            }
             if (Test-Path $alcConfigPath) {
                 $oldAlcConfig = Get-Content -Path $alcConfigPath -Encoding UTF8 | ConvertFrom-Json
                 if ($oldAlcConfig.runtimeOptions.PSObject.Properties.Name -eq 'includedFrameworks') {
+                    # Old self-contained VSIX: patch runtimeconfig for Linux/macOS
+                    Write-Host "Patching alc.runtimeconfig.json for use with $($compilerPlatform)"
                     $newAlcConfig = @{
                         "runtimeOptions" = @{
                             "tfm" = "net6.0"
@@ -306,6 +311,7 @@ try {
                     }
                     $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
                 }
+                # else: new framework-dependent VSIX already has "framework" key, no patching needed
             }
         }
     }

@@ -400,31 +400,35 @@ function Compile-AppWithBcCompilerFolder {
         }
 
         # Microsoft.Dynamics.Nav.Analyzers.Common.dll needs to referenced first, as this is how the analyzers are loaded
+        $analyzersPath = Join-Path $binPath 'Analyzers'
+        if (-not (Test-Path $analyzersPath)) {
+            $analyzersPath = $binPath
+        }
         if ($EnableCodeCop -or $EnableAppSourceCop -or $EnablePerTenantExtensionCop -or $EnableUICop) {
-            $analyzersCommonDLLPath = Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll'
+            $analyzersCommonDLLPath = Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.Analyzers.Common.dll'
             if (Test-Path $analyzersCommonDLLPath) {
-                $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll')")
+                $alcParameters += @("/analyzer:$analyzersCommonDLLPath")
             }
         }
 
         if ($EnableCodeCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.CodeCop.dll')")
         }
         if ($EnableAppSourceCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.AppSourceCop.dll')")
         }
         if ($EnablePerTenantExtensionCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
         }
         if ($EnableUICop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
         if ($CustomCodeCops.Count -gt 0) {
             $CustomCodeCops | ForEach-Object {
                 $analyzerFileName = $_
                 if ($_ -like 'https://*') {
-                    $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
+                    $analyzerFileName = Join-Path $analyzersPath $(Split-Path $_ -Leaf)
                     Download-File -SourceUrl $_ -destinationFile $analyzerFileName
                 }
                 $alcParameters += @("/analyzer:$analyzerFileName")
