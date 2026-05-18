@@ -1,0 +1,65 @@
+name: My Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to create GitHub Releases
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  Build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Package
+        id: build
+        run: |
+          $errorActionPreference = "stop"
+
+          $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
+          New-Item -Path $path -ItemType Directory | Out-Null
+          Copy-Item -Path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
+
+          # Strip files not needed in the release
+          Remove-Item -Path (Join-Path $path "Tests")    -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $path ".github")  -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $path ".git")     -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $path ".gitignore") -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $path "README.md")  -Force -ErrorAction SilentlyContinue
+
+          # Strip -dev suffix from version
+          $versionFile = Join-Path $path "Version.txt"
+          $version = (Get-Content $versionFile).Split('-')[0]
+          Set-Content -Path $versionFile -Value $version
+          Write-Host "Building version $version"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+
+          # Update module manifest
+          Import-Module (Join-Path $ENV:GITHUB_WORKSPACE "BcContainerHelper.psm1") -DisableNameChecking
+          $functionsToExport = (Get-Module BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+          $aliasesToExport   = (Get-Module BcContainerHelper).ExportedAliases.Keys   | Sort-Object
+          Remove-Module BcContainerHelper
+
+          Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+            -RootModule "BcContainerHelper.psm1" `
+            -ModuleVersion $version `
+            -FunctionsToExport $functionsToExport `
+            -AliasesToExport $aliasesToExport
+
+          # Create zip
+          $zipPath = "$($path).zip"
+          Compress-Archive -Path $path -DestinationPath $zipPath
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "zipPath=$zipPath"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.build.outputs.version }}
+          name: v${{ steps.build.outputs.version }}
+          files: ${{ steps.build.outputs.zipPath }}
