@@ -21,6 +21,8 @@
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
   Only specify imageName if you are going to create multiple containers from the same artifacts.
+  If installTestRunner, installTestFramework, installTestLibraries, or installPerformanceToolkit are also specified,
+  the test toolkit will be baked into the image so it does not have to be imported on every container creation.
  .Parameter enableTaskScheduler
   Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
  .Parameter assignPremiumPlan
@@ -735,7 +737,20 @@ function GetBuildContainer {
                 "FilesOnly" = $filesOnly
             }
 
-            if ($imageName)   { $Parameters += @{ "imageName"   = $imageName } }
+            if ($imageName) {
+                $Parameters += @{ "imageName" = $imageName }
+                # When an imageName is specified and test toolkit installation is requested, include
+                # the test toolkit in the image build so it does not have to be imported on every
+                # container creation. This matches the logic in Import-TestToolkitToBcContainer.
+                if ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit) {
+                    $Parameters += @{
+                        "includeTestToolkit"       = $true
+                        "includeTestLibrariesOnly" = [bool]$installTestLibraries
+                        "includeTestFrameworkOnly" = !$installTestLibraries -and [bool]($installTestFramework -or $installPerformanceToolkit)
+                        "includePerformanceToolkit" = [bool]$installPerformanceToolkit
+                    }
+                }
+            }
             if ($memoryLimit) { $Parameters += @{ "memoryLimit" = $memoryLimit } }
 
             $Parameters += @{
