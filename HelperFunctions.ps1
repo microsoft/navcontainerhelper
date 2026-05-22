@@ -179,9 +179,9 @@ function DockerDo {
     # Azure Front Door occasionally blocks MCR requests, returning an HTML error page
     # ("The request is blocked") instead of a proper registry response. This causes docker
     # to report "pull access denied" even though the image exists. Observed WAF block
-    # windows can last well over a minute, so the backoff schedule (5s, 30s, 60s, 120s,
-    # 180s; total ~6.6 min) is deliberately patient rather than aggressive early.
-    $retryDelays = @(5, 30, 60, 120, 180)
+    # windows can last well over a minute, so the backoff schedule (5s, 15s, 30s, 60s,
+    # 120s; total ~3.8 min) is deliberately patient rather than aggressive early.
+    $retryDelays = @(5, 15, 30, 60, 120)
     $maxRetries = 0
     if ($command -eq "pull") {
         $maxRetries = $retryDelays.Count
