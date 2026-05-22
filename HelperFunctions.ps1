@@ -178,14 +178,15 @@ function DockerDo {
     # Retry logic for docker pull to handle transient CDN/WAF errors.
     # Azure Front Door occasionally blocks MCR requests, returning an HTML error page
     # ("The request is blocked") instead of a proper registry response. This causes docker
-    # to report "pull access denied" even though the image exists. Retrying with exponential
-    # backoff (2s, 4s, 8s, 16s, 32s) resolves these intermittent failures.
+    # to report "pull access denied" even though the image exists. Observed WAF block
+    # windows can last well over a minute, so the backoff schedule (5s, 15s, 30s, 60s,
+    # 120s; total ~3.8 min) is deliberately patient rather than aggressive early.
+    $retryDelays = @(5, 15, 30, 60, 120)
     $maxRetries = 0
     if ($command -eq "pull") {
-        $maxRetries = 5
+        $maxRetries = $retryDelays.Count
     }
     $attempt = 0
-    $waitTime = 2
 
     while ($true) {
         $attempt++
@@ -250,11 +251,11 @@ function DockerDo {
             # Only retry for pull commands when the HTML WAF/CDN block signature is present;
             # genuine auth failures and missing-image errors do not contain HTML and fail immediately.
             if ($attempt -le $maxRetries -and $err -match 'pull access denied' -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+                $waitTime = $retryDelays[$attempt - 1]
                 if (!$silent) {
                     Write-Host "Docker pull failed due to a CDN/WAF block (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
                 }
                 Start-Sleep -Seconds $waitTime
-                $waitTime = $waitTime * 2
                 continue
             }
 
