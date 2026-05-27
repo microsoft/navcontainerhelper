@@ -1,3 +1,5 @@
+6.1.16
+
 6.1.15
 New-BcCompilerFolder: Add platformArtifactUrl parameter to allow using a different platform than the one related to artifactUrl (like New-BcContainer)
 Add retry with exponential backoff in DockerDo for transient MCR pull failures caused by Azure Front Door CDN/WAF blocks (delays: 5s, 15s, 30s, 60s, 120s)
