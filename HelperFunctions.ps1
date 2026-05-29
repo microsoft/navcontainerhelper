@@ -178,14 +178,15 @@ function DockerDo {
     # Retry logic for docker pull to handle transient CDN/WAF errors.
     # Azure Front Door occasionally blocks MCR requests, returning an HTML error page
     # ("The request is blocked") instead of a proper registry response. This causes docker
-    # to report "pull access denied" even though the image exists. Retrying with exponential
-    # backoff (2s, 4s, 8s, 16s, 32s) resolves these intermittent failures.
+    # to report "pull access denied" even though the image exists. Observed WAF block
+    # windows can last well over a minute, so the backoff schedule (5s, 15s, 30s, 60s,
+    # 120s; total ~3.8 min) is deliberately patient rather than aggressive early.
+    $retryDelays = @(5, 15, 30, 60, 120)
     $maxRetries = 0
     if ($command -eq "pull") {
-        $maxRetries = 5
+        $maxRetries = $retryDelays.Count
     }
     $attempt = 0
-    $waitTime = 2
 
     while ($true) {
         $attempt++
@@ -250,11 +251,11 @@ function DockerDo {
             # Only retry for pull commands when the HTML WAF/CDN block signature is present;
             # genuine auth failures and missing-image errors do not contain HTML and fail immediately.
             if ($attempt -le $maxRetries -and $err -match 'pull access denied' -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+                $waitTime = $retryDelays[$attempt - 1]
                 if (!$silent) {
                     Write-Host "Docker pull failed due to a CDN/WAF block (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
                 }
                 Start-Sleep -Seconds $waitTime
-                $waitTime = $waitTime * 2
                 continue
             }
 
@@ -1125,6 +1126,7 @@ function GetAppInfo {
     $alToolDll = ''
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             Write-Host "Use $command as altool executable."
@@ -1140,6 +1142,7 @@ function GetAppInfo {
     }
     elseif ($isMacOS) {
         $alcPath = Join-Path $binPath 'darwin'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             Write-Host "Use $command as altool executable."
@@ -1155,12 +1158,10 @@ function GetAppInfo {
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
         Write-Host "Use $command as altool executable (Exists = $alToolExists)."
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
     }
     $alcDllPath = $alcPath
     if (!($isLinux -or $isMacOS) -and !$isPsCore) {
@@ -1376,28 +1377,45 @@ function RunAlTool {
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/linux/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & chmod +x $command
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/darwin/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     else {
         $command = Join-Path $path 'extension/bin/win32/altool.exe'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool.exe'
+        }
     }
     CmdDo -Command $command -arguments $arguments -returnValue -silent
 }
