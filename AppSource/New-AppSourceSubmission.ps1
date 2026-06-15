@@ -65,6 +65,10 @@ try {
     catch {
         Write-Host "Unable to validate product $productId via Get-AppSourceProduct. Continuing without product validation."
         Write-Host ($_ | Out-String)
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host "Raw response body:"
+            Write-Host $_.ErrorDetails.Message
+        }
     }
     if ($product) {
         if ($product.Setup.packageType -eq "Connect") {
