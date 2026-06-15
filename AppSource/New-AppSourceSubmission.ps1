@@ -58,6 +58,7 @@ try {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "autoPromote" -value "$autoPromote"
     }
     
+    $product = $null
     try {
         $product = Get-AppSourceProduct -authContext $authContext -productId $productId -silent:($silent.IsPresent) -includeSetup
     }
