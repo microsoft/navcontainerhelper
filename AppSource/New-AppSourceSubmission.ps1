@@ -81,7 +81,14 @@ try {
     #     throw "No product found with ProductID=$productID with this account"
     # }
 
-    $submission = Get-AppSourceSubmission -authContext $authContext -productId $productId -silent:($silent.IsPresent)
+    $submission = $null
+    try {
+        $submission = Get-AppSourceSubmission -authContext $authContext -productId $productId -silent:($silent.IsPresent)
+    }
+    catch {
+        Write-Host "Unable to query existing submissions for product $productId via Get-AppSourceSubmission. Continuing without submission validation."
+        Write-Host ($_ | Out-String)
+    }
     if ($submission) {
         if ($submission.state -eq "InProgress") {
             if ($submission.substate -eq "Failed") {
