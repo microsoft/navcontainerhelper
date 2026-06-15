@@ -87,6 +87,10 @@ function Invoke-IngestionApiRestMethod {
                     $waitTime = $waitTime * 2
                 }
                 else {
+                    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+                        Write-Host "Ingestion API raw response body:"
+                        Write-Host $_.ErrorDetails.Message
+                    }
                     throw (GetExtendedErrorMessage $_)
                 }
             }
