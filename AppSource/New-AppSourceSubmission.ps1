@@ -63,7 +63,8 @@ try {
         $product = Get-AppSourceProduct -authContext $authContext -productId $productId -silent:($silent.IsPresent) -includeSetup
     }
     catch {
-        Write-Warning "Unable to validate product $productId via Get-AppSourceProduct: $($_.Exception.Message). Continuing without product validation."
+        Write-Host "Unable to validate product $productId via Get-AppSourceProduct. Continuing without product validation."
+        Write-Host ($_ | Out-String)
     }
     if ($product) {
         if ($product.Setup.packageType -eq "Connect") {
