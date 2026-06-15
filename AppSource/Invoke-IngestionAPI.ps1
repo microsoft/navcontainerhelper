@@ -23,6 +23,9 @@ function Invoke-IngestionApiRestMethod {
         "Authorization" = "Bearer $($authcontext.AccessToken)"
         "Content-Type" = "application/json; charset=utf-8"
     }
+    if ($env:X_MS_PUBLISHER_ID) {
+        $headers["x-ms-publisherId"] = $env:X_MS_PUBLISHER_ID
+    }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     if (!$silent) {
         Write-Host "$method $($UriBuilder.Uri.ToString())"
