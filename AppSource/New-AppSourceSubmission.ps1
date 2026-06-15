@@ -58,15 +58,22 @@ try {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "autoPromote" -value "$autoPromote"
     }
     
-    $product = Get-AppSourceProduct -authContext $authContext -productId $productId -silent:($silent.IsPresent) -includeSetup
+    try {
+        $product = Get-AppSourceProduct -authContext $authContext -productId $productId -silent:($silent.IsPresent) -includeSetup
+    }
+    catch {
+        Write-Warning "Unable to validate product $productId via Get-AppSourceProduct: $($_.Exception.Message). Continuing without product validation."
+    }
     if ($product) {
         if ($product.Setup.packageType -eq "Connect") {
             throw "Product $($product.Name) is a Connect App, you cannot submit an app to a Connect app"
         }
     }
-    else {
-        throw "No product found with ProductID=$productID with this account"
-    }
+    # Temporarily disabled while the Partner Center Ingestion API returns 400 on
+    # GET /products/{id}. Restore once the API is fixed. See navcontainerhelper#4126.
+    # else {
+    #     throw "No product found with ProductID=$productID with this account"
+    # }
 
     $submission = Get-AppSourceSubmission -authContext $authContext -productId $productId -silent:($silent.IsPresent)
     if ($submission) {
