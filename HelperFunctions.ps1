@@ -174,82 +174,116 @@ function DockerDo {
 
     $result = $true
     $arguments = ("$command " + [string]::Join(" ", $parameters) + " $imageName")
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = "docker.exe"
-    $pinfo.RedirectStandardError = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
 
+    # Retry logic for docker pull to handle transient CDN/WAF errors.
+    # Azure Front Door occasionally blocks MCR requests, returning an HTML error page
+    # ("The request is blocked") instead of a proper registry response. This causes docker
+    # to report "pull access denied" even though the image exists. Observed WAF block
+    # windows can last well over a minute, so the backoff schedule (5s, 15s, 30s, 60s,
+    # 120s; total ~3.8 min) is deliberately patient rather than aggressive early.
+    $retryDelays = @(5, 15, 30, 60, 120)
+    $maxRetries = 0
+    if ($command -eq "pull") {
+        $maxRetries = $retryDelays.Count
+    }
+    $attempt = 0
 
-    $outtask = $null
-    $errtask = $p.StandardError.ReadToEndAsync()
-    $out = ""
-    $err = ""
-    
-    do {
-        if ($outtask -eq $null) {
-            $outtask = $p.StandardOutput.ReadLineAsync()
-        }
-        $outtask.Wait(100) | Out-Null
-        if ($outtask.IsCompleted) {
-            $outStr = $outtask.Result
-            if ($outStr -eq $null) {
-                break
+    while ($true) {
+        $attempt++
+
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = "docker.exe"
+        $pinfo.RedirectStandardError = $true
+        $pinfo.RedirectStandardOutput = $true
+        $pinfo.UseShellExecute = $false
+        $pinfo.Arguments = $arguments
+        $p = New-Object System.Diagnostics.Process
+        $p.StartInfo = $pinfo
+        $p.Start() | Out-Null
+
+        $outtask = $null
+        $errtask = $p.StandardError.ReadToEndAsync()
+        $out = ""
+        $err = ""
+
+        do {
+            if ($outtask -eq $null) {
+                $outtask = $p.StandardOutput.ReadLineAsync()
             }
-            if (!$silent) {
-                Write-Host $outStr
-            }
-            $out += $outStr
-            $outtask = $null
-            if ($outStr.StartsWith("Please login")) {
-                $registry = $imageName.Split("/")[0]
-                if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
-                    throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
+            $outtask.Wait(100) | Out-Null
+            if ($outtask.IsCompleted) {
+                $outStr = $outtask.Result
+                if ($outStr -eq $null) {
+                    break
                 }
-                else {
-                    throw "You need to login to $registry prior to pulling images."
+                if (!$silent) {
+                    Write-Host $outStr
                 }
-            }
-        }
-        elseif ($outtask.IsCanceled) {
-            break
-        }
-        elseif ($outtask.IsFaulted) {
-            break
-        }
-    } while (!($p.HasExited))
-
-    $err = $errtask.Result
-    $p.WaitForExit();
-
-    if ($p.ExitCode -ne 0) {
-        $result = $false
-        if (!$silent) {
-            $out = $out.Trim()
-            $err = $err.Trim()
-            if ($command -eq "run" -and "$out" -ne "") {
-                Docker rm $out -f
-            }
-            $errorMessage = ""
-            if ("$err" -ne "") {
-                $errorMessage += "$err`r`n"
-                if ($err.Contains("authentication required")) {
+                $out += $outStr
+                $outtask = $null
+                if ($outStr.StartsWith("Please login")) {
                     $registry = $imageName.Split("/")[0]
                     if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
-                        $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
+                        throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
                     }
                     else {
-                        $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
+                        throw "You need to login to $registry prior to pulling images."
                     }
                 }
             }
-            $errorMessage += "ExitCode: " + $p.ExitCode + "`r`nCommandline: docker $arguments"
-            Write-Error -Message $errorMessage
+            elseif ($outtask.IsCanceled) {
+                break
+            }
+            elseif ($outtask.IsFaulted) {
+                break
+            }
+        } while (!($p.HasExited))
+
+        $err = $errtask.Result
+        $p.WaitForExit();
+        $exitCode = $p.ExitCode
+        $p.Dispose();
+
+        if ($exitCode -ne 0) {
+            # Detect transient Azure Front Door CDN/WAF blocks on MCR.
+            # When this happens, docker reports "pull access denied ... denied: <!DOCTYPE html..."
+            # containing an HTML page with "The request is blocked" from Azure Front Door.
+            # Only retry for pull commands when the HTML WAF/CDN block signature is present;
+            # genuine auth failures and missing-image errors do not contain HTML and fail immediately.
+            if ($attempt -le $maxRetries -and $err -match 'pull access denied' -and ($err -match '<html' -or $err -match 'The request is blocked')) {
+                $waitTime = $retryDelays[$attempt - 1]
+                if (!$silent) {
+                    Write-Host "Docker pull failed due to a CDN/WAF block (attempt $attempt of $($maxRetries + 1)), retrying in $waitTime seconds..."
+                }
+                Start-Sleep -Seconds $waitTime
+                continue
+            }
+
+            $result = $false
+            if (!$silent) {
+                $out = $out.Trim()
+                $err = $err.Trim()
+                if ($command -eq "run" -and "$out" -ne "") {
+                    Docker rm $out -f
+                }
+                $errorMessage = ""
+                if ("$err" -ne "") {
+                    $errorMessage += "$err`r`n"
+                    if ($err.Contains("authentication required")) {
+                        $registry = $imageName.Split("/")[0]
+                        if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
+                            $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
+                        }
+                        else {
+                            $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
+                        }
+                    }
+                }
+                $errorMessage += "ExitCode: " + $exitCode + "`r`nCommandline: docker $arguments"
+                Write-Error -Message $errorMessage
+            }
         }
+        break
     }
     $result
 }
@@ -1092,6 +1126,7 @@ function GetAppInfo {
     $alToolDll = ''
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             Write-Host "Use $command as altool executable."
@@ -1107,6 +1142,7 @@ function GetAppInfo {
     }
     elseif ($isMacOS) {
         $alcPath = Join-Path $binPath 'darwin'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
             Write-Host "Use $command as altool executable."
@@ -1122,12 +1158,10 @@ function GetAppInfo {
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
+        if (-not (Test-Path $alcPath)) { $alcPath = $binPath }
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
         Write-Host "Use $command as altool executable (Exists = $alToolExists)."
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
     }
     $alcDllPath = $alcPath
     if (!($isLinux -or $isMacOS) -and !$isPsCore) {
@@ -1339,28 +1373,45 @@ function RunAlTool {
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $command = Join-Path $path 'extension/bin/linux/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/linux/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     elseif ($isMacOS) {
         $command = Join-Path $path 'extension/bin/darwin/altool'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool'
+        }
         if (Test-Path $command) {
             & chmod +x $command
         }
         else {
             Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
-            $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
+            $altoolDll = Join-Path $path 'extension/bin/darwin/altool.dll'
+            if (-not (Test-Path $altoolDll)) {
+                $altoolDll = Join-Path $path 'extension/bin/altool.dll'
+            }
+            $arguments = @($altoolDll) + $arguments
         }
     }
     else {
         $command = Join-Path $path 'extension/bin/win32/altool.exe'
+        if (-not (Test-Path $command)) {
+            $command = Join-Path $path 'extension/bin/altool.exe'
+        }
     }
     CmdDo -Command $command -arguments $arguments -returnValue -silent
 }
