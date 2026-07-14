@@ -123,7 +123,7 @@ try {
         $zipArchive.Entries | ForEach-Object {
             $fullname = Join-Path $appFolder ([Uri]::UnescapeDataString($_.FullName))
             $dir = [System.IO.Path]::GetDirectoryName($fullname)
-            if ($dir -ne $prevdir) {
+            if ($dir -cne $prevdir) {
                 if (-not (Test-Path $dir -PathType Container)) {
                     New-Item -Path $dir -ItemType Directory | Out-Null
                 }
