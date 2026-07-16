@@ -55,7 +55,7 @@ Function Find-BcNuGetPackage {
 
     $returnValue = @()
     $bestmatch = $null
-    $packageCount = 0
+    $matchingPackagesCount = 0
     # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
@@ -75,7 +75,7 @@ Function Find-BcNuGetPackage {
                         Write-Host "No package found matching version '$version' for package id $($packageId)"
                         continue
                     }
-                    $packageCount++
+                    $matchingPackagesCount++
                     $packageVersions = $packageVersionsStr.Split(',')
                     foreach($packageVersion in $packageVersions.Split(',')) {
                         if ($bestmatch) {
@@ -134,12 +134,18 @@ Function Find-BcNuGetPackage {
         return $bestmatch.Feed, $bestmatch.PackageId, $bestmatch.PackageVersion
     }
     else {
-        if ($packageCount -gt 1) {
+        if ($matchingPackagesCount -gt 1) {
+            Write-Host "Found $matchingPackagesCount matching packages across all feeds"
+
             # Deduplicate by PackageId and PackageVersion across all feeds
-            $packageVersionsHashSet = [System.Collections.Generic.HashSet[string]]::new()
-            $returnValue = @($returnValue | Where-Object { $packageVersionsHashSet.Add("$($_.PackageId)|$($_.PackageVersion)") })
-            # Sort all versions across all feeds and packages
-            $returnValue = @($returnValue | Sort-Object { ($_.PackageVersion -replace '-.+$') -as [System.Version]  }, { "$($_.PackageVersion)z" } -Descending:($select -eq 'AllDescending'))
+            Write-Host "Deduplicating by PackageId and PackageVersion across all feeds"
+            $returnValue = @($returnValue | Sort-Object { "$($_.PackageId)|$($_.PackageVersion)" } -Unique)
+
+            if ($select -eq 'AllAscending' -or $select -eq 'AllDescending') {
+                # Sort all versions across all feeds and packages
+                Write-Host "Sorting all versions across all feeds and packages"
+                $returnValue = @($returnValue | Sort-Object { ($_.PackageVersion -replace '-.+$') -as [System.Version]  }, { "$($_.PackageVersion)z" } -Descending:($select -eq 'AllDescending'))
+            }
         }
         return $returnValue
     }
