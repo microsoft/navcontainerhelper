@@ -6,6 +6,8 @@
   Returns a compilerFolder path, which can be used for functions like Compile-AppWithBcCompilerFolder or Remove-BcCompilerFolder
  .PARAMETER artifactUrl
   Artifacts URL to download the compiler and all .app files from
+ .PARAMETER platformArtifactUrl
+  Url for platform artifact to use. Use this when you want to use a different platform than the one related to artifactUrl.
  .PARAMETER containerName
   Name of the folder in which to create the compiler folder or empty to use a default name consisting of type-version-country
  .PARAMETER cacheFolder
@@ -34,6 +36,7 @@
 function New-BcCompilerFolder {
     Param(
         [string] $artifactUrl,
+        [string] $platformArtifactUrl = '',
         [string] $containerName = '',
         [string] $cacheFolder = '',
         [string] $packagesFolder = '',
@@ -43,6 +46,9 @@ function New-BcCompilerFolder {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+    if ($platformArtifactUrl -and -not $artifactUrl) {
+        throw "You have to specify artifactUrl when using platformArtifactUrl."
+    }
     $parts = $artifactUrl.Split('?')[0].Split('/')
     if ($parts.Count -lt 6) {
         throw "Invalid artifact URL"
@@ -56,7 +62,7 @@ try {
     if ($version -lt "16.0.0.0") {
         throw "Containerless compiling is not supported with versions before 16.0"
     }
-    
+
     if (!$containerName) {
         $containerName = [GUID]::NewGuid().ToString()
     }
@@ -81,7 +87,7 @@ try {
 
     $newtonSoftDllPath = ''
     if ($includeAL -or !(Test-Path $symbolsPath)) {
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
         $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\*\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
@@ -144,7 +150,7 @@ try {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
             $platformAppsPath = Join-Path $platformArtifactPath '?pplications' -Resolve
             $appAppsPath = Join-Path $AppArtifactPath '?pplications.*' -Resolve
-            
+
             $platformApps = @(Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse)
             Write-Host "PlatForm apps"
             $platformApps | ForEach-Object { Write-Host "- $($_.Name)" }
@@ -271,6 +277,7 @@ try {
         $alToolExePath = Join-Path $containerCompilerPath "extension/bin/$($compilerPlatform)/altool"
 
         if (Test-Path $alcExePath) {
+            # Old VSIX layout with platform-specific subdirs
             if (Test-Path $alToolExePath) {
                 # Set execute permissions on altool
                 if ($isLinux) {
@@ -286,12 +293,16 @@ try {
                 & chmod +x $alcExePath
             }
         } else {
-            # Patch alc.runtimeconfig.json for use with Linux or macOS
-            Write-Host "Patching alc.runtimeconfig.json for use with $($compilerPlatform)"
+            # New VSIX layout (flat bin/) or old layout needing runtimeconfig patching
             $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/win32/alc.runtimeconfig.json'
+            if (-not (Test-Path $alcConfigPath)) {
+                $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/alc.runtimeconfig.json'
+            }
             if (Test-Path $alcConfigPath) {
                 $oldAlcConfig = Get-Content -Path $alcConfigPath -Encoding UTF8 | ConvertFrom-Json
                 if ($oldAlcConfig.runtimeOptions.PSObject.Properties.Name -eq 'includedFrameworks') {
+                    # Old self-contained VSIX: patch runtimeconfig for Linux/macOS
+                    Write-Host "Patching alc.runtimeconfig.json for use with $($compilerPlatform)"
                     $newAlcConfig = @{
                         "runtimeOptions" = @{
                             "tfm" = "net6.0"
@@ -306,6 +317,7 @@ try {
                     }
                     $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
                 }
+                # else: new framework-dependent VSIX already has "framework" key, no patching needed
             }
         }
     }

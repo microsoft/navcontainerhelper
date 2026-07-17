@@ -14,7 +14,8 @@ Function Get-BcContainerLicenseInformation {
     )
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
-        Get-NavServerInstance | Export-NAVServerLicenseInformation
+        $firstAvailableTenant = (Get-NavServerInstance | Get-NavTenant | Where-Object { $_.State -eq 'Operational'})[0].Id
+        Get-NavServerInstance | Export-NAVServerLicenseInformation -Tenant $firstAvailableTenant
     }
 }
 Set-Alias -Name Get-NavContainerLicenseInformation -Value Get-BcContainerLicenseInformation
