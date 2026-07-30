@@ -650,6 +650,10 @@ function RunPageScriptingTests {
 }
 
 function InstallMissingTestAppDependencies {
+    param(
+        [ref] $appsBeforeTestApps
+    )
+
     if (!$missingTestAppDependencies) {
         return
     }
@@ -692,17 +696,13 @@ function InstallMissingTestAppDependencies {
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 
         if ($useCompilerFolder) {
-            $appsBeforeTestApps = Get-Variable -Name "appsBeforeTestApps" -ValueOnly -Scope 1 # Get variable from parent scope
-
             Write-Host "check $appSymbolsFolder"
             Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
                 Write-Host "Move $($_.Name) to $packagesFolder"
                 Move-Item -Path $_.FullName -Destination $packagesFolder -Force
-                $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
+                $appsBeforeTestApps.Value += @(Join-Path $packagesFolder $_.Name)
             }
             Remove-Item -Path $appSymbolsFolder -Recurse -Force
-
-            Set-Variable -Name "appsBeforeTestApps" -Value $appsBeforeTestApps -Scope 1 # Set variable in parent scope
         }
     } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
     Write-GroupEnd
@@ -1900,7 +1900,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
-InstallMissingTestAppDependencies
+InstallMissingTestAppDependencies -appsBeforeTestApps ([ref]$appsBeforeTestApps)
 }
 
 if (-not $testCountry) {
@@ -2081,7 +2081,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
-InstallMissingTestAppDependencies
+InstallMissingTestAppDependencies -appsBeforeTestApps ([ref]$appsBeforeTestApps)
 }
 
 Write-GroupStart -Message "Compiling test apps"
