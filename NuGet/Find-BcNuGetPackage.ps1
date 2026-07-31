@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   PROOF OF CONCEPT PREVIEW: Get Business Central NuGet Package from NuGet Server
  .Description
@@ -55,6 +55,7 @@ Function Find-BcNuGetPackage {
 
     $returnValue = @()
     $bestmatch = $null
+    $matchingPackagesCount = 0
     # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
@@ -74,11 +75,12 @@ Function Find-BcNuGetPackage {
                         Write-Host "No package found matching version '$version' for package id $($packageId)"
                         continue
                     }
+                    $matchingPackagesCount++
                     $packageVersions = $packageVersionsStr.Split(',')
                     foreach($packageVersion in $packageVersions.Split(',')) {
                         if ($bestmatch) {
                             # We already have a match, check if this is a better match
-                            if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or 
+                            if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or
                                 ($select -eq 'Latest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq 1))) {
                                 $bestmatch = [PSCustomObject]@{
                                     "Feed" = $nuGetFeed
@@ -132,6 +134,19 @@ Function Find-BcNuGetPackage {
         return $bestmatch.Feed, $bestmatch.PackageId, $bestmatch.PackageVersion
     }
     else {
+        if ($matchingPackagesCount -gt 1) {
+            Write-Host "Found $matchingPackagesCount matching packages across all feeds"
+
+            # Deduplicate by PackageId and PackageVersion across all feeds
+            Write-Host "Deduplicating by PackageId and PackageVersion across all feeds"
+            $returnValue = @($returnValue | Sort-Object { "$($_.PackageId)|$($_.PackageVersion)" } -Unique)
+
+            if ($select -eq 'AllAscending' -or $select -eq 'AllDescending') {
+                # Sort all versions across all feeds and packages
+                Write-Host "Sorting all versions across all feeds and packages"
+                $returnValue = @($returnValue | Sort-Object { ($_.PackageVersion -replace '-.+$') -as [System.Version]  }, { "$($_.PackageVersion)z" } -Descending:($select -eq 'AllDescending'))
+            }
+        }
         return $returnValue
     }
 }
