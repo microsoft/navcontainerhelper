@@ -1,0 +1,15 @@
+# Configuration options at https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml
+
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directories:
+    - ".github/workflows/"
+  groups:
+    External-Dependencies:
+      applies-to: version-updates
+      dependency-type: "production"
+  schedule:
+    interval: weekly
+  cooldown:
+    default-days: 7
