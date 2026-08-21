@@ -1,3 +1,5 @@
+6.1.17
+
 6.1.16
 Issue 4060 Download-BcNuGetPackageToFolder downloads wrong version for "LatestMatching" and "EarliestMatching" for multiple matching packages
 Fix error when extracting apps whit paths that differ only in their casing
