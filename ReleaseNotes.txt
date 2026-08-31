@@ -1,6 +1,8 @@
 6.1.17
 Fix Run-ALPipeline ignoring installed apps and country when installing missing test app dependencies with useCompilerFolder
 Fix Run-ALPipeline not publishing test app dependencies before publishing the test app with useCompilerFolder
+Fix AppSource upload failing on Front Door SAS URIs
+BC29 moved dll to Admin folder
 
 6.1.16
 Issue 4060 Download-BcNuGetPackageToFolder downloads wrong version for "LatestMatching" and "EarliestMatching" for multiple matching packages

@@ -145,19 +145,29 @@ try {
             }
             $packageUpload = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/packages" -Body $body -silent:($silent.IsPresent)
         
-            $uri = [System.Uri] $packageUpload.fileSasUri
-            $storageAccountName = $uri.DnsSafeHost.Split(".")[0]
-            $container = $uri.LocalPath.Substring(1).split('/')[0]
-            $blobname = $uri.LocalPath.Substring(1).split('/')[1]
-            $sasToken = $uri.Query
-
-            if (!(get-command New-AzureStorageContext -ErrorAction SilentlyContinue)) {
-                Set-Alias -Name New-AzureStorageContext -Value New-AzStorageContext
-                Set-Alias -Name Set-AzureStorageBlobContent -Value Set-AzStorageBlobContent
+            # Upload directly to the SAS URI as-issued (works for any host, e.g. Azure Front Door - see issue #4191).
+            # Fall back to the legacy Az.Storage upload (only valid for <account>.blob.core.windows.net hosts) if that fails.
+            try {
+                Invoke-RestMethod -Method Put -Uri $packageUpload.fileSasUri -InFile $file -Headers @{ 'x-ms-blob-type' = 'BlockBlob' } -ContentType 'application/octet-stream' | Out-Null
             }
+            catch {
+                if (!$silent) {
+                    Write-Host -ForegroundColor Yellow "WARNING: Direct upload to the SAS URI failed ($($_.Exception.Message.Trim())). Falling back to the Az.Storage upload."
+                }
+                $uri = [System.Uri] $packageUpload.fileSasUri
+                $storageAccountName = $uri.DnsSafeHost.Split(".")[0]
+                $container = $uri.LocalPath.Substring(1).split('/')[0]
+                $blobname = $uri.LocalPath.Substring(1).split('/')[1]
+                $sasToken = $uri.Query
 
-            $storageContext = New-AzureStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
-            Set-AzureStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
+                if (!(get-command New-AzureStorageContext -ErrorAction SilentlyContinue)) {
+                    Set-Alias -Name New-AzureStorageContext -Value New-AzStorageContext
+                    Set-Alias -Name Set-AzureStorageBlobContent -Value Set-AzStorageBlobContent
+                }
+
+                $storageContext = New-AzureStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
+                Set-AzureStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
+            }
         
             $packageUpload.state = "Uploaded"
             $packageUploaded = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/packages/$($packageUpload.id)" -Body ($packageUpload | ConvertTo-HashTable) -silent:($silent.IsPresent)
