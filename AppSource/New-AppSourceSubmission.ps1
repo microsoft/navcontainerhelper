@@ -145,12 +145,8 @@ try {
             }
             $packageUpload = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/packages" -Body $body -silent:($silent.IsPresent)
         
-            # Upload the package to the SAS URI returned by the Ingestion API.
-            # Primary path uploads the bytes directly to the SAS URI as-issued,
-            # which works regardless of the host (e.g. an Azure Front Door host
-            # like *.azurefd.net, see issue #4191). If that fails, fall back to
-            # the legacy Az.Storage upload (which reconstructs the storage account
-            # endpoint from the SAS URI - only valid for <account>.blob.core.windows.net hosts).
+            # Upload directly to the SAS URI as-issued (works for any host, e.g. Azure Front Door - see issue #4191).
+            # Fall back to the legacy Az.Storage upload (only valid for <account>.blob.core.windows.net hosts) if that fails.
             try {
                 Invoke-RestMethod -Method Put -Uri $packageUpload.fileSasUri -InFile $file -Headers @{ 'x-ms-blob-type' = 'BlockBlob' } -ContentType 'application/octet-stream' | Out-Null
             }
