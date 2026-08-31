@@ -1,3 +1,5 @@
+6.1.18
+
 6.1.17
 Fix Run-ALPipeline ignoring installed apps and country when installing missing test app dependencies with useCompilerFolder
 Fix Run-ALPipeline not publishing test app dependencies before publishing the test app with useCompilerFolder
