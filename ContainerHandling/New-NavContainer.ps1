@@ -453,10 +453,29 @@ try {
         Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers. If Docker Desktop is already installed, open the system tray, right-click on the Docker icon, and select 'Switch to Windows containers...'"
     }
 
-    $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
-    $dockerOS = $dockerVersion.Split('/')[0]
-    $dockerClientVersion = $dockerVersion.Split('/')[1]
-    $dockerServerVersion = $dockerVersion.Split('/')[2]
+    # The Docker daemon might still be starting up (e.g. right after the host boots or on CI runners).
+    # In that case the docker client responds, but the server properties are empty. Poll for a bounded
+    # amount of time before giving up, so a transient "not yet ready" state doesn't fail the operation.
+    $dockerOS = ""
+    $dockerClientVersion = ""
+    $dockerServerVersion = ""
+    $dockerReadyTimeout = [DateTime]::Now.AddSeconds(120)
+    while ($true) {
+        try {
+            $dockerVersion = "$(docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}")"
+        }
+        catch {
+            $dockerVersion = ""
+        }
+        $dockerOS = $dockerVersion.Split('/')[0]
+        $dockerClientVersion = $dockerVersion.Split('/')[1]
+        $dockerServerVersion = $dockerVersion.Split('/')[2]
+        if ("$dockerOS" -ne "" -or [DateTime]::Now -ge $dockerReadyTimeout) {
+            break
+        }
+        Write-Host "Docker service is not yet ready, waiting..."
+        Start-Sleep -Seconds 2
+    }
 
     if ("$dockerOS" -eq "") {
         throw "Docker service is not yet ready."

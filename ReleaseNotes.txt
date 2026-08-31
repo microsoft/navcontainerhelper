@@ -1,6 +1,7 @@
 6.1.17
 Fix AppSource upload failing on Front Door SAS URIs
 BC29 moved dll to Admin folder
+New-BcContainer: Wait for the Docker service to become ready (poll up to 120 seconds) instead of failing immediately with "Docker service is not yet ready" when the daemon is still starting up (e.g. on CI runners). The RunTests workflow also waits for Docker before running the Windows test jobs.
 
 6.1.16
 Issue 4060 Download-BcNuGetPackageToFolder downloads wrong version for "LatestMatching" and "EarliestMatching" for multiple matching packages
