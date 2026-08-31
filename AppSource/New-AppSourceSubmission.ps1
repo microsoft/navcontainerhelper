@@ -146,13 +146,18 @@ try {
             $packageUpload = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/packages" -Body $body -silent:($silent.IsPresent)
         
             # Upload the package to the SAS URI returned by the Ingestion API.
-            # Primary path uses the Az.Storage cmdlets (reconstructing the storage
-            # account endpoint from the SAS URI). If that fails - e.g. when the
-            # Ingestion API returns a SAS URI on a host that isn't a plain
-            # <account>.blob.core.windows.net endpoint (such as an Azure Front Door
-            # host like *.azurefd.net) - fall back to uploading the bytes directly
-            # to the SAS URI as-issued (see issue #4191).
+            # Primary path uploads the bytes directly to the SAS URI as-issued,
+            # which works regardless of the host (e.g. an Azure Front Door host
+            # like *.azurefd.net, see issue #4191). If that fails, fall back to
+            # the legacy Az.Storage upload (which reconstructs the storage account
+            # endpoint from the SAS URI - only valid for <account>.blob.core.windows.net hosts).
             try {
+                Invoke-RestMethod -Method Put -Uri $packageUpload.fileSasUri -InFile $file -Headers @{ 'x-ms-blob-type' = 'BlockBlob' } -ContentType 'application/octet-stream' | Out-Null
+            }
+            catch {
+                if (!$silent) {
+                    Write-Host -ForegroundColor Yellow "WARNING: Direct upload to the SAS URI failed ($($_.Exception.Message.Trim())). Falling back to the Az.Storage upload."
+                }
                 $uri = [System.Uri] $packageUpload.fileSasUri
                 $storageAccountName = $uri.DnsSafeHost.Split(".")[0]
                 $container = $uri.LocalPath.Substring(1).split('/')[0]
@@ -166,12 +171,6 @@ try {
 
                 $storageContext = New-AzureStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
                 Set-AzureStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
-            }
-            catch {
-                if (!$silent) {
-                    Write-Host -ForegroundColor Yellow "WARNING: Uploading through Az.Storage failed ($($_.Exception.Message.Trim())). Falling back to a direct upload to the SAS URI."
-                }
-                Invoke-RestMethod -Method Put -Uri $packageUpload.fileSasUri -InFile $file -Headers @{ 'x-ms-blob-type' = 'BlockBlob' } -ContentType 'application/octet-stream' | Out-Null
             }
         
             $packageUpload.state = "Uploaded"
