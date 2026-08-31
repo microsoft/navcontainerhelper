@@ -83,7 +83,7 @@ Describe 'Run-AlPipeline' {
                 -useCompilerFolder `
                 -packagesFolder $packagesFolder `
                 -environment "https://localhost" `
-                -bcAuthContext @{ username = "dummy"; password =  ConvertTo-SecureString "dummy" -AsPlainText } `
+                -bcAuthContext @{ username = "dummy"; password =  ConvertTo-SecureString "dummy" -AsPlainText -Force } `
                 -doNotRunTests `
                 -installTestRunner `
                 -installTestFramework `
