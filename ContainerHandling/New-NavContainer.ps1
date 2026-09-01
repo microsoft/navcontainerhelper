@@ -1579,8 +1579,14 @@ if (!(Test-Path "c:\navpfiles\*")) {
         else {
             $userPlanTableName = 'User Plan'
         }
+
+        $fullUserLicenseType = "FullUser"
+        if ($version.Major -ge 29) {
+            $fullUserLicenseType = "Full User"
+        }
+        
         ('
-Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "'+$fullUserLicenseType+'" | ForEach-Object {
     $UserId = $_.UserSecurityId
     Write-Host "Assign Premium plan for $($_.Username)"
     $dbName = $DatabaseName
