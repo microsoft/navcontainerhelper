@@ -1,5 +1,5 @@
 6.1.18
-
+Issue 4186 Backup-BcContainerDatabases fails on BC29 multitenant containers ('The tenant ''tenant'' is not mounted or does not exist.')
 6.1.17
 Fix AppSource upload failing on Front Door SAS URIs
 BC29 moved dll to Admin folder
