@@ -99,12 +99,13 @@ try {
             }
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
             $tenant | ForEach-Object {
-                $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue
+                $tenantInfo = $null
+                try { $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue } catch { }
                 if ($tenantInfo) {
                     $dbName = $tenantInfo.DatabaseName
                 }
                 else {
-                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
+                    try { $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue } catch { $tenantInfo = $null }
                     if ($tenantInfo) {
                         $dbName = $tenantInfo.DatabaseName.replace('default',$_)
                     }
