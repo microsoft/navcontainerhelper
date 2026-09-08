@@ -95,9 +95,10 @@
             Get-EffectiveUseSession -major 28 -useSession $true -usePwsh $true -config $config | Should -BeFalse
         }
 
-        It 'disables BC v29 by default and honors usePsSessionForBc28 for v29' {
+        It 'disables BC v29 and v30 by default and honors usePsSessionForBc28 for v29+' {
             $defaultConfig = @{ usePsSessionForBc27 = $false; usePsSessionForBc28 = $false }
             Get-EffectiveUseSession -major 29 -useSession $true -usePwsh $true -config $defaultConfig | Should -BeFalse
+            Get-EffectiveUseSession -major 30 -useSession $true -usePwsh $true -config $defaultConfig | Should -BeFalse
             $enabledConfig = @{ usePsSessionForBc27 = $false; usePsSessionForBc28 = $true }
             Get-EffectiveUseSession -major 29 -useSession $true -usePwsh $true -config $enabledConfig | Should -BeTrue
         }
