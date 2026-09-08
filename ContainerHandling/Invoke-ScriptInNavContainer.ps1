@@ -35,8 +35,10 @@ function Invoke-ScriptInBcContainer {
     if ($useSession -and $usePwsh) {
         # Check if we should disable PS sessions for BC v27+ due to known PS7 remote session issues
         # https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues#business-central-admin-shell-modules-fail-in-powershell7-remote-sessions
-        # usePsSessionForBc28 is kept as a backward-compatible alias for the renamed usePsSessionForBc27 flag
-        if ($platformVersion.Major -ge 27 -and -not ($bcContainerHelperConfig.usePsSessionForBc27 -or $bcContainerHelperConfig.usePsSessionForBc28)) {
+        # Each flag governs its own version band independently:
+        #   usePsSessionForBc27 controls BC v27 only, usePsSessionForBc28 controls BC v28 and later.
+        if (($platformVersion.Major -eq 27 -and -not $bcContainerHelperConfig.usePsSessionForBc27) -or
+            ($platformVersion.Major -ge 28 -and -not $bcContainerHelperConfig.usePsSessionForBc28)) {
             $useSession = $false
         }
     }

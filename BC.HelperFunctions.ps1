@@ -23,6 +23,7 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $true
             "usePwshForBc24" = $true
             "usePsSessionForBc27" = $false
+            "usePsSessionForBc28" = $false
             "useSslForWinRmSession" = $true
             "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
