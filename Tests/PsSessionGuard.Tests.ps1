@@ -9,9 +9,10 @@
         # Faithful replica of the guard decision in Invoke-ScriptInNavContainer.ps1.
         # A source-content test below asserts the real source still matches this predicate,
         # so this replica cannot silently drift from the shipped code.
-        # Each flag governs its own version band independently:
-        #   usePsSessionForBc27 -> BC v27 only
-        #   usePsSessionForBc28 -> BC v28 and later
+        # Each flag governs its own version independently:
+        #   usePsSessionForBc27 -> BC v27
+        #   usePsSessionForBc28 -> BC v28
+        # BC v29 and later keep PS sessions enabled.
         function Get-EffectiveUseSession {
             param(
                 [int]  $major,
@@ -21,7 +22,7 @@
             )
             if ($useSession -and $usePwsh) {
                 if (($major -eq 27 -and -not $config.usePsSessionForBc27) -or
-                    ($major -ge 28 -and -not $config.usePsSessionForBc28)) {
+                    ($major -eq 28 -and -not $config.usePsSessionForBc28)) {
                     $useSession = $false
                 }
             }
@@ -43,10 +44,12 @@
             $errors | Should -BeNullOrEmpty
         }
 
-        It 'guard source uses independent per-version-band logic for both flags' {
+        It 'guard source uses independent per-version -eq bands for both flags' {
             $content = Get-Content -Raw -Path $guardFile
             $content | Should -Match '\$platformVersion\.Major\s+-eq\s+27\s+-and\s+-not\s+\$bcContainerHelperConfig\.usePsSessionForBc27'
-            $content | Should -Match '\$platformVersion\.Major\s+-ge\s+28\s+-and\s+-not\s+\$bcContainerHelperConfig\.usePsSessionForBc28'
+            $content | Should -Match '\$platformVersion\.Major\s+-eq\s+28\s+-and\s+-not\s+\$bcContainerHelperConfig\.usePsSessionForBc28'
+            # v29+ must not be swept in via a -ge comparison.
+            $content | Should -Not -Match '\.Major\s+-ge\s+2[789]'
         }
 
         It 'config default exposes both usePsSessionForBc27 and usePsSessionForBc28' {
@@ -95,9 +98,10 @@
             Get-EffectiveUseSession -major 28 -useSession $true -usePwsh $true -config $config | Should -BeFalse
         }
 
-        It 'disables BC v29 by default and honors usePsSessionForBc28 for v29' {
+        It 'keeps the session enabled for BC v29 and later (not a known-affected version)' {
             $defaultConfig = @{ usePsSessionForBc27 = $false; usePsSessionForBc28 = $false }
-            Get-EffectiveUseSession -major 29 -useSession $true -usePwsh $true -config $defaultConfig | Should -BeFalse
+            Get-EffectiveUseSession -major 29 -useSession $true -usePwsh $true -config $defaultConfig | Should -BeTrue
+            Get-EffectiveUseSession -major 30 -useSession $true -usePwsh $true -config $defaultConfig | Should -BeTrue
             $enabledConfig = @{ usePsSessionForBc27 = $false; usePsSessionForBc28 = $true }
             Get-EffectiveUseSession -major 29 -useSession $true -usePwsh $true -config $enabledConfig | Should -BeTrue
         }
