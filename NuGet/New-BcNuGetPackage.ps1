@@ -55,7 +55,7 @@
  .Parameter destinationFolder
   Folder to create the NuGet package in. Default it to create a temporary folder and delete it after the NuGet package has been created
  .Example
-  $package = New-BcNuGetPackage -appfile "C:\Users\freddyk\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
+  $package = New-BcNuGetPackage -appfile "C:\Users\me\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
  .Example
   $package = New-BcNuGetPackage -appfile $appfile -packageId "AL-Go-{id}" -dependencyIdTemplate "AL-Go-{id}"
 #>

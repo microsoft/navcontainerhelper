@@ -10,7 +10,7 @@
  .Parameter group
   Name of the local group to add the user to (default is administrators)
  .Example
-  New-BcContainerWindowsUser -containerName test -tenantId mytenant -username freddyk -password $password
+  New-BcContainerWindowsUser -containerName test -tenantId mytenant -username myuser -password $password
 #>
 function New-BcContainerWindowsUser {
     Param (

@@ -98,7 +98,7 @@ to run your first NAV container using NavUserPassword authentication. PowerShell
 
 New-NavContainer will remove existing containers with the same name before starting a new container. The container will be started as a process and the output of the function will be displayed in the PowerShell output window.
 
-    PS C:\Users\freddyk> New-NavContainer -accept_eula -containerName "test" -auth NavUserPassword -imageName "microsoft/dynamics-nav"
+    PS C:\Users\me> New-NavContainer -accept_eula -containerName "test" -auth NavUserPassword -imageName "microsoft/dynamics-nav"
     Creating Nav container test
     Using image microsoft/dynamics-nav
     NAV Version: 11.0.20783.0-w1

@@ -76,11 +76,11 @@
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
-  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\me\Documents\AL\Test"
  .Example
-  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\me\Documents\AL\Test"
  .Example
-  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
+  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\me\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\me\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
 function Compile-AppInBcContainer {
     Param (
