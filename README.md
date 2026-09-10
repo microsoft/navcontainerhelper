@@ -172,6 +172,103 @@ These images will also be tagged with the `osversion`, but BcContainerHelper's `
 - Windows 11 will always get `ltsc2022` and can still run process isolation.
 - Windows Server 2019 can run process isolation with a matching image.
 - Windows Server 2022 can run process isolation with the latest image
+
+# Building and Testing Locally
+
+This section is for contributors who want to build (load) the module from source and run the automated tests on their own machine. BcContainerHelper is a **PowerShell script module**, so there is no compilation step - "building" simply means importing the module from the cloned repository into your PowerShell session.
+
+## Prerequisites
+
+Before you start, make sure the following are in place:
+
+- **Windows 10/11 or Windows Server** with **Docker** installed and switched to **Windows containers** (the tests create Business Central containers). See [Local Installation](#local-installation) above for setting up Docker.
+- **PowerShell 5.1** and/or **PowerShell 7** (the CI runs the test suite on both).
+- **[Pester](https://pester.dev) v5 or later** - install with `Install-Module Pester -Force`.
+- **Git** with **[Git LFS](https://git-lfs.com)** installed - several test assets under `Tests\` are stored in LFS and must be pulled before running the tests.
+- **Two Business Central license files (`.flf`)**: a runtime license (`licenseFile`) and a build license (`buildLicenseFile`). The tests need these to create and build inside the containers.
+- Enough disk space and memory to pull Business Central artifacts and run containers (16 GB memory recommended).
+
+## Step 1: Clone the repository (with LFS)
+
+```PowerShell
+git clone https://github.com/microsoft/navcontainerhelper.git
+cd navcontainerhelper
+git lfs pull
+```
+
+`git lfs pull` ensures the binary test assets (apps, packages, etc.) are downloaded and not left as LFS pointer files.
+
+## Step 2: Build (import) the module locally
+
+From the repository root, dot-source the import script to load the module into your current session:
+
+```PowerShell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+. .\Import-BcContainerHelper.ps1
+```
+
+`Import-BcContainerHelper.ps1` unblocks the downloaded files and imports `BcContainerHelper.psd1`. To load the split `BC.*` sub-modules instead, dot-source `. .\Import-BC.ps1`.
+
+Verify the module loaded and its functions are available:
+
+```PowerShell
+Get-Command -Module BcContainerHelper | Measure-Object
+```
+
+## Step 3: Run the tests locally
+
+The Pester tests live in `Tests\*.Tests.ps1`. Each test re-imports `BcContainerHelper.psm1` and creates the containers it needs, so you do not have to build anything separately - you only need Docker running and your two license files. Point the commands below at your own `.flf` files.
+
+**Option A - Run the full test suite**
+
+Creates the NAV and BC containers once, runs every `*.Tests.ps1`, then removes the containers:
+
+```PowerShell
+.\Tests\_TestRunner.ps1 -licenseFile "C:\temp\license.flf" -buildLicenseFile "C:\temp\build.flf"
+```
+
+**Option B - Run a single test file**
+
+Faster while iterating on one area. Use `-testScript` to pick the file:
+
+```PowerShell
+.\Tests\_TestRunOne.ps1 -licenseFile "C:\temp\license.flf" -buildLicenseFile "C:\temp\build.flf" -testScript "Misc.Tests.ps1"
+```
+
+`Tests\_DoRunOne.ps1` is a convenience wrapper that invokes `_TestRunOne.ps1` through Pester.
+
+**Option C - Invoke Pester directly (mirrors CI)**
+
+This is the exact pattern used by the CI workflow and gives you full control over Pester:
+
+```PowerShell
+$pesterContainer = New-PesterContainer -Path ".\Tests\Misc.Tests.ps1" -Data @{
+    licenseFile      = "C:\temp\license.flf"
+    buildLicenseFile = "C:\temp\build.flf"
+}
+Invoke-Pester -Container $pesterContainer -Passthru
+```
+
+## Step 4 (optional): Run the Linux tests
+
+A subset of tests under `LinuxTests\*.Tests.ps1` runs on **PowerShell 7** (and on Linux in CI). Run one the same way as above from a `pwsh` session:
+
+```PowerShell
+$pesterContainer = New-PesterContainer -Path ".\LinuxTests\Auth.Tests.ps1" -Data @{
+    licenseFile      = "C:\temp\license.flf"
+    buildLicenseFile = "C:\temp\build.flf"
+}
+Invoke-Pester -Container $pesterContainer -Passthru
+```
+
+## Notes and troubleshooting
+
+- **License files are required.** The tests cannot create or build the containers without valid Business Central `.flf` license files.
+- **The first run is slow.** Business Central artifacts and generic images are downloaded and cached the first time, which can take a while. Subsequent runs are much faster.
+- **Docker must be in Windows-container mode** for the Windows tests. Verify with `docker version -f "{{.Server.Os}}"` (it should report `windows`).
+- **Clean up leftover containers** if a run is interrupted: `Get-BcContainers | Remove-BcContainer`.
+- **Source of truth for the test invocation** is [`.github/workflows/CI.yaml`](.github/workflows/CI.yaml) - refer to it if you need to reproduce exactly what the automated pipeline does.
+
 # Branches
 
 **NavContainerHelper** is the main branch for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** is no longer supported.
