@@ -35,7 +35,7 @@ jobs:
       tests: ${{ steps.Analyze.outputs.tests }}
       linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -67,11 +67,34 @@ jobs:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
     
+      - name: Wait for Docker
+        run: |
+          $timeout = [DateTime]::Now.AddSeconds(120)
+          while ($true) {
+            try {
+              $dockerOS = "$(docker version -f "{{.Server.Os}}")".Trim()
+            }
+            catch {
+              $dockerOS = ""
+            }
+            if ($dockerOS -ne "") {
+              Write-Host "Docker server is ready ($dockerOS)"
+              break
+            }
+            if ([DateTime]::Now -ge $timeout) {
+              Write-Host "::Error::Docker service is not yet ready after waiting."
+              $host.SetShouldExit(1)
+              break
+            }
+            Write-Host "Docker service is not yet ready, waiting..."
+            Start-Sleep -Seconds 2
+          }
+
       - name: Run Tests
         run: |
           try {
@@ -106,11 +129,34 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
     
+      - name: Wait for Docker
+        run: |
+          $timeout = [DateTime]::Now.AddSeconds(120)
+          while ($true) {
+            try {
+              $dockerOS = "$(docker version -f "{{.Server.Os}}")".Trim()
+            }
+            catch {
+              $dockerOS = ""
+            }
+            if ($dockerOS -ne "") {
+              Write-Host "Docker server is ready ($dockerOS)"
+              break
+            }
+            if ([DateTime]::Now -ge $timeout) {
+              Write-Host "::Error::Docker service is not yet ready after waiting."
+              $host.SetShouldExit(1)
+              break
+            }
+            Write-Host "Docker service is not yet ready, waiting..."
+            Start-Sleep -Seconds 2
+          }
+
       - name: Run Tests
         run: |
           try {
@@ -145,7 +191,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
