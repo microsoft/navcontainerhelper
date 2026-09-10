@@ -1,4 +1,5 @@
 6.1.19
+Preserve existing AppSourceCop.json settings when Run-AlPipeline applies validation settings (microsoft/AL-Go#2360).
 
 6.1.18
 Disable PSSessions for BC v27 and v28 containers by default due to known PS7 remote session issue (extends the previous v28-only behavior to also cover v27). Uses docker exec instead. Each version has its own escape hatch: set usePsSessionForBc27 to true to re-enable for BC v27, and usePsSessionForBc28 to true to re-enable for BC v28. BC v29 and later keep PS sessions enabled. See https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/upgrade/known-issues
