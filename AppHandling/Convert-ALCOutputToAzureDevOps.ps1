@@ -15,9 +15,9 @@
  .Parameter basePath
   Base Path of the files in the ALC output, to convert file paths to relative paths
  .Example
-  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
+  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\me\Documents\AL\Test" -AzureDevOps
  .Example
-  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -GitHubActions
+  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\me\Documents\AL\Test" -GitHubActions
  .Example
   & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile | Convert-AlcOutputToAzureDevOps
 #>
