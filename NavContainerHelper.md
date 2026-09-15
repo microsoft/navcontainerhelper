@@ -547,7 +547,7 @@ If you have a secure Url from which you can download your license file, you can 
 
     -licenseFile "<secure license file Url>"
 
-The secure license file Url needs to start with http or https, in which case, the script will proceed to download the license file and import it into the NAV Database. Information on how to create a secure url can be found [here](https://blogs.msdn.microsoft.com/freddyk/2017/02/26/create-a-secure-url-to-a-file/).
+The secure license file Url needs to start with http or https, in which case, the script will proceed to download the license file and import it into the NAV Database. Information on how to create a secure url can be found in the [Azure Storage shared access signatures (SAS) documentation](https://learn.microsoft.com/azure/storage/common/storage-sas-overview).
 
 Example:
 
@@ -704,7 +704,7 @@ Example:
 
 ## <a name="bak"></a>Specify your own Database backup file to use with a NAV container
 
-If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL. Read [this](https://blogs.msdn.microsoft.com/freddyk/2017/02/26/create-a-secure-url-to-a-file/) for information about how to create a secure url for a file.
+If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL. See the [Azure Storage shared access signatures (SAS) documentation](https://learn.microsoft.com/azure/storage/common/storage-sas-overview) for information about how to create a secure url for a file.
 
     $imageName = "microsoft/dynamics-nav:2018-rtm"
     $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
