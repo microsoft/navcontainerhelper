@@ -547,7 +547,7 @@ If you have a secure Url from which you can download your license file, you can 
 
     -licenseFile "<secure license file Url>"
 
-The secure license file Url needs to start with http or https, in which case, the script will proceed to download the license file and import it into the NAV Database. Information on how to create a secure url can be found in the [Azure Storage shared access signatures (SAS) documentation](https://learn.microsoft.com/azure/storage/common/storage-sas-overview).
+The secure license file Url needs to start with http or https, in which case, the script will proceed to download the license file and import it into the NAV Database. There are several ways to host a file behind a secure Url. One example is to upload the file to an Azure Storage blob container and generate a Shared Access Signature (SAS) Url for it: in the [Azure portal](https://portal.azure.com), open the storage account, browse to the container and blob, choose **Generate SAS**, select **Read** permission and an expiry time, then copy the generated **Blob SAS URL**. See [Grant limited access to Azure Storage resources using shared access signatures (SAS)](https://learn.microsoft.com/azure/storage/common/storage-sas-overview) for details and other ways to create a secure Url.
 
 Example:
 
@@ -704,7 +704,7 @@ Example:
 
 ## <a name="bak"></a>Specify your own Database backup file to use with a NAV container
 
-If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL. See the [Azure Storage shared access signatures (SAS) documentation](https://learn.microsoft.com/azure/storage/common/storage-sas-overview) for information about how to create a secure url for a file.
+If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL, which can be created in several ways. As one example, upload the .bak file to an Azure Storage blob container and generate a Shared Access Signature (SAS) Url: in the [Azure portal](https://portal.azure.com), open the storage account, browse to the container and blob, choose **Generate SAS**, select **Read** permission and an expiry time, then copy the generated **Blob SAS URL**. See [Grant limited access to Azure Storage resources using shared access signatures (SAS)](https://learn.microsoft.com/azure/storage/common/storage-sas-overview) for details and other options.
 
     $imageName = "microsoft/dynamics-nav:2018-rtm"
     $navcredential = New-Object System.Management.Automation.PSCredential -argumentList "admin", (ConvertTo-SecureString -String "<YourPassword>" -AsPlainText -Force)
