@@ -1162,6 +1162,11 @@ function GetAppInfo {
         $command = Join-Path $alcPath 'altool.exe'
         $alToolExists = Test-Path -Path $command -PathType Leaf
         Write-Host "Use $command as altool executable (Exists = $alToolExists)."
+        if (!$alToolExists) {
+            $command = 'dotnet'
+            $alToolDll = Join-Path $alcPath 'altool.dll'
+            $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
+        }
     }
     $alcDllPath = $alcPath
     if (!($isLinux -or $isMacOS) -and !$isPsCore) {
@@ -1183,7 +1188,7 @@ function GetAppInfo {
                 if ($alToolExists) {
                     $arguments = @('GetPackageManifest', """$path""")
                     if ($alToolDll) {
-                        $arguments = @($alToolDll) + $arguments
+                        $arguments = @("""$alToolDll""") + $arguments
                     }
                     $manifest = CmdDo -Command $command -arguments $arguments -returnValue -silent | ConvertFrom-Json
                     $appInfo = @{
@@ -1291,15 +1296,323 @@ function GetLatestAlLanguageExtensionVersionAndUrl {
     throw "Unable to locate latest AL Language Extension from the VS Code Marketplace"
 }
 
+function CompareDevelopmentToolsPackageVersions {
+    Param([string] $left, [string] $right)
+
+    $leftParts = $left.Split('+')[0] -split '-', 2
+    $rightParts = $right.Split('+')[0] -split '-', 2
+    $leftVersion = [Version]$leftParts[0]
+    $rightVersion = [Version]$rightParts[0]
+    foreach ($part in @('Major', 'Minor', 'Build', 'Revision')) {
+        $comparison = [Math]::Max(0, $leftVersion.$part).CompareTo([Math]::Max(0, $rightVersion.$part))
+        if ($comparison) { return $comparison }
+    }
+    if ($leftParts.Count -eq 1 -or $rightParts.Count -eq 1) {
+        return $rightParts.Count.CompareTo($leftParts.Count)
+    }
+    $leftLabels = $leftParts[1].Split('.')
+    $rightLabels = $rightParts[1].Split('.')
+    for ($i = 0; $i -lt [Math]::Min($leftLabels.Count, $rightLabels.Count); $i++) {
+        $leftNumeric = $leftLabels[$i] -match '^[0-9]+$'
+        $rightNumeric = $rightLabels[$i] -match '^[0-9]+$'
+        if ($leftNumeric -and $rightNumeric) {
+            $comparison = ([System.Numerics.BigInteger]::Parse($leftLabels[$i])).CompareTo([System.Numerics.BigInteger]::Parse($rightLabels[$i]))
+        }
+        elseif ($leftNumeric -ne $rightNumeric) {
+            $comparison = if ($leftNumeric) { -1 } else { 1 }
+        }
+        else {
+            $comparison = [StringComparer]::OrdinalIgnoreCase.Compare($leftLabels[$i], $rightLabels[$i])
+        }
+        if ($comparison) { return $comparison }
+    }
+    return $leftLabels.Count.CompareTo($rightLabels.Count)
+}
+
+function GetDevelopmentToolsPackageInfo {
+    Param(
+        [Version] $platformVersion,
+        [switch] $allowPrerelease,
+        [string] $nuGetServerUrl = 'https://api.nuget.org/v3/index.json',
+        [string] $nuGetToken = ''
+    )
+
+    $feedUri = $null
+    if (![Uri]::TryCreate($nuGetServerUrl, [UriKind]::Absolute, [ref]$feedUri) -or $feedUri.Scheme -ne 'https' -or $feedUri.UserInfo) {
+        throw "The compiler NuGet source must be an HTTPS service index URL without embedded credentials."
+    }
+    if (-not (([System.Management.Automation.PSTypeName]'NuGetFeed').Type)) {
+        . (Join-Path $PSScriptRoot 'NuGet\NuGetFeedClass.ps1')
+    }
+    $packageId = 'microsoft.dynamics.businesscentral.development.tools'
+    $feed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, @($packageId), @(), 0, '')
+    if (!$feed.packageBaseAddressUrl -or ([Uri]$feed.packageBaseAddressUrl).Scheme -ne 'https') {
+        throw "The compiler NuGet source does not provide an HTTPS PackageBaseAddress resource."
+    }
+    $toolsMajor = $platformVersion.Major
+    if ($toolsMajor -lt 30) {
+        $toolsMajor -= 11
+    }
+    $versions = @($feed.GetVersions(@{ id = $packageId; versions = @() }, $true, $allowPrerelease.IsPresent) | Where-Object {
+        ([Version](($_ -split '[+-]', 2)[0])).Major -eq $toolsMajor
+    })
+    if (!$versions) {
+        throw "Unable to locate a Development.Tools $toolsMajor.x package on $nuGetServerUrl for platform $platformVersion (allowPrerelease=$($allowPrerelease.IsPresent))."
+    }
+    # GetVersions uses lexical prerelease ordering; compiler channels need NuGet precedence.
+    $version = $versions[0]
+    foreach ($candidate in $versions) {
+        if ((CompareDevelopmentToolsPackageVersions $candidate $version) -gt 0) {
+            $version = $candidate
+        }
+    }
+    $version = $version.ToLowerInvariant()
+    Write-Host "Using Development.Tools $version from $nuGetServerUrl"
+    $downloadHeaders = $feed.GetHeaders()
+    $downloadHeaders.Remove('Content-Type')
+    return @{
+        Url = "$($feed.packageBaseAddressUrl.TrimEnd('/'))/$packageId/$version/$packageId.$version.nupkg"
+        Version = $version
+        Headers = $downloadHeaders
+    }
+}
+
+function ResolveBcCompilerSource {
+    Param(
+        [string] $platformArtifactPath,
+        [string] $vsixFile = '',
+        [string] $nuGetServerUrl = 'https://api.nuget.org/v3/index.json',
+        [string] $nuGetToken = ''
+    )
+
+    $channel = $vsixFile -in @('latest', 'preview')
+    if ($vsixFile -and $vsixFile -ne 'default' -and !$channel) {
+        return @{ Kind = 'ExplicitVsix'; Path = $vsixFile }
+    }
+    $modernDevPattern = Join-Path $platformArtifactPath 'ModernDev\*\Microsoft Dynamics NAV\*\AL Development Environment'
+    $modernDevFolders = @(Get-ChildItem -Recurse -Directory -Path $platformArtifactPath | Where-Object { $_.FullName -like $modernDevPattern })
+    if ($modernDevFolders.Count -ne 1) {
+        throw "Expected exactly one AL Development Environment in '$platformArtifactPath', found $($modernDevFolders.Count)."
+    }
+    $modernDevFolder = $modernDevFolders[0].FullName
+    $artifactVsix = @{ Kind = 'ArtifactVsix'; Path = Join-Path $modernDevFolder 'ALLanguage.vsix' }
+    $packages = @(Get-ChildItem -Path $modernDevFolder -File | Where-Object { $_.Name -match '^microsoft\.dynamics\.businesscentral\.development\.tools\.[0-9].*\.nupkg$' })
+    if (!$channel -and !$packages) { return $artifactVsix }
+
+    $assemblies = @(Get-ChildItem -Path (Join-Path $platformArtifactPath 'ServiceTier\*\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Ncl.dll') -File)
+    if ($assemblies.Count -ne 1) {
+        throw "Expected exactly one Microsoft.Dynamics.Nav.Ncl.dll in platform artifact '$platformArtifactPath', found $($assemblies.Count)."
+    }
+    $platformVersion = [Version]$assemblies[0].VersionInfo.FileVersion
+    if (!$platformVersion -or $platformVersion.Major -lt 16) {
+        throw "Unable to determine a supported BC platform version from '$($assemblies[0].FullName)'."
+    }
+    if ($platformVersion.Major -lt 27) {
+        if ($channel) {
+            return @{ Kind = 'ExplicitVsix'; Path = DetermineVsixFile -vsixFile $vsixFile }
+        }
+        return $artifactVsix
+    }
+    if ($channel) {
+        return @{
+            Kind = 'FeedTools'
+            PlatformAssembly = $assemblies[0].FullName
+            Package = GetDevelopmentToolsPackageInfo -platformVersion $platformVersion -allowPrerelease:($vsixFile -eq 'preview') -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken
+        }
+    }
+    if ($packages.Count -ne 1) {
+        throw "Multiple Development.Tools packages found in $modernDevFolder. Expected exactly one."
+    }
+    return @{ Kind = 'ArtifactTools'; Path = $packages[0].FullName; PlatformAssembly = $assemblies[0].FullName }
+}
+
+function InstallBcCompilerSource {
+    Param(
+        [hashtable] $source,
+        [string] $destinationPath
+    )
+
+    switch ($source.Kind) {
+        'ArtifactTools' {
+            ExpandDevelopmentToolsPackage -packageFile $source.Path -destinationPath $destinationPath -platformAssembly $source.PlatformAssembly
+        }
+        'FeedTools' {
+            $tempPackage = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid()).nupkg"
+            try {
+                Download-File -sourceUrl $source.Package.Url -headers $source.Package.Headers -destinationFile $tempPackage -ErrorAction Stop
+                ExpandDevelopmentToolsPackage -packageFile $tempPackage -destinationPath $destinationPath -platformAssembly $source.PlatformAssembly
+            }
+            finally {
+                if (Test-Path $tempPackage) { Remove-Item -Path $tempPackage -Force }
+            }
+        }
+        'ArtifactVsix' {
+            Expand-7zipArchive -Path $source.Path -DestinationPath $destinationPath -ErrorAction Stop
+        }
+        'ExplicitVsix' {
+            Write-Host "Using $($source.Path)"
+            if ($source.Path -like 'https://*') {
+                $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid()).zip"
+                try {
+                    Download-File -sourceUrl $source.Path -destinationFile $tempZip -ErrorAction Stop
+                    Expand-7zipArchive -Path $tempZip -DestinationPath $destinationPath -ErrorAction Stop
+                }
+                finally {
+                    if (Test-Path $tempZip) { Remove-Item -Path $tempZip -Force }
+                }
+            }
+            elseif (Test-Path $source.Path -PathType Container) {
+                New-Item -Path $destinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                Copy-Item -Path (Join-Path $source.Path '*') -Destination $destinationPath -Recurse -Force -ErrorAction Stop
+            }
+            elseif (Test-Path $source.Path -PathType Leaf) {
+                Expand-7zipArchive -Path $source.Path -DestinationPath $destinationPath -ErrorAction Stop
+            }
+            else { throw "An invalid vsix file was specified." }
+        }
+        default { throw "Unknown compiler source kind '$($source.Kind)'." }
+    }
+}
+
+function GetAssemblyTargetFramework {
+    Param(
+        [string] $assemblyPath
+    )
+
+    # Read metadata without loading platform assemblies or resolving their dependencies.
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        throw "Inspecting platform target frameworks for Development.Tools requires PowerShell 7. Use pwsh, or specify an explicit VSIX."
+    }
+    Add-Type -AssemblyName System.Reflection.Metadata -ErrorAction Stop
+    $stream = [System.IO.File]::OpenRead($assemblyPath)
+    $peReader = $null
+    try {
+        $peReader = [System.Reflection.PortableExecutable.PEReader]::new($stream)
+        $reader = [System.Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($peReader)
+        foreach ($handle in $reader.GetAssemblyDefinition().GetCustomAttributes()) {
+            $attribute = $reader.GetCustomAttribute($handle)
+            if ($attribute.Constructor.Kind -ne [System.Reflection.Metadata.HandleKind]::MemberReference) {
+                continue
+            }
+            $constructor = $reader.GetMemberReference([System.Reflection.Metadata.MemberReferenceHandle]$attribute.Constructor)
+            if ($constructor.Parent.Kind -ne [System.Reflection.Metadata.HandleKind]::TypeReference) {
+                continue
+            }
+            $type = $reader.GetTypeReference([System.Reflection.Metadata.TypeReferenceHandle]$constructor.Parent)
+            if ($reader.GetString($type.Namespace) -eq 'System.Runtime.Versioning' -and $reader.GetString($type.Name) -eq 'TargetFrameworkAttribute') {
+                $blob = $reader.GetBlobReader($attribute.Value)
+                if ($blob.ReadUInt16() -ne 1) {
+                    throw "Invalid TargetFrameworkAttribute in '$assemblyPath'."
+                }
+                $framework = [System.Runtime.Versioning.FrameworkName]::new($blob.ReadSerializedString())
+                if ($framework.Identifier -ne '.NETCoreApp') {
+                    throw "Unsupported platform target framework '$framework' in '$assemblyPath'."
+                }
+                return "net$($framework.Version.Major).$($framework.Version.Minor)"
+            }
+        }
+        throw "No TargetFrameworkAttribute found in '$assemblyPath'."
+    }
+    finally {
+        if ($peReader) {
+            $peReader.Dispose()
+        }
+        $stream.Dispose()
+    }
+}
+
+function GetCompatibleDotNetRuntime {
+    Param(
+        [Version] $requiredVersion
+    )
+
+    $dotnet = Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (!$dotnet) {
+        throw "Development.Tools requires an installed compatible .NET runtime, but dotnet was not found."
+    }
+    $runtimeOutput = & $dotnet.Source --list-runtimes
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to enumerate installed .NET runtimes (dotnet exited with code $LASTEXITCODE)."
+    }
+    $runtime = $runtimeOutput | ForEach-Object {
+        if ($_ -match '^Microsoft\.NETCore\.App ([0-9]+\.[0-9]+\.[0-9]+) \[(.+)\]') {
+            $version = [Version]$Matches[1]
+            if ($version.Major -eq $requiredVersion.Major -and $version.Minor -eq $requiredVersion.Minor -and $version -ge $requiredVersion) {
+                [PSCustomObject]@{ Version = $version; Path = Join-Path $Matches[2] "$version" }
+            }
+        }
+    } | Sort-Object Version -Descending | Select-Object -First 1
+    if (!$runtime) {
+        throw "No compatible .NET runtime installed for net$($requiredVersion.Major).$($requiredVersion.Minor). Install .NET $requiredVersion or a later patch of the same major/minor version."
+    }
+    return $runtime
+}
+
+function ExpandDevelopmentToolsPackage {
+    Param(
+        [string] $packageFile,
+        [string] $destinationPath,
+        [string] $platformAssembly
+    )
+
+    $targetFramework = GetAssemblyTargetFramework -assemblyPath $platformAssembly
+    $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+    $stagingPath = "$destinationPath.$([Guid]::NewGuid()).tmp"
+    try {
+        Write-Host "Using portable development tools from $packageFile"
+        Expand-7zipArchive -Path $packageFile -DestinationPath $tempFolder -ErrorAction Stop
+        $toolsFolder = Join-Path $tempFolder 'tools'
+        if (!(Test-Path $toolsFolder -PathType Container)) {
+            throw "Invalid Development.Tools package '$packageFile': missing tools directory."
+        }
+        $selectedPath = Join-Path $toolsFolder "$targetFramework\any"
+        $configFile = Join-Path $selectedPath 'alc.runtimeconfig.json'
+        if (!(Test-Path $configFile -PathType Leaf)) {
+            throw "Development.Tools package '$packageFile' does not contain the $targetFramework compiler required by '$platformAssembly'."
+        }
+        $config = Get-Content -Path $configFile -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        if ($config.runtimeOptions.tfm -ne $targetFramework -or $config.runtimeOptions.framework.name -ne 'Microsoft.NETCore.App' -or !$config.runtimeOptions.framework.version) {
+            throw "Invalid Development.Tools runtime configuration for $targetFramework."
+        }
+        $requiredVersion = [Version]$config.runtimeOptions.framework.version
+        if ("net$($requiredVersion.Major).$($requiredVersion.Minor)" -ne $targetFramework) {
+            throw "Development.Tools runtime does not match platform target framework $targetFramework."
+        }
+        GetCompatibleDotNetRuntime -requiredVersion $requiredVersion | Out-Null
+        Write-Host "Using development tools target $targetFramework from platform assembly (requires .NET $requiredVersion)"
+        foreach ($file in @('alc.dll', 'altool.dll', 'altool.runtimeconfig.json')) {
+            if (!(Test-Path (Join-Path $selectedPath $file) -PathType Leaf)) {
+                throw "Invalid Development.Tools package '$packageFile': missing $file in $selectedPath."
+            }
+        }
+        # Keep the existing compiler-folder layout for compilation, analyzers and app metadata.
+        $binPath = Join-Path $stagingPath 'extension\bin'
+        New-Item -Path $binPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Copy-Item -Path (Join-Path $selectedPath '*') -Destination $binPath -Recurse -Force -ErrorAction Stop
+        @{ dotNetVersion = "$requiredVersion" } | ConvertTo-Json | Set-Content -Path (Join-Path $stagingPath 'compiler.runtime.json') -Encoding UTF8 -ErrorAction Stop
+        [System.IO.Directory]::Move($stagingPath, $destinationPath)
+    }
+    finally {
+        if (Test-Path $stagingPath) {
+            Remove-Item -Path $stagingPath -Recurse -Force -ErrorAction Stop
+        }
+        if (Test-Path $tempFolder) {
+            Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction Stop
+        }
+    }
+}
+
 function DetermineVsixFile {
     Param(
-        [string] $vsixFile
+        [string] $vsixFile,
+        [switch] $useCompilerFolder
     )
 
     if ($vsixFile -eq 'default') {
         return ''
     }
     elseif ($vsixFile -eq 'latest' -or $vsixFile -eq 'preview') {
+        if ($useCompilerFolder) { return $vsixFile }
         $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:($vsixFile -eq 'preview')
         return $url
     }

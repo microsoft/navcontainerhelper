@@ -151,6 +151,10 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
+ .Parameter compilerNuGetServerUrl
+  NuGet v3 service index for latest/preview compiler packages with useCompilerFolder on BC 27 and later. Defaults to NuGet.org.
+ .Parameter compilerNuGetToken
+  Optional authentication token for the compiler NuGet source. Use a secret variable; the token is not logged.
  .Parameter enableCodeCop
   Include this switch to include Code Cop Rules during compilation.
  .Parameter enableAppSourceCop
@@ -425,7 +429,9 @@ Param(
     [scriptblock] $GetBcContainerEventLog,
     [scriptblock] $InstallMissingDependencies,
     [scriptblock] $RunPageScriptingTests,
-    [scriptblock] $PipelineFinalize
+    [scriptblock] $PipelineFinalize,
+    [string] $compilerNuGetServerUrl = 'https://api.nuget.org/v3/index.json',
+    [string] $compilerNuGetToken = ''
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
@@ -912,6 +918,8 @@ function GetCompilerFolder {
             "cacheFolder" = $artifactCachePath
             "vsixFile" = $vsixFile
             "containerName" = $containerName
+            "compilerNuGetServerUrl" = $compilerNuGetServerUrl
+            "compilerNuGetToken" = $compilerNuGetToken
         }
         $compilerFolder = Invoke-Command -ScriptBlock $NewBcCompilerFolder -ArgumentList $parameters
         Write-Host "CompilerFolder $compilerFolder created"
@@ -1270,7 +1278,7 @@ if ($installOnlyReferencedApps) {
     $installTestApps += @($installApps)
 }
 
-$vsixFile = DetermineVsixFile -vsixFile $vsixFile
+$vsixFile = DetermineVsixFile -vsixFile $vsixFile -useCompilerFolder:$useCompilerFolder
 $compilerFolder = ''
 $createContainer = $true
 

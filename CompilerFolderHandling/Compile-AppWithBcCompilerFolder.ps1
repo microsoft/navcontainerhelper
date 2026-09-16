@@ -307,7 +307,18 @@ function Compile-AppWithBcCompilerFolder {
         }
 
         $sharedFolder = Join-Path $dllsPath "shared"
-        if (Test-Path $sharedFolder) {
+        $toolsRuntimeFile = Join-Path $compilerFolder 'compiler\compiler.runtime.json'
+        if (Test-Path $toolsRuntimeFile) {
+            $toolsRuntime = Get-Content $toolsRuntimeFile -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            $runtime = GetCompatibleDotNetRuntime -requiredVersion ([Version]$toolsRuntime.dotNetVersion)
+            $probingPaths = @((Join-Path $dllsPath 'OpenXML'), $runtime.Path) + $probingPaths
+            $dotnetSharedPath = Split-Path (Split-Path $runtime.Path -Parent) -Parent
+            $aspNetPath = Join-Path $dotnetSharedPath "Microsoft.AspNetCore.App\$($runtime.Version)"
+            if (Test-Path $aspNetPath) {
+                $probingPaths += $aspNetPath
+            }
+        }
+        elseif (Test-Path $sharedFolder) {
             $probingPaths = @((Join-Path $dllsPath "OpenXML"), $sharedFolder) + $probingPaths
         }
         elseif ($isLinux -or $isMacOS) {

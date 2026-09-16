@@ -3,6 +3,11 @@
   Create a new Compiler Folder
  .DESCRIPTION
   Create a folder containing all the necessary pieces from the artifacts to compile apps without the need of a container
+  For BC 27 and later, prefer the portable Development.Tools package when included in the platform artifact; otherwise use ALLanguage.vsix.
+  Platforms before BC 27 retain VSIX-based compiler selection, including Marketplace latest/preview.
+  Select the tools target framework from Microsoft.Dynamics.Nav.Ncl.dll in the platform artifact and require a compatible installed .NET runtime.
+  Inspecting platform assembly metadata for tools packages requires PowerShell 7.
+  Existing compiler caches are reused; recreate them to change compiler source.
   Returns a compilerFolder path, which can be used for functions like Compile-AppWithBcCompilerFolder or Remove-BcCompilerFolder
  .PARAMETER artifactUrl
   Artifacts URL to download the compiler and all .app files from
@@ -17,7 +22,13 @@
  .PARAMETER packagesFolder
   If present, the symbols/apps will be copied from the compiler folder to this folder as well
  .PARAMETER vsixFile
-  If present, use this vsixFile instead of the one included in the artifacts
+  If present, use this vsixFile instead of the tools package or VSIX included in the artifacts
+  Use latest or preview to download Development.Tools from the compiler NuGet source (preview allows prereleases), matching the platform target framework.
+  The tools major version is the platform major minus 11 before BC 30, and the platform major from BC 30 onward.
+ .PARAMETER compilerNuGetServerUrl
+  NuGet v3 service index for latest/preview compiler packages on BC 27 and later. Defaults to NuGet.org.
+ .PARAMETER compilerNuGetToken
+  Optional authentication token for the compiler NuGet source. Use a secret variable; the token is not logged.
  .PARAMETER includeAL
   Include this switch in order to populate folder with AL files (like New-BcContainer)
  .EXAMPLE
@@ -41,7 +52,9 @@ function New-BcCompilerFolder {
         [string] $cacheFolder = '',
         [string] $packagesFolder = '',
         [string] $vsixFile = '',
-        [switch] $includeAL
+        [switch] $includeAL,
+        [string] $compilerNuGetServerUrl = 'https://api.nuget.org/v3/index.json',
+        [string] $compilerNuGetToken = ''
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -57,7 +70,8 @@ try {
     $version = [System.Version]($parts[4])
     $country = $parts[5]
 
-    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
+    $vsixFile = DetermineVsixFile -vsixFile $vsixFile -useCompilerFolder
+    $compilerOverride = [bool]$vsixFile
 
     if ($version -lt "16.0.0.0") {
         throw "Containerless compiling is not supported with versions before 16.0"
@@ -86,11 +100,20 @@ try {
     }
 
     $newtonSoftDllPath = ''
-    if ($includeAL -or !(Test-Path $symbolsPath)) {
+    $platformArtifactPath = ''
+    $compilerSource = $null
+    $compilerDestination = if ($compilerOverride) { Join-Path $compilerFolder 'compiler' } else { $compilerPath }
+    $populateCompiler = !$compilerOverride -and !(Test-Path $compilerPath)
+    if ($includeAL -or !(Test-Path $symbolsPath) -or $populateCompiler -or ($vsixFile -in @('latest', 'preview'))) {
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
         $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\*\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
+    }
+
+    if ($populateCompiler -or $compilerOverride) {
+        $compilerSource = ResolveBcCompilerSource -platformArtifactPath $platformArtifactPath -vsixFile $vsixFile -nuGetServerUrl $compilerNuGetServerUrl -nuGetToken $compilerNuGetToken
+        InstallBcCompilerSource -source $compilerSource -destinationPath $compilerDestination
     }
 
     # IncludeAL will populate folder with AL files (like New-BcContainer)
@@ -118,16 +141,11 @@ try {
     # Populate cache folder (or compiler folder)
     if (!(Test-Path $symbolsPath)) {
         New-Item $symbolsPath -ItemType Directory | Out-Null
-        New-Item $compilerPath -ItemType Directory | Out-Null
         New-Item $dllsPath -ItemType Directory | Out-Null
         # Enumerate subfolders to ensure we support different casings in folder structure
         $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\*\Microsoft Dynamics NAV\*\AL Development Environment"
         $modernDevFolder = Get-ChildItem -Recurse -Directory -Path $platformArtifactPath | Where-Object { $_.FullName -like $modernDevFolder } | ForEach-Object { $_.FullName }
         Copy-Item -Path (Join-Path $modernDevFolder 'System.app') -Destination $symbolsPath
-        if ($cacheFolder -or !$vsixFile) {
-            # Only unpack the artifact vsix file if we are populating a cache folder - or no vsixFile was specified
-            Expand-7zipArchive -Path (Join-Path $modernDevFolder 'ALLanguage.vsix') -DestinationPath $compilerPath
-        }
         $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\*\Microsoft Dynamics NAV\*\Service" -Resolve
         Copy-Item -Path $serviceTierFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $newtonSoftDllPath = Join-Path $dllsPath "Newtonsoft.Json.dll"
@@ -190,7 +208,8 @@ try {
     }
 
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
-    if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)) {
+    $portableTools = Test-Path (Join-Path $compilerDestination 'compiler.runtime.json')
+    if (!$portableTools -and $version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)) {
         if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {
             Write-Host "dotnet runtime version is not installed/cannot be used"
         }
@@ -208,39 +227,8 @@ try {
     }
 
     $containerCompilerPath = Join-Path $compilerFolder 'compiler'
-    if ($vsixFile) {
-        # If a vsix file was specified unpack directly to compilerfolder
-        Write-Host "Using $vsixFile"
-
-        if ($vsixFile -notlike 'https://*') {
-            if (Test-Path -Path $vsixFile -PathType Leaf) {
-                Expand-7zipArchive -Path $vsixFile -DestinationPath $containerCompilerPath
-            }
-
-            elseif (Test-Path -Path $vsixFile -PathType Container) {
-                if (!(Test-Path -Path $containerCompilerPath)) {
-                    New-Item $containerCompilerPath -ItemType Directory | Out-Null
-                }
-
-                Copy-Item -Path (Join-Path -Path $vsixFile -ChildPath '*') -Destination $containerCompilerPath -Recurse -Force
-            }
-
-            else {
-                throw "An invalid vsix file was specified."
-            }
-        }
-        else {
-            $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
-
-            Download-File -sourceUrl $vsixFile -destinationFile $tempZip
-            Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
-
-            Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
-        }
-
-        if ($isWindows -and $newtonSoftDllPath) {
-            Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
-        }
+    if ($compilerSource -and $compilerSource.Kind -eq 'ExplicitVsix' -and $isWindows -and $newtonSoftDllPath) {
+        Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
     }
 
     # If a cacheFolder was specified, the cache folder has been populated
@@ -250,7 +238,7 @@ try {
         Write-Host "Copying symbols from cache"
         Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $compilerFolder -Recurse -Force
         # If a vsix file was specified, the compiler folder has been populated
-        if (!$vsixFile) {
+        if (!$compilerOverride) {
             Write-Host "Copying compiler from cache"
             Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
         }
