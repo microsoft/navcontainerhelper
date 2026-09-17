@@ -37,7 +37,7 @@
  .Parameter skipVerification
   Include this parameter if the app you want to publish is not signed
  .EXAMPLE
-  Publish-BcNuGetPackageToContainer -containerName $containerName -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb' -version "2.0.0.0" -select earliest
+  Publish-BcNuGetPackageToContainer -containerName $containerName -packageName 'Contoso.MyApp.00000000-0000-0000-0000-000000000000' -version "2.0.0.0" -select earliest
 #>
 Function Publish-BcNuGetPackageToContainer {
     Param(
