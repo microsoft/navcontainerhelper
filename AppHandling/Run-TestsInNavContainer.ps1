@@ -322,9 +322,57 @@ try {
         }
     }
 
+    # Scriptblock executed inside the container to collect runtime (C#) compilation errors.
+    # When the test runner selects the tests to run, the platform loads (and generates C# for) every
+    # test codeunit in the extension. If a codeunit produces C# that does not compile, the platform
+    # logs the failure and skips that codeunit - none of its tests are discovered or run - but the
+    # test run still completes and reports success. The failure is only recorded in the service
+    # instance's 'compilationerrors' folder, which is what we inspect here to detect skipped tests.
+    $getRuntimeCompilationErrorsScriptBlock = {
+        $compilationErrorsFolders = @()
+        if ($ServerInstance) {
+            $compilationErrorsFolders = @(Get-Item -Path "C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\MicrosoftDynamicsNavServer`$$($ServerInstance)\apps\compilationerrors" -ErrorAction SilentlyContinue)
+        }
+        if ($compilationErrorsFolders.Count -eq 0) {
+            $compilationErrorsFolders = @(Get-Item -Path "C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\MicrosoftDynamicsNavServer`$*\apps\compilationerrors" -ErrorAction SilentlyContinue)
+        }
+        $compilationErrors = @()
+        foreach ($compilationErrorsFolder in $compilationErrorsFolders) {
+            foreach ($compilationErrorFile in @(Get-ChildItem -Path $compilationErrorsFolder.FullName -File -ErrorAction SilentlyContinue)) {
+                $objectName = $compilationErrorFile.Name
+                if ($compilationErrorFile.Extension -eq '.al') {
+                    foreach ($line in @(Get-Content -LiteralPath $compilationErrorFile.FullName -TotalCount 100 -ErrorAction SilentlyContinue)) {
+                        if ($line -match '^\s*(codeunit|page|table|report|xmlport|query|codeunitextension|pageextension|tableextension|reportextension|enum|enumextension|permissionset|permissionsetextension|interface|controladdin|profile)\s+[0-9]+') {
+                            $objectName = $line.Trim()
+                            break
+                        }
+                    }
+                }
+                $compilationErrors += [PSCustomObject]@{
+                    Path = $compilationErrorFile.FullName
+                    Name = $objectName
+                }
+            }
+        }
+        $compilationErrors
+    }
+
     while ($true) {
         try
         {
+            # Snapshot the runtime compilation errors that already exist before running tests, so that
+            # only errors produced by this test run (test codeunits skipped during test selection) are
+            # reported afterwards.
+            $runtimeCompilationErrorsBefore = @()
+            if ($containerName) {
+                try {
+                    $runtimeCompilationErrorsBefore = @(Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock $getRuntimeCompilationErrorsScriptBlock | ForEach-Object { $_.Path })
+                }
+                catch {
+                    Write-Host "WARNING: Could not read runtime compilation errors from container '$containerName' before running tests: $($_.Exception.Message)"
+                }
+            }
+
             if ($connectFromHost) {
                 if ($PSVersionTable.PSVersion.Major -lt 7) {
                     throw "Using ConnectFromHost requires PowerShell 7"
@@ -566,6 +614,34 @@ try {
             }
             else {
                 $allPassed = $result
+            }
+
+            # Detect test codeunits that failed runtime (C#) compilation while the test runner was
+            # selecting the tests. The platform swallows these failures: the codeunit's tests are
+            # skipped, yet the test run still reports success. Compare against the snapshot taken
+            # before the run so only errors from this run are reported, and fail hard (throw) - the
+            # tests never ran, so this cannot be treated as a tolerable test failure.
+            if ($containerName) {
+                $runtimeCompilationErrors = @()
+                try {
+                    $runtimeCompilationErrors = @(Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock $getRuntimeCompilationErrorsScriptBlock | Where-Object { $runtimeCompilationErrorsBefore -notcontains $_.Path })
+                }
+                catch {
+                    Write-Host "WARNING: Could not read runtime compilation errors from container '$containerName' after running tests: $($_.Exception.Message)"
+                }
+                if ($runtimeCompilationErrors) {
+                    Write-Host -ForegroundColor Red "The following test object(s) failed runtime compilation while selecting tests and were skipped (their tests did NOT run):"
+                    foreach ($runtimeCompilationError in $runtimeCompilationErrors) {
+                        Write-Host -ForegroundColor Red "  $($runtimeCompilationError.Name)"
+                        if ($AzureDevOps -ne 'no') {
+                            Write-Host "##vso[task.logissue type=error;]$($runtimeCompilationError.Name) failed runtime compilation and its tests were skipped"
+                        }
+                        if ($GitHubActions -ne 'no') {
+                            Write-Host "::error::$($runtimeCompilationError.Name) failed runtime compilation and its tests were skipped"
+                        }
+                    }
+                    throw "$($runtimeCompilationErrors.Count) test object(s) failed runtime compilation while selecting tests and were skipped. Their tests did not run. See the errors above."
+                }
             }
 
             if ($returnTrueIfAllPassed) {
