@@ -31,7 +31,7 @@
  .PARAMETER allowPrerelease
   Include prerelease versions in the search
  .EXAMPLE
-  Get-BcNuGetPackage -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb'
+  Get-BcNuGetPackage -packageName 'Contoso.MyApp.00000000-0000-0000-0000-000000000000'
  .EXAMPLE
   Get-BcNuGetPackage -nuGetServerUrl $nugetServerUrl -nuGetToken $nuGetToken -packageName '437dbf0e-84ff-417a-965d-ed2bb9650972' -allowPrerelease
 #>
