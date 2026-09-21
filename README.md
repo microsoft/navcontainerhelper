@@ -184,19 +184,16 @@ Before you start, make sure the following are in place:
 - **Windows 10/11 or Windows Server** with **Docker** installed and switched to **Windows containers** (the tests create Business Central containers). See [Local Installation](#local-installation) above for setting up Docker.
 - **PowerShell 5.1** and/or **PowerShell 7** (the CI runs the test suite on both).
 - **[Pester](https://pester.dev) v5 or later** - install with `Install-Module Pester -Force`.
-- **Git** with **[Git LFS](https://git-lfs.com)** installed - several test assets under `Tests\` are stored in LFS and must be pulled before running the tests.
+- **Git** to clone the repository.
 - **Two Business Central license files (`.flf`)**: a runtime license (`licenseFile`) and a build license (`buildLicenseFile`). The tests need these to create and build inside the containers.
 - Enough disk space and memory to pull Business Central artifacts and run containers (16 GB memory recommended).
 
-## Step 1: Clone the repository (with LFS)
+## Step 1: Clone the repository
 
 ```PowerShell
 git clone https://github.com/microsoft/navcontainerhelper.git
 cd navcontainerhelper
-git lfs pull
 ```
-
-`git lfs pull` ensures the binary test assets (apps, packages, etc.) are downloaded and not left as LFS pointer files.
 
 ## Step 2: Build (import) the module locally
 
@@ -219,35 +216,35 @@ Get-Command -Module BcContainerHelper | Measure-Object
 
 The Pester tests live in `Tests\*.Tests.ps1`. Each test re-imports `BcContainerHelper.psm1` and creates the containers it needs, so you do not have to build anything separately - you only need Docker running and your two license files. Point the commands below at your own `.flf` files.
 
-**Option A - Run the full test suite**
+Run the tests exactly the way CI does, with `New-PesterContainer` + `Invoke-Pester`. This uses Pester 5's discovery/run lifecycle and, with `-Passthru`, returns a result object so you can detect failures.
 
-Creates the NAV and BC containers once, runs every `*.Tests.ps1`, then removes the containers:
+**Run a single test file**
 
-```PowerShell
-.\Tests\_TestRunner.ps1 -licenseFile "C:\temp\license.flf" -buildLicenseFile "C:\temp\build.flf"
-```
-
-**Option B - Run a single test file**
-
-Faster while iterating on one area. Use `-testScript` to pick the file:
-
-```PowerShell
-.\Tests\_TestRunOne.ps1 -licenseFile "C:\temp\license.flf" -buildLicenseFile "C:\temp\build.flf" -testScript "Misc.Tests.ps1"
-```
-
-`Tests\_DoRunOne.ps1` is a convenience wrapper that invokes `_TestRunOne.ps1` through Pester.
-
-**Option C - Invoke Pester directly (mirrors CI)**
-
-This is the exact pattern used by the CI workflow and gives you full control over Pester:
+Faster while iterating on one area:
 
 ```PowerShell
 $pesterContainer = New-PesterContainer -Path ".\Tests\Misc.Tests.ps1" -Data @{
     licenseFile      = "C:\temp\license.flf"
     buildLicenseFile = "C:\temp\build.flf"
 }
-Invoke-Pester -Container $pesterContainer -Passthru
+$result = Invoke-Pester -Container $pesterContainer -Passthru
+if ($result.FailedCount -gt 0) { throw "$($result.FailedCount) test(s) failed" }
 ```
+
+**Run the full test suite**
+
+Point `-Path` at the whole `Tests` folder to discover and run every `*.Tests.ps1`:
+
+```PowerShell
+$pesterContainer = New-PesterContainer -Path ".\Tests" -Data @{
+    licenseFile      = "C:\temp\license.flf"
+    buildLicenseFile = "C:\temp\build.flf"
+}
+$result = Invoke-Pester -Container $pesterContainer -Passthru
+if ($result.FailedCount -gt 0) { throw "$($result.FailedCount) test(s) failed" }
+```
+
+> The `Tests\_TestRunner.ps1`, `Tests\_TestRunOne.ps1`, and `Tests\_DoRunOne.ps1` scripts are older local helpers. Prefer the `New-PesterContainer` invocation above, which matches CI and reliably reports test failures under Pester 5.
 
 ## Step 4 (optional): Run the Linux tests
 
@@ -258,7 +255,8 @@ $pesterContainer = New-PesterContainer -Path ".\LinuxTests\Auth.Tests.ps1" -Data
     licenseFile      = "C:\temp\license.flf"
     buildLicenseFile = "C:\temp\build.flf"
 }
-Invoke-Pester -Container $pesterContainer -Passthru
+$result = Invoke-Pester -Container $pesterContainer -Passthru
+if ($result.FailedCount -gt 0) { throw "$($result.FailedCount) test(s) failed" }
 ```
 
 ## Notes and troubleshooting
