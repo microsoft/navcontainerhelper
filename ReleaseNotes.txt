@@ -1,5 +1,6 @@
 6.1.19
 Add Parameter allowPrerelease to Publish-BcNuGetPackageToContainer
+The new framework-dependent AL Language VSIX (flat bin/) doesn't always work on Linux with cached compilerfolders. For some reason, the folder exists, but it is empty.
 During AL-Go pipelines on Linux, it will try to get the Container Eventlog and fail
 
 6.1.18
