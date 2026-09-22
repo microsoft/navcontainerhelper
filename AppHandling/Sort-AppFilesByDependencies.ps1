@@ -50,7 +50,7 @@ function Sort-AppFilesByDependencies {
             if ($excludeRuntimePackages.IsPresent) {
                 # Only check for runtime package if it matters
                 try {
-                    RunAlTool -arguments @('IsRuntimePackage', """$appFile""")
+                    RunAlTool -arguments @('IsRuntimePackage', """$appFile""") | Out-Null
                     # If the above command succeeds, it means the app is a runtime package
                     $includeIt = $false
                 }
