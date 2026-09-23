@@ -2908,6 +2908,7 @@ $testFolders | ForEach-Object {
 }
 
 $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$disabledTestsFiles = @(Get-ChildItem -Path $baseFolder -File -Recurse | Where-Object { $_.Name -like "*disabledTests.json" })
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
@@ -2924,13 +2925,13 @@ $testAppIds.Keys | ForEach-Object {
         Write-Host "Running tests for App $id"
     }
     if ($folder) {
-        Get-ChildItem -Path $folder -File -Recurse | Where-Object { $_.Name -eq "disabledTests.json" } | ForEach-Object {
+        $disabledTestsFiles | Where-Object { $_.Name -eq "disabledTests.json" -and $_.DirectoryName.StartsWith($folder, [System.StringComparison]::OrdinalIgnoreCase) } | ForEach-Object {
             $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
     }
-    Get-ChildItem -Path $baseFolder -File -Recurse | Where-Object { $_.Name -eq "$id.disabledTests.json" } | ForEach-Object {
+    $disabledTestsFiles | Where-Object { $_.Name -eq "$id.disabledTests.json" } | ForEach-Object {
         $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
         Write-Host "Disabled Tests:`n$disabledTestsStr"
         $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
