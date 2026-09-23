@@ -2925,7 +2925,7 @@ $testAppIds.Keys | ForEach-Object {
         Write-Host "Running tests for App $id"
     }
     if ($folder) {
-        $disabledTestsFiles | Where-Object { $_.Name -eq "disabledTests.json" -and $_.FullName -like "$folder$([System.IO.Path]::DirectorySeparatorChar)*" } | ForEach-Object {
+        Get-ChildItem -Path $folder -File -Recurse | Where-Object { $_.Name -eq "disabledTests.json" } | ForEach-Object {
             $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
