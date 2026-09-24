@@ -199,7 +199,10 @@ try {
                 if ($usedImages -notcontains $imageName) {
                     $imageID = $_.Split('|')[1]
                     $inspect = docker inspect $imageID | ConvertFrom-Json
-                    $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
+                    $artifactUrl = $null
+                    if ($null -ne $inspect.config -and $inspect.config.PSObject.Properties['Env']) {
+                        $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
+                    }
                     if ($artifactUrl) {
                         $artifactUrl = $artifactUrl.Split('?')[0]
                         "artifactUrl=https://bcartifacts*.net/",
