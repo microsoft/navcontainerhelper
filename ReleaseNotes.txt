@@ -1,6 +1,7 @@
 6.1.19
 Add Parameter allowPrerelease to Publish-BcNuGetPackageToContainer
 Higher performance when using Sort-AppFilesByDependencies by using the al tool to extract and check app file instead of Extract-AppFileToFolder
+Use case insensitive search for disabledTests.json on Linux
 The new framework-dependent AL Language VSIX (flat bin/) doesn't always work on Linux with cached compilerfolders. For some reason, the folder exists, but it is empty.
 
 6.1.18
