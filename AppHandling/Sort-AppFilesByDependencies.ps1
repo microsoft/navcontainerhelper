@@ -1,4 +1,4 @@
-<# 
+﻿<# 
  .Synopsis
   Sort an array of app files
  .Description
