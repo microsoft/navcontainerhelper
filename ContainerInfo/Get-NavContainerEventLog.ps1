@@ -23,10 +23,6 @@ function Get-BcContainerEventLog {
         [switch] $doNotOpen
     )
 
-    if (!(Test-BcContainer -containerName $containerName)) {
-        return
-    }
-    
     Write-Host "Getting event log for $containername"
 
     $eventLogFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "EventLogs"
