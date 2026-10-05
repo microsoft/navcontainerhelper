@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   PROOF OF CONCEPT PREVIEW: Publish Business Central NuGet Package to container
  .Description
@@ -36,8 +36,10 @@
   If specified, the installed apps will be copied to this folder in addition to being installed in the container
  .Parameter skipVerification
   Include this parameter if the app you want to publish is not signed
+.PARAMETER allowPrerelease
+  Include this parameter if you want to allow pre-release versions of the app to be published
  .EXAMPLE
-  Publish-BcNuGetPackageToContainer -containerName $containerName -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb' -version "2.0.0.0" -select earliest
+  Publish-BcNuGetPackageToContainer -containerName $containerName -packageName 'Contoso.MyApp.00000000-0000-0000-0000-000000000000' -version "2.0.0.0" -select earliest
 #>
 Function Publish-BcNuGetPackageToContainer {
     Param(
@@ -59,7 +61,8 @@ Function Publish-BcNuGetPackageToContainer {
         [string] $tenant = "default",
         [string] $appSymbolsFolder = "",
         [string] $copyInstalledAppsToFolder = "",
-        [switch] $skipVerification
+        [switch] $skipVerification,
+        [switch] $allowPrerelease
     )
 
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
@@ -81,7 +84,7 @@ Function Publish-BcNuGetPackageToContainer {
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item $tmpFolder -ItemType Directory | Out-Null
     try {
-        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease) {
             $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | ForEach-Object {
                 if ($appSymbolsFolder) {
                     Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force

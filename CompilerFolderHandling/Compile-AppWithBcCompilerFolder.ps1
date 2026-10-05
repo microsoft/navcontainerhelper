@@ -377,7 +377,7 @@ function Compile-AppWithBcCompilerFolder {
             ($isMacOS) { $compilerPlatform = 'darwin' }
         }
         $alcPath = Join-Path $binPath $compilerPlatform
-        if (-not (Test-Path $alcPath)) {
+        if (-not (Test-Path "$alcPath/alc.*")) {
             $alcPath = $binPath
         }
 
