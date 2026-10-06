@@ -2311,28 +2311,26 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    if ($app) {
-        if (!$previousAppsCopied) {
-            $previousAppsCopied = $true
-            $AppList = @()
-            $previousAppVersions = @{}
-            if ($previousApps) {
-                Write-Host "Copying previous apps to packages folder"
-                $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
-                $previousApps = Sort-AppFilesByDependencies -appFiles $appList
-                $previousApps | ForEach-Object {
-                    $appFile = $_
-                    $appInfo = RunAlTool -arguments @('GetPackageManifest', """$appFile""") | ConvertFrom-Json
-                    $appId = $appInfo.Id
-                    Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
-                    $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
-                    $previousAppInfos += @(@{
-                        "AppId" = $appId.ToLowerInvariant()
-                        "Publisher" = $appInfo.Publisher
-                        "Name" = $appInfo.Name
-                        "Version" = $appInfo.Version
-                    } )
-                }
+    if (!$previousAppsCopied) {
+        $previousAppsCopied = $true
+        $AppList = @()
+        $previousAppVersions = @{}
+        if ($previousApps) {
+            Write-Host "Copying previous apps to packages folder"
+            $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
+            $previousApps = Sort-AppFilesByDependencies -appFiles $appList
+            $previousApps | ForEach-Object {
+                $appFile = $_
+                $appInfo = RunAlTool -arguments @('GetPackageManifest', """$appFile""") | ConvertFrom-Json
+                $appId = $appInfo.Id
+                Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
+                $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
+                $previousAppInfos += @(@{
+                    "AppId" = $appId.ToLowerInvariant()
+                    "Publisher" = $appInfo.Publisher
+                    "Name" = $appInfo.Name
+                    "Version" = $appInfo.Version
+                } )
             }
         }
     }
