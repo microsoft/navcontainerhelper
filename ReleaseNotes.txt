@@ -1,3 +1,5 @@
+6.1.20
+
 6.1.19
 Add Parameter allowPrerelease to Publish-BcNuGetPackageToContainer
 Use case insensitive search for disabledTests.json on Linux
