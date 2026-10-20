@@ -105,15 +105,23 @@ class NuGetFeed {
             }
         }
 
+        $matching = @()
         if ($useCache -and $hasCache) { 
             Write-Host "Search package using cache"
             $matching = $this.searchResultsCache[$packageName].matching
         } 
-        elseif ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
+        elseif ($this.searchQueryServiceUrl -match '^https://nuget\.(pkg\.github\.com|([^/]+)\.ghe\.com)/(.*)/query$') {
             # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
             # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
-            $organization = $matches[1]
+            if ($matches[2]) {
+                # GitHub Enterprise Cloud with data residency (ghe.com)
+                $apiUrl = "https://api.$($matches[2]).ghe.com"
+            }
+            else {
+                $apiUrl = "https://api.github.com"
+            }
+            $organization = $matches[3]
             $headers = @{
                 "Accept" = "application/vnd.github+json"
                 "X-GitHub-Api-Version" = "2022-11-28"
@@ -124,7 +132,7 @@ class NuGetFeed {
                 }
             }
             if (-not $this.orgType.ContainsKey($organization)) {
-                $orgMetadata = Invoke-RestMethod -Method GET -Headers $headers -Uri "https://api.github.com/users/$organization"
+                $orgMetadata = Invoke-RestMethod -Method GET -Headers $headers -Uri "$apiUrl/users/$organization"
                 if ($orgMetadata.type -eq 'Organization') {
                     $this.orgType[$organization] = 'orgs'
                 }
@@ -133,7 +141,6 @@ class NuGetFeed {
                 }
             }
             $cacheKey = "GitHubPackages:$($this.orgType[$organization])/$organization"
-            $matching = @()
             if ($this.searchResultsCacheRetentionPeriod -gt 0 -and $this.searchResultsCache.ContainsKey($cacheKey)) {
                 if ($this.searchResultsCache[$cacheKey].timestamp.AddSeconds($this.searchResultsCacheRetentionPeriod) -lt (Get-Date)) {
                     Write-Host "Cache expired, removing cache $cacheKey"
@@ -147,7 +154,7 @@ class NuGetFeed {
             }
             if (-not $matching) {
                 $per_page = 50
-                $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
+                $queryUrl = "$apiUrl/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=$($per_page)&page="
                 $page = 1
                 $matching = @()
                 while ($true) {
@@ -179,12 +186,12 @@ class NuGetFeed {
                 $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
                 $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
                 $global:ProgressPreference = $prev
+                # Check that the found pattern matches the package name and the trusted patterns
+                $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) } | Sort-Object { $_.id.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.id; "versions" = @($_.versions.version) } } )
             }
             catch {
                 throw (GetExtendedErrorMessage $_)
             }
-            # Check that the found pattern matches the package name and the trusted patterns
-            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) } | Sort-Object { $_.id.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.id; "versions" = @($_.versions.version) } } )
         }
         $exact = $matching | Where-Object { $_.id -eq $packageName -or $_.id -eq "$packageName.symbols" }
         if ($exact) {
@@ -383,7 +390,7 @@ class NuGetFeed {
             if (!$this.IsTrusted($packageId)) {
                 throw "Package $packageId is not trusted on $($this.url)"
             }
-            if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*') {
+            if ($this.packageBaseAddressUrl -like 'https://nuget.pkg.github.com/*' -or $this.packageBaseAddressUrl -like 'https://nuget.*.ghe.com/*') {
                 $queryUrl = "$($this.packageBaseAddressUrl.SubString(0,$this.packageBaseAddressUrl.LastIndexOf('/')))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant()).json"
                 Write-Host "Download nuspec using $queryUrl"
                 $response = Invoke-WebRequest -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl

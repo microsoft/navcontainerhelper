@@ -5,6 +5,8 @@
   Download artifacts from artifacts storage
  .Parameter artifactUrl
   Url for artifact to use.
+ .Parameter platformArtifactUrl
+  Url for platform artifact to use instead of the platform related to artifactUrl.
  .Parameter includePlatform
   Add this switch to include the platform artifact in the download
  .Parameter force
@@ -26,6 +28,7 @@ function Download-Artifacts {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
+        [string] $platformArtifactUrl = "",
         [switch] $includePlatform,
         [switch] $force,
         [switch] $forceRedirection,
@@ -98,7 +101,7 @@ function Download-Artifacts {
     }
 
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl","includePlatform")
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl","platformArtifactUrl","includePlatform")
 try {
 
     if ($basePath -eq "") {
@@ -207,11 +210,15 @@ try {
         $appArtifactPath
     
         if ($includePlatform) {
-            if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
+            if ($platformArtifactUrl) {
+                Write-Host "Using separate platformArtifactUrl $($platformArtifactUrl.split('?')[0])"
+                $platformUrl = $platformArtifactUrl
+            }
+            elseif ($appManifest.PSObject.Properties.name -eq "platformUrl") {
                 $platformUrl = $appManifest.platformUrl
             }
             else {
-                $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform".TrimStart('/')
+                $platformUrl = "$( $appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')) )/platform".TrimStart('/')
             }
         
             if ($platformUrl -notlike 'https://*') {

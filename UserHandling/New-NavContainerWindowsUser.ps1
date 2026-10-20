@@ -1,16 +1,16 @@
 ﻿<# 
  .Synopsis
-  Creates a new Winodws User in a NAV/BC Container
+  Creates a new Windows User in a NAV/BC Container
  .Description
   Creates a new Windows user in a NAV/BC Container.
  .Parameter containerName
   Name of the container in which you want to create a windows user
  .Parameter Credential
-  Credentials of the new Winodws user
+  Credentials of the new Windows user
  .Parameter group
   Name of the local group to add the user to (default is administrators)
  .Example
-  New-BcContainerWindowsUser -containerName test -tenantId mytenant -username freddyk -password $password
+  New-BcContainerWindowsUser -containerName test -tenantId mytenant -username myuser -password $password
 #>
 function New-BcContainerWindowsUser {
     Param (

@@ -8,7 +8,7 @@
  .Parameter Destination
   Path of the modified application file, where dependencies was replaced (default is to rewrite the original file)
  .Parameter replaceDependencies
-  A hashtable, describring the dependencies, which needs to be replaced
+  A hashtable, describing the dependencies, which needs to be replaced
  .Parameter internalsVisibleTo
   An Array of hashtable, containing id, name and publisher of an app, which should be added to internals Visible to
  .Parameter showMyCode

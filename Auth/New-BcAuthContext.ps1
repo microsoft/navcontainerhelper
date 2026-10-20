@@ -149,7 +149,7 @@ try {
     }
     else {
         if ($scopes.EndsWith('/')) {
-            $scopes += "user_impersonation offline_access"
+            $scopes += ".default offline_access"
         }
 
         if ($credential) {

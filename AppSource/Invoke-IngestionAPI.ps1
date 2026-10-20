@@ -38,7 +38,9 @@ function Invoke-IngestionApiRestMethod {
     }
     if ($PSBoundParameters.ContainsKey('body')) {
         if (!$silent) {
-            $body | Out-Host
+            # Strip URL query strings before logging the body so that SAS tokens
+            # (e.g. in package fileSasUri values) are never written to logs.
+            [regex]::Replace($body, '(?i)(https?://[^\s"''?]+)\?[^\s"'']*', '$1?<redacted>') | Out-Host
         }
         $parameters += @{
             "body" = [System.Text.Encoding]::UTF8.GetBytes($body)

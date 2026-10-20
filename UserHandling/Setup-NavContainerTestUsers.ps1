@@ -34,13 +34,13 @@
  .Parameter containerName
   Name of the container in which you want to add test users
  .Parameter tenant
-  Name of tenant in which you want to add test users (default defeault)
+  Name of tenant in which you want to add test users (default default)
  .Parameter password
   The password for all test users created
  .Parameter Credential
   Credentials for the admin user if using NavUserPassword authentication
  .Parameter ReplaceDependencies
-  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+  With this parameter, you can specify a hashtable, describing that the specified dependencies in the apps being published should be replaced
  .Parameter select
   Select which users to create. Essential creates only Essential user, Premium only premium user. Empty adds all.
  .Parameter createTestUsersAppUrl

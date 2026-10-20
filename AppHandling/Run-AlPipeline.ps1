@@ -20,7 +20,7 @@
   If set to true, the `errorLog` argument is used when compiling the apps. The generated file will be named <appname>.errorLog.json and is placed in the same folder as the app file.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
-  Only speficy imagename if you are going to create multiple containers from the same artifacts.
+  Only specify imageName if you are going to create multiple containers from the same artifacts.
  .Parameter enableTaskScheduler
   Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
  .Parameter assignPremiumPlan
@@ -66,7 +66,7 @@
  .Parameter additionalCountries
   Array or comma separated list of countries to test
  .Parameter restoreDatabases
-  Array or comma seperated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
+  Array or comma separated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
  .Parameter appVersion
   Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
@@ -88,7 +88,7 @@
  .Parameter pageScriptingTestResultsFile
   File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
-  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result details will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -162,7 +162,7 @@
 . Parameter enableCodeAnalyzersOnTestApps
   Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
-  Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
+  Use custom AL Cops into the container and include them, in addition to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
@@ -184,7 +184,7 @@
  .Parameter AppSourceCopMandatoryAffixes
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
-  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma separated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter features
@@ -200,7 +200,7 @@
  .Parameter PipelineInitialize
   Override for Pipeline Initialize
  .Parameter PipelineFinalize
-  Override for Pipeline Finalize 
+  Override for Pipeline Finalize
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -649,6 +649,65 @@ function RunPageScriptingTests {
     }
 }
 
+function InstallMissingTestAppDependencies {
+    param(
+        [ref] $appsBeforeTestApps
+    )
+
+    if (!$missingTestAppDependencies) {
+        return
+    }
+
+    Write-GroupStart -Message "Installing test app dependencies"
+    Write-Host -ForegroundColor Yellow @'
+
+  _____           _        _ _ _               _            _                             _                           _                 _
+ |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |                          | |   | |                | |
+                                       |___/                           |_|   |_|                |_|
+
+'@
+    Measure-Command {
+        Write-Host "Missing TestApp dependencies"
+        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        if ($useCompilerFolder) {
+            $appSymbolsFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            New-Item -Path $appSymbolsFolder -ItemType Directory -Force | Out-Null
+        }
+        else {
+            $appSymbolsFolder = $packagesFolder
+        }
+        $Parameters = @{
+            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+            "appSymbolsFolder" = $appSymbolsFolder
+            "installedApps" = $installedApps
+            "installedCountry" = $artifactUrl.Split('?')[0].Split('/')[-1]
+        }
+        if (!($useCompilerFolder -or $filesOnly)) {
+            $Parameters += @{
+                "containerName" = (GetBuildContainer)
+                "tenant" = $tenant
+            }
+        }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+
+        if ($useCompilerFolder) {
+            Write-Host "check $appSymbolsFolder"
+            Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
+                Write-Host "Move $($_.Name) to $packagesFolder"
+                Move-Item -Path $_.FullName -Destination $packagesFolder -Force
+                $appsBeforeTestApps.Value += @(Join-Path $packagesFolder $_.Name)
+            }
+            Remove-Item -Path $appSymbolsFolder -Recurse -Force
+        }
+    } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
+    Write-GroupEnd
+}
+
 $script:existingContainerName = ''
 $script:existingCompilerFolder = ''
 
@@ -730,7 +789,7 @@ function GetBuildContainer {
             Write-Host "Reusing existing docker container"
         }
         else {
-            Write-Host "Creaing docker container"
+            Write-Host "Creating docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }
@@ -1021,7 +1080,7 @@ if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
             Remove-Item $packagesFolder -Recurse -Force
         }
     }
-    New-Item $packagesFolder -ItemType Directory -Force | Out-Null 
+    New-Item $packagesFolder -ItemType Directory -Force | Out-Null
 }
 
 if ($useDevEndpoint) {
@@ -1670,7 +1729,7 @@ Measure-Command {
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $appSymbolsFolder
         "installedApps" = $installedApps
-        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
+        "installedCountry" = $artifactUrl.Split('?')[0].Split('/')[-1]
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1841,49 +1900,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
-if ($missingTestAppDependencies) {
-Write-GroupStart -Message "Installing test app dependencies"
-Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                             _                           _                 _
- |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
-  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
-                                        __/ |                          | |   | |                | |
-                                       |___/                           |_|   |_|                |_|
-'@
-Measure-Command {
-    Write-Host "Missing TestApp dependencies"
-    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-    if ($useCompilerFolder) {
-        $appSymbolsFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-        New-Item -Path $appSymbolsFolder -ItemType Directory -Force | Out-Null
-    }
-    else {
-        $appSymbolsFolder = $packagesFolder
-    }
-    $Parameters = @{
-        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        "appSymbolsFolder" = $appSymbolsFolder
-        "installedApps" = $installedApps
-        "installedCountry" = $artifactUrl.Substring($artifactUrl.LastIndexOf('/')+1)
-    }
-    if (!($useCompilerFolder -or $filesOnly)) {
-        $Parameters += @{
-            "containerName" = (GetBuildContainer)
-            "tenant" = $tenant
-        }
-    }
-    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-    if ($useCompilerFolder) {
-        Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
-        Remove-Item -Path $appSymbolsFolder -Recurse -Force
-        $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
-    }
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
-Write-GroupEnd
-}
+InstallMissingTestAppDependencies -appsBeforeTestApps ([ref]$appsBeforeTestApps)
 }
 
 if (-not $testCountry) {
@@ -2064,35 +2081,7 @@ $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $
 if ($installedApps) {
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps.Id -notcontains $_ })
 }
-if ($missingTestAppDependencies) {
-Write-GroupStart -Message "Installing test app dependencies"
-Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                             _                           _                 _
- |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
-  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
-                                        __/ |                          | |   | |                | |
-                                       |___/                           |_|   |_|                |_|
-'@
-Measure-Command {
-    Write-Host "Missing TestApp dependencies"
-    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-    $Parameters = @{
-        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        "appSymbolsFolder" = $packagesFolder
-    }
-    if (!($useCompilerFolder -or $filesOnly)) {
-        $Parameters += @{
-            "containerName" = (GetBuildContainer)
-            "tenant" = $tenant
-        }
-    }
-    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
-Write-GroupEnd
-}
+InstallMissingTestAppDependencies -appsBeforeTestApps ([ref]$appsBeforeTestApps)
 }
 
 Write-GroupStart -Message "Compiling test apps"
@@ -2617,7 +2606,7 @@ Measure-Command {
         "upgrade" = $true
         "ignoreIfAppExists" = $true
 }
-    
+
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
@@ -2625,7 +2614,7 @@ Measure-Command {
             "checkAlreadyInstalled" = $true
         }
     }
-    
+
     if (!$doNotPublishApps) {
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
@@ -2919,6 +2908,7 @@ $testFolders | ForEach-Object {
 }
 
 $installedApps = @(GetInstalledApps -bcAuthContext $bcAuthContext -environment $environment -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
+$disabledTestsFiles = @(Get-ChildItem -Path $baseFolder -File -Recurse | Where-Object { $_.Name -like "*disabledTests.json" })
 $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
@@ -2935,13 +2925,13 @@ $testAppIds.Keys | ForEach-Object {
         Write-Host "Running tests for App $id"
     }
     if ($folder) {
-        Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
+        Get-ChildItem -Path $folder -File -Recurse | Where-Object { $_.Name -eq "disabledTests.json" } | ForEach-Object {
             $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
     }
-    Get-ChildItem -Path $baseFolder -Filter "$id.disabledTests.json" -Recurse | ForEach-Object {
+    $disabledTestsFiles | Where-Object { $_.Name -eq "$id.disabledTests.json" } | ForEach-Object {
         $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
         Write-Host "Disabled Tests:`n$disabledTestsStr"
         $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
@@ -3094,7 +3084,7 @@ if ($result -is [array]) {
 }
 else {
     $allPassed =  $allPassed -and $result
-} 
+}
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }

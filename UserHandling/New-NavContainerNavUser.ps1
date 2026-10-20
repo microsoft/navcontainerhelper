@@ -25,7 +25,7 @@
  .Example
   New-BcContainerBcUser -containerName test -tenantId mytenant -credential $credential
  .Example
-  New-BcContainerBcUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
+  New-BcContainerBcUser -containerName test -tenantId mytenant -WindowsAccount myuser -PermissionSetId SUPER
 #>
 function New-BcContainerBcUser {
     Param (

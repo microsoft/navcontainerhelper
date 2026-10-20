@@ -61,11 +61,11 @@
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
-  Compile-AppWithBcCompilerFolder -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Project1\Test"
+  Compile-AppWithBcCompilerFolder -containerName test -credential $credential -appProjectFolder "C:\Users\me\Documents\AL\Project1\Test"
  .Example
-  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\me\Documents\AL\Test"
  .Example
-  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
+  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\me\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\me\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
 function Compile-AppWithBcCompilerFolder {
     Param (
@@ -314,8 +314,33 @@ function Compile-AppWithBcCompilerFolder {
             $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
         }
         elseif ($platformversion.Major -ge 22) {
-            if ($dotNetRuntimeVersionInstalled -ge [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr) {
-                $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
+            # Determine the correct .NET runtime version for assembly probing paths
+            # If the artifact ships a manifest.json with a dotNetVersion, use the matching installed runtime
+            $dotNetVersionForProbing = $dotNetRuntimeVersionInstalled
+            $manifestFile = Join-Path $compilerFolder "manifest.json"
+            if (Test-Path $manifestFile) {
+                try {
+                    $manifest = Get-Content $manifestFile -Encoding UTF8 | ConvertFrom-Json
+                    if ($manifest.dotNetVersion) {
+                        $requiredDotNetMajor = ([System.Version]$manifest.dotNetVersion).Major
+                        $dotNetCorePath = 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App'
+                        if (Test-Path $dotNetCorePath) {
+                            $matchingVersion = Get-ChildItem $dotNetCorePath | ForEach-Object {
+                                try { [System.Version]$_.Name } catch {}
+                            } | Where-Object { $_.Major -eq $requiredDotNetMajor } | Sort-Object -Descending | Select-Object -First 1
+                            if ($matchingVersion -and (Test-Path "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$matchingVersion")) {
+                                Write-Host "Using .NET $matchingVersion for assembly probing (artifact requires .NET $requiredDotNetMajor)"
+                                $dotNetVersionForProbing = $matchingVersion
+                            }
+                        }
+                    }
+                }
+                catch {
+                    Write-Host "Warning: Could not read manifest.json from compiler folder: $($_.Exception.Message)"
+                }
+            }
+            if ($dotNetVersionForProbing -ge [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr) {
+                $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetVersionForProbing", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetVersionForProbing") + $probingPaths
             }
             else {
                 $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
@@ -341,7 +366,7 @@ function Compile-AppWithBcCompilerFolder {
             ($isMacOS) { $compilerPlatform = 'darwin' }
         }
         $alcPath = Join-Path $binPath $compilerPlatform
-        if (-not (Test-Path $alcPath)) {
+        if (-not (Test-Path "$alcPath/alc.*")) {
             $alcPath = $binPath
         }
 
@@ -375,31 +400,35 @@ function Compile-AppWithBcCompilerFolder {
         }
 
         # Microsoft.Dynamics.Nav.Analyzers.Common.dll needs to referenced first, as this is how the analyzers are loaded
+        $analyzersPath = Join-Path $binPath 'Analyzers'
+        if (-not (Test-Path $analyzersPath)) {
+            $analyzersPath = $binPath
+        }
         if ($EnableCodeCop -or $EnableAppSourceCop -or $EnablePerTenantExtensionCop -or $EnableUICop) {
-            $analyzersCommonDLLPath = Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll'
+            $analyzersCommonDLLPath = Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.Analyzers.Common.dll'
             if (Test-Path $analyzersCommonDLLPath) {
-                $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.Analyzers.Common.dll')")
+                $alcParameters += @("/analyzer:$analyzersCommonDLLPath")
             }
         }
 
         if ($EnableCodeCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.CodeCop.dll')")
         }
         if ($EnableAppSourceCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.AppSourceCop.dll')")
         }
         if ($EnablePerTenantExtensionCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
         }
         if ($EnableUICop) {
-            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $analyzersPath 'Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
         if ($CustomCodeCops.Count -gt 0) {
             $CustomCodeCops | ForEach-Object {
                 $analyzerFileName = $_
                 if ($_ -like 'https://*') {
-                    $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
+                    $analyzerFileName = Join-Path $analyzersPath $(Split-Path $_ -Leaf)
                     Download-File -SourceUrl $_ -destinationFile $analyzerFileName
                 }
                 $alcParameters += @("/analyzer:$analyzerFileName")

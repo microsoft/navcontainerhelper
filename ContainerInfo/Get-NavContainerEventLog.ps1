@@ -2,7 +2,7 @@
  .Synopsis
   Get the Event log from a NAV/BC Container as an .evtx file
  .Description
-  Get a copy of the current Event Log from a continer and open it in the local event viewer
+  Get a copy of the current Event Log from a container and open it in the local event viewer
  .Parameter containerName
   Name of the container for which you want to get the Event log
  .Parameter logName

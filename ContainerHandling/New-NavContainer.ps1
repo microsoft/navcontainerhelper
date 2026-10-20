@@ -16,6 +16,8 @@
   Name of the image you want to use for your Container
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
+ .Parameter platformArtifactUrl
+  Url for platform artifact to use. Use this when you want to use a different platform than the one related to artifactUrl.
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -202,6 +204,7 @@ function New-BcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $imageName = "",
         [string] $artifactUrl = "", 
+        [string] $platformArtifactUrl = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -296,7 +299,7 @@ function New-BcContainer {
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
                     -parameterValues $PSBoundParameters `
-                    -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
+                    -includeParameters @("containerName","artifactUrl","platformArtifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
 
     $defaultNewContainerParameters = $bcContainerHelperConfig.defaultNewContainerParameters
@@ -450,10 +453,29 @@ try {
         Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers. If Docker Desktop is already installed, open the system tray, right-click on the Docker icon, and select 'Switch to Windows containers...'"
     }
 
-    $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
-    $dockerOS = $dockerVersion.Split('/')[0]
-    $dockerClientVersion = $dockerVersion.Split('/')[1]
-    $dockerServerVersion = $dockerVersion.Split('/')[2]
+    # The Docker daemon might still be starting up (e.g. right after the host boots or on CI runners).
+    # In that case the docker client responds, but the server properties are empty. Poll for a bounded
+    # amount of time before giving up, so a transient "not yet ready" state doesn't fail the operation.
+    $dockerOS = ""
+    $dockerClientVersion = ""
+    $dockerServerVersion = ""
+    $dockerReadyTimeout = [DateTime]::Now.AddSeconds(120)
+    while ($true) {
+        try {
+            $dockerVersion = "$(docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}")"
+        }
+        catch {
+            $dockerVersion = ""
+        }
+        $dockerOS = $dockerVersion.Split('/')[0]
+        $dockerClientVersion = $dockerVersion.Split('/')[1]
+        $dockerServerVersion = $dockerVersion.Split('/')[2]
+        if ("$dockerOS" -ne "" -or [DateTime]::Now -ge $dockerReadyTimeout) {
+            break
+        }
+        Write-Host "Docker service is not yet ready, waiting..."
+        Start-Sleep -Seconds 2
+    }
 
     if ("$dockerOS" -eq "") {
         throw "Docker service is not yet ready."
@@ -477,6 +499,10 @@ try {
         throw "You have to specify artifactUrl or imageName when creating a new container."            
     }
 
+    if ($platformArtifactUrl -and -not $artifactUrl) {
+        throw "You have to specify artifactUrl when using platformArtifactUrl."
+    }
+
     # Remove if it already exists
     Remove-BcContainer $containerName
 
@@ -491,7 +517,7 @@ try {
             }
         }
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
@@ -564,6 +590,7 @@ try {
 
             $imageName = New-Bcimage `
                 -artifactUrl $artifactUrl `
+                -platformArtifactUrl $platformArtifactUrl `
                 -imageName $imagename `
                 -isolation $isolation `
                 -baseImage $useGenericImage `
@@ -586,6 +613,7 @@ try {
             }
 
             $artifactUrl = ""
+            $platformArtifactUrl = ""
             $alwaysPull = $false
             $useGenericImage = ""
             $doNotGetBestImageName = $true
@@ -888,7 +916,7 @@ try {
     if ($artifactUrl) {
         $parameters += getVolumeMountParameter -volumes $allVolumes -hostPath $downloadsPath -containerPath "c:\dl"
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -platformArtifactUrl $platformArtifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
@@ -926,6 +954,12 @@ try {
             $parameters += @("--env isBcSandbox=N")
         }
 
+        # Copy manifest.json for use during compilation (.NET version resolution, etc.)
+        $manifestSource = Join-Path $appArtifactPath "manifest.json"
+        if (Test-Path $manifestSource) {
+            Copy-Item -Path $manifestSource -Destination (Join-Path $containerFolder "manifest.json") -Force
+        }
+
         $dvdVersion = $appmanifest.Version
         $dvdCountry = $appManifest.Country
         $dvdPlatform = $appManifest.Platform
@@ -938,6 +972,7 @@ try {
                        "--label platform=$dvdPlatform"
                        "--label country=$dvdCountry"
                        "--env artifactUrl=$artifactUrl"
+                       "--env platformArtifactUrl=$platformArtifactUrl"
                        )
     }
     elseif ("$dvdPath" -ne "") {
@@ -1563,8 +1598,14 @@ if (!(Test-Path "c:\navpfiles\*")) {
         else {
             $userPlanTableName = 'User Plan'
         }
+
+        $fullUserLicenseType = "FullUser"
+        if ($version.Major -ge 29) {
+            $fullUserLicenseType = "Full User"
+        }
+        
         ('
-Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "'+$fullUserLicenseType+'" | ForEach-Object {
     $UserId = $_.UserSecurityId
     Write-Host "Assign Premium plan for $($_.Username)"
     $dbName = $DatabaseName

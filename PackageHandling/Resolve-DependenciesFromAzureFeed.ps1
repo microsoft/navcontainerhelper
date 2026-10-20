@@ -39,7 +39,7 @@ function Resolve-DependenciesFromAzureFeed {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     if($pat -ne '') {
-        Write-Warning "Enviroment Variable AZURE_DEVOPS_EXT_PAT is overridden";
+        Write-Warning "Environment Variable AZURE_DEVOPS_EXT_PAT is overridden";
         $env:AZURE_DEVOPS_EXT_PAT = $pat
     }
     $spaces = ''
