@@ -361,7 +361,7 @@ try {
                         if ($sync) {
                             Write-Host "Synchronizing $appName on tenant $tenant"
                             Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
-                            Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+                            Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction SilentlyContinue
                         }
 
                         if($upgrade -and $install){
