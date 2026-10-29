@@ -1,4 +1,6 @@
 6.1.20
+Sessions created from inside a container (e.g. containerized build agents) now honor usePwshForBc24 and register the PowerShell.7 endpoint through docker exec when it is missing. Before, they were always Windows PowerShell sessions, so tests against BC v29 containers failed with "Unable to load one or more of the requested types"
+BC v27 and v28 containers keep using Windows PowerShell sessions from inside a container due to the known PS7 remote session issue
 
 6.1.19
 Add Parameter allowPrerelease to Publish-BcNuGetPackageToContainer

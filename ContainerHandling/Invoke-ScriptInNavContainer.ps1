@@ -31,6 +31,7 @@ function Invoke-ScriptInBcContainer {
     )
 
     $file = ''
+    $pwshSessionDisabled = $false
     [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
     if ($useSession -and $usePwsh) {
         # Check if we should disable PS sessions for BC v27 and v28 due to known PS7 remote session issues
@@ -40,6 +41,7 @@ function Invoke-ScriptInBcContainer {
         if (($platformVersion.Major -eq 27 -and -not $bcContainerHelperConfig.usePsSessionForBc27) -or
             ($platformVersion.Major -eq 28 -and -not $bcContainerHelperConfig.usePsSessionForBc28)) {
             $useSession = $false
+            $pwshSessionDisabled = $true
         }
     }
     if (!$useSession) {
@@ -47,6 +49,9 @@ function Invoke-ScriptInBcContainer {
         $containerFile = Get-BcContainerPath -containerName $containerName -path $file
         if ($isInsideContainer -or "$containerFile" -eq "") {
             $useSession = $true
+            if ($isInsideContainer -and $pwshSessionDisabled) {
+                $usePwsh = $false
+            }
         }
     }
 

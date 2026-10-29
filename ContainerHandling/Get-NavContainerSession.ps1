@@ -69,7 +69,13 @@ function Get-BcContainerSession {
                 if ($bcContainerHelperConfig.debugMode) {
                     Write-Host "Creating session from inside container"
                 }
-                $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+                if ($configurationName -eq 'PowerShell.7') {
+                    $registerOutput = docker exec $containerName pwsh -NoProfile -Command "if (-not (Get-PSSessionConfiguration -Name 'PowerShell.7' -ErrorAction SilentlyContinue)) { Enable-PSRemoting -SkipNetworkProfileCheck -Force -WarningAction SilentlyContinue | Out-Null }"
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Warning "Unable to register the PowerShell.7 session configuration in container $($containerName): $($registerOutput -join ' ')"
+                    }
+                }
+                $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck) -ConfigurationName $configurationName
             }
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
