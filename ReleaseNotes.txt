@@ -1,4 +1,5 @@
 6.1.20
+Download-Artifacts downloads artifacts using parallel range requests (default 8 connections, configurable with artifactDownloadConnections in bcContainerHelperConfig) with retry on stalled or failed ranges. Set artifactDownloadConnections to 0 to use single stream download.
 
 6.1.19
 Add Parameter allowPrerelease to Publish-BcNuGetPackageToContainer

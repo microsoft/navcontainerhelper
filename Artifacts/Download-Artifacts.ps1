@@ -47,7 +47,12 @@ function Download-Artifacts {
         $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
         $retry = $false
         do {
-            Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
+            if ($bcContainerHelperConfig.artifactDownloadConnections -gt 0) {
+                DownloadFileParallel -sourceUrl (ReplaceCDN -sourceUrl $artifactUrl) -destinationFile $zipFile
+            }
+            else {
+                Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
+            }
             Write-Host "Unpacking artifact to tmp folder " -NoNewline
             try {
                 Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
