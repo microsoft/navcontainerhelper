@@ -1096,11 +1096,15 @@ function DownloadFileLow {
 
 function DownloadFileParallel {
     Param(
+        [Parameter(Mandatory=$true)]
         [string] $sourceUrl,
-        [string] $destinationFile
+        [Parameter(Mandatory=$true)]
+        [string] $destinationFile,
+        [Parameter(Mandatory=$true)]
+        [int] $timeout
     )
 
-    $connections = $bcContainerHelperConfig.artifactDownloadConnections
+    $connections =  $bcContainerHelperConfig.artifactDownloadConnections
     if (-not ([System.Management.Automation.PSTypeName]"BcContainerHelper.ParallelDownloader").Type) {
         Add-Type -Language CSharp -ReferencedAssemblies @(if (!$isPsCore) { 'System.Net.Http' }) -WarningAction SilentlyContinue -TypeDefinition @"
 using System; using System.Collections.Concurrent; using System.IO; using System.Net.Http; using System.Threading; using System.Threading.Tasks;
@@ -1111,34 +1115,40 @@ namespace BcContainerHelper {
             return task.GetAwaiter().GetResult();
         }
 
-        public static void Download(HttpClient client, string url, string file, long length, int connections) {
+        public static void Download(HttpClient client, string url, string file, long length, int connections, int timeout) {
             const long chunkSize = 32 * 1024 * 1024;
             using (var fs = File.Create(file)) fs.SetLength(length);
             var chunks = new ConcurrentQueue<long>();
             for (long start = 0; start < length; start += chunkSize) chunks.Enqueue(start);
-            var workers = new Task[connections];
-            for (int i = 0; i < connections; i++) workers[i] = Task.Factory.StartNew(() => {
-                long start;
-                while (chunks.TryDequeue(out start)) DownloadRange(client, url, file, start, Math.Min(length, start + chunkSize) - 1);
-            }, TaskCreationOptions.LongRunning);
-            try { Task.WaitAll(workers); } catch (AggregateException ex) { throw ex.Flatten().InnerException; }
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout))) {
+                var workers = new Task[connections];
+                for (int i = 0; i < connections; i++) workers[i] = Task.Factory.StartNew(() => {
+                    long start;
+                    while (chunks.TryDequeue(out start)) DownloadRange(client, url, file, start, Math.Min(length, start + chunkSize) - 1, cts.Token);
+                }, TaskCreationOptions.LongRunning);
+                try { Task.WaitAll(workers); }
+                catch (AggregateException ex) {
+                    if (cts.IsCancellationRequested) throw new TimeoutException("Download timed out after " + timeout + " seconds");
+                    throw ex.Flatten().InnerException;
+                }
+            }
         }
 
-        static void DownloadRange(HttpClient client, string url, string file, long position, long to) {
+        static void DownloadRange(HttpClient client, string url, string file, long position, long to, CancellationToken token) {
             var buffer = new byte[81920];
             using (var fs = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
             for (int failures = 0; position <= to; ) {
                 try {
                     var request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(position, to);
-                    using (var response = Wait(client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))) {
+                    using (var response = Wait(client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token))) {
                         int status = (int)response.StatusCode;
                         if (status == 408 || status == 429 || status >= 500) throw new HttpRequestException("Server returned " + status);
                         if (status != 206) throw new InvalidOperationException("Range request returned " + status);
                         var stream = Wait(response.Content.ReadAsStreamAsync());
                         fs.Position = position;
                         while (position <= to) {
-                            int read = Wait(stream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, to - position + 1)));
+                            int read = Wait(stream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, to - position + 1), token));
                             if (read == 0) throw new IOException("Connection closed prematurely");
                             fs.Write(buffer, 0, read);
                             position += read;
@@ -1168,7 +1178,7 @@ namespace BcContainerHelper {
         if (!$head.Headers.AcceptRanges.Contains('bytes')) { throw "$sourceUrl doesn't support range requests" }
         $length = $head.Content.Headers.ContentLength
         Write-Host "Downloading $([Math]::Round($length/1MB)) MB using $connections parallel connections"
-        [BcContainerHelper.ParallelDownloader]::Download($httpClient, $sourceUrl, $destinationFile, $length, $connections)
+        [BcContainerHelper.ParallelDownloader]::Download($httpClient, $sourceUrl, $destinationFile, $length, $connections, $timeout)
     }
     finally {
         $httpClient.Dispose()

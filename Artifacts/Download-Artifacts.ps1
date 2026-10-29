@@ -48,7 +48,7 @@ function Download-Artifacts {
         $retry = $false
         do {
             if ($bcContainerHelperConfig.artifactDownloadConnections -gt 0) {
-                DownloadFileParallel -sourceUrl (ReplaceCDN -sourceUrl $artifactUrl) -destinationFile $zipFile
+                DownloadFileParallel -sourceUrl (ReplaceCDN -sourceUrl $artifactUrl)                 -destinationFile $zipFile -timeout $timeout
             }
             else {
                 Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
