@@ -1104,87 +1104,98 @@ function DownloadFileParallel {
         [int] $timeout
     )
 
-    $connections =  $bcContainerHelperConfig.artifactDownloadConnections
+    $connections = $bcContainerHelperConfig.artifactDownloadConnections
     if (-not ([System.Management.Automation.PSTypeName]"BcContainerHelper.ParallelDownloader").Type) {
         Add-Type -Language CSharp -ReferencedAssemblies @(if (!$isPsCore) { 'System.Net.Http' }) -WarningAction SilentlyContinue -TypeDefinition @"
-using System; using System.Collections.Concurrent; using System.IO; using System.Net.Http; using System.Threading; using System.Threading.Tasks;
+using System; using System.IO; using System.Net.Http; using System.Net.Http.Headers; using System.Threading; using System.Threading.Tasks;
 namespace BcContainerHelper {
     public static class ParallelDownloader {
-        static T Wait<T>(Task<T> task) {
-            if (Task.WhenAny(task, Task.Delay(30000)).Result != task) throw new TimeoutException("Download stalled");
+        const int httpOK = 200, httpPartialContent = 206, httpRequestTimeout = 408, httpTooManyRequests = 429, httpServerError = 500;
+
+        static T Wait<T>(Task<T> task, CancellationTokenSource attempt) {
+            if (Task.WhenAny(task, Task.Delay(30000)).Result != task) { attempt.Cancel(); throw new TimeoutException("Download stalled"); }
             return task.GetAwaiter().GetResult();
         }
 
-        public static void Download(HttpClient client, string url, string file, long length, int connections, int timeout) {
+        static void Retry(CancellationToken token, Action<CancellationTokenSource> attempt) {
+            for (int failures = 0; ; failures++) {
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(token)) {
+                    try { attempt(cts); return; }
+                    catch (Exception ex) { if (!(ex is TimeoutException || ex is HttpRequestException || ex is IOException) || failures == 5) throw; }
+                }
+                token.WaitHandle.WaitOne(1000 << failures);
+                token.ThrowIfCancellationRequested();
+            }
+        }
+
+        static HttpResponseMessage Send(HttpClient client, HttpRequestMessage request, int expectedStatus, CancellationTokenSource attempt) {
+            var response = Wait(client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, attempt.Token), attempt);
+            int status = (int)response.StatusCode;
+            if (status == expectedStatus) return response;
+            response.Dispose();
+            if (status == httpRequestTimeout || status == httpTooManyRequests || status >= httpServerError) throw new HttpRequestException("Server returned " + status);
+            throw new InvalidOperationException("Server returned " + status);
+        }
+
+        public static long Download(string url, string file, int connections, int timeout, string userAgent) {
             const long chunkSize = 32 * 1024 * 1024;
-            using (var fs = File.Create(file)) fs.SetLength(length);
-            var chunks = new ConcurrentQueue<long>();
-            for (long start = 0; start < length; start += chunkSize) chunks.Enqueue(start);
+            long length = 0, next = -chunkSize;
+            Exception failure = null;
+            using (var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan })
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout))) {
-                var workers = new Task[connections];
-                for (int i = 0; i < connections; i++) workers[i] = Task.Factory.StartNew(() => {
-                    long start;
-                    while (chunks.TryDequeue(out start)) DownloadRange(client, url, file, start, Math.Min(length, start + chunkSize) - 1, cts.Token);
-                }, TaskCreationOptions.LongRunning);
-                try { Task.WaitAll(workers); }
-                catch (AggregateException ex) {
-                    if (cts.IsCancellationRequested) throw new TimeoutException("Download timed out after " + timeout + " seconds");
-                    throw ex.Flatten().InnerException;
+                client.DefaultRequestHeaders.Add("User-Agent", userAgent);
+                try {
+                    Retry(cts.Token, attempt => {
+                        using (var head = Send(client, new HttpRequestMessage(HttpMethod.Head, url), httpOK, attempt))
+                            length = head.Headers.AcceptRanges.Contains("bytes") ? head.Content.Headers.ContentLength ?? 0 : 0;
+                    });
+                    if (length <= 0) throw new InvalidOperationException("Server doesn't support range requests or didn't return the content length");
+                    using (var fs = File.Create(file)) fs.SetLength(length);
+                    var workers = new Task[connections];
+                    for (int i = 0; i < connections; i++) workers[i] = Task.Factory.StartNew(() => {
+                        try { for (long start; (start = Interlocked.Add(ref next, chunkSize)) < length; ) DownloadRange(client, url, file, start, Math.Min(length, start + chunkSize) - 1, cts.Token); }
+                        catch (Exception ex) { Interlocked.CompareExchange(ref failure, ex, null); cts.Cancel(); }
+                    }, TaskCreationOptions.LongRunning);
+                    Task.WaitAll(workers);
+                    if (failure != null) throw failure;
+                    return length;
+                }
+                catch (Exception ex) {
+                    File.Delete(file);
+                    if (ex is OperationCanceledException) throw new TimeoutException("Download timed out after " + timeout + " seconds");
+                    throw;
                 }
             }
         }
 
         static void DownloadRange(HttpClient client, string url, string file, long position, long to, CancellationToken token) {
-            var buffer = new byte[81920];
             using (var fs = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
-            for (int failures = 0; position <= to; ) {
-                try {
-                    var request = new HttpRequestMessage(HttpMethod.Get, url);
-                    request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(position, to);
-                    using (var response = Wait(client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token))) {
-                        int status = (int)response.StatusCode;
-                        if (status == 408 || status == 429 || status >= 500) throw new HttpRequestException("Server returned " + status);
-                        if (status != 206) throw new InvalidOperationException("Range request returned " + status);
-                        var stream = Wait(response.Content.ReadAsStreamAsync());
-                        fs.Position = position;
-                        while (position <= to) {
-                            int read = Wait(stream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, to - position + 1), token));
-                            if (read == 0) throw new IOException("Connection closed prematurely");
-                            fs.Write(buffer, 0, read);
-                            position += read;
-                            failures = 0;
-                        }
+            Retry(token, attempt => {
+                var buffer = new byte[81920];
+                var request = new HttpRequestMessage(HttpMethod.Get, url) { Headers = { Range = new RangeHeaderValue(position, to) } };
+                using (var response = Send(client, request, httpPartialContent, attempt)) {
+                    var stream = Wait(response.Content.ReadAsStreamAsync(), attempt);
+                    for (fs.Position = position; position <= to; ) {
+                        int read = Wait(stream.ReadAsync(buffer, 0, (int)Math.Min(buffer.Length, to - position + 1), attempt.Token), attempt);
+                        if (read == 0) throw new IOException("Connection closed prematurely");
+                        fs.Write(buffer, 0, read);
+                        position += read;
                     }
                 }
-                catch (Exception ex) {
-                    if (!(ex is TimeoutException || ex is HttpRequestException || ex is IOException) || ++failures > 5) throw;
-                    Thread.Sleep(1000 << failures);
-                }
-            }
+            });
         }
     }
 }
 "@
     }
     if (!$isPsCore) {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
         $servicePoint = [System.Net.ServicePointManager]::FindServicePoint([Uri]$sourceUrl)
         $servicePoint.ConnectionLimit = [Math]::Max($servicePoint.ConnectionLimit, $connections)
     }
-    $httpClient = New-Object System.Net.Http.HttpClient
-    try {
-        $httpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-        $httpClient.DefaultRequestHeaders.Add("User-Agent", "BcContainerHelper $bcContainerHelperVersion")
-        $head = $httpClient.SendAsync((New-Object System.Net.Http.HttpRequestMessage 'HEAD', $sourceUrl)).GetAwaiter().GetResult().EnsureSuccessStatusCode()
-        if (!$head.Headers.AcceptRanges.Contains('bytes')) { throw "$sourceUrl doesn't support range requests" }
-        $length = $head.Content.Headers.ContentLength
-        Write-Host "Downloading $([Math]::Round($length/1MB)) MB using $connections parallel connections"
-        [BcContainerHelper.ParallelDownloader]::Download($httpClient, $sourceUrl, $destinationFile, $length, $connections, $timeout)
-    }
-    finally {
-        $httpClient.Dispose()
-    }
+    $length = [BcContainerHelper.ParallelDownloader]::Download($sourceUrl, $destinationFile, $connections, $timeout, "BcContainerHelper $bcContainerHelperVersion")
+    Write-Host "Downloaded $([Math]::Round($length/1MB)) MB using $connections parallel connections"
 }
-
 function LoadDLL {
     Param(
         [string] $path
