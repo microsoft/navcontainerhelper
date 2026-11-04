@@ -1195,7 +1195,7 @@ namespace BcContainerHelper {
     }
     if (!$isPsCore) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-        $servicePoint = [System.Net.ServicePointManager]::FindServicePoint([Uri]$sourceUrl)
+        $servicePoint = [System.Net.ServicePointManager]::FindServicePoint([Uri]$sourceUrl, [System.Net.WebRequest]::DefaultWebProxy)
         $servicePoint.ConnectionLimit = [Math]::Max($servicePoint.ConnectionLimit, $connections)
     }
     $length = [BcContainerHelper.ParallelDownloader]::Download($sourceUrl, $destinationFile, $connections, $timeout, "BcContainerHelper $bcContainerHelperVersion")
