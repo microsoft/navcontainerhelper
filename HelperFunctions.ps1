@@ -1113,7 +1113,10 @@ namespace BcContainerHelper {
         const int httpOK = 200, httpPartialContent = 206, httpRequestTimeout = 408, httpTooManyRequests = 429, httpServerError = 500;
 
         static T Wait<T>(Task<T> task, CancellationTokenSource attempt) {
-            if (Task.WhenAny(task, Task.Delay(30000)).Result != task) { attempt.Cancel(); throw new TimeoutException("Download stalled"); }
+            using (var delay = new CancellationTokenSource()) {
+                if (Task.WhenAny(task, Task.Delay(30000, delay.Token)).Result != task) { attempt.Cancel(); throw new TimeoutException("Download stalled"); }
+                delay.Cancel();
+            }
             return task.GetAwaiter().GetResult();
         }
 
