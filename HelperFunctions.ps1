@@ -1141,12 +1141,14 @@ namespace BcContainerHelper {
             const long chunkSize = 32 * 1024 * 1024;
             long length = 0, next = -chunkSize;
             Exception failure = null;
+            if (connections < 1) throw new ArgumentOutOfRangeException("connections");
             using (var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan })
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout))) {
                 client.DefaultRequestHeaders.Add("User-Agent", userAgent);
                 try {
                     Retry(cts.Token, attempt => {
-                        using (var head = Send(client, new HttpRequestMessage(HttpMethod.Head, url), httpOK, attempt))
+                        using (var request = new HttpRequestMessage(HttpMethod.Head, url))
+                        using (var head = Send(client, request, httpOK, attempt))
                             length = head.Headers.AcceptRanges.Contains("bytes") ? head.Content.Headers.ContentLength ?? 0 : 0;
                     });
                     if (length <= 0) throw new InvalidOperationException("Server doesn't support range requests or didn't return the content length");
@@ -1172,7 +1174,7 @@ namespace BcContainerHelper {
             using (var fs = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
             Retry(token, attempt => {
                 var buffer = new byte[81920];
-                var request = new HttpRequestMessage(HttpMethod.Get, url) { Headers = { Range = new RangeHeaderValue(position, to) } };
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Headers = { Range = new RangeHeaderValue(position, to) } })
                 using (var response = Send(client, request, httpPartialContent, attempt)) {
                     var stream = Wait(response.Content.ReadAsStreamAsync(), attempt);
                     for (fs.Position = position; position <= to; ) {
