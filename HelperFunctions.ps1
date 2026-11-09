@@ -1110,7 +1110,7 @@ function DownloadFileParallel {
 using System; using System.IO; using System.Net.Http; using System.Net.Http.Headers; using System.Threading; using System.Threading.Tasks;
 namespace BcContainerHelper {
     public static class ParallelDownloader {
-        const int httpOK = 200, httpPartialContent = 206, httpRequestTimeout = 408, httpTooManyRequests = 429, httpServerError = 500;
+        const int httpOK = 200, httpPartialContent = 206, httpNotModified = 304, httpRequestTimeout = 408, httpTooManyRequests = 429, httpServerError = 500;
 
         static T Wait<T>(Task<T> task, CancellationTokenSource attempt) {
             using (var delay = new CancellationTokenSource()) {
@@ -1136,7 +1136,7 @@ namespace BcContainerHelper {
             int status = (int)response.StatusCode;
             if (status == expectedStatus) return response;
             response.Dispose();
-            if (status == httpRequestTimeout || status == httpTooManyRequests || status >= httpServerError) throw new HttpRequestException("Server returned " + status);
+            if (status == httpNotModified || status == httpRequestTimeout || status == httpTooManyRequests || status >= httpServerError) throw new HttpRequestException("Server returned " + status);
             throw new InvalidOperationException("Server returned " + status);
         }
 
