@@ -473,7 +473,7 @@ function GetTestToolkitApps {
             if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
             }
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app" -exclude "Microsoft_Test Runner Tests.app", "Microsoft_Test Runner Tests_*.app")
 
             if (!$includeTestRunnerOnly) {
                 $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
