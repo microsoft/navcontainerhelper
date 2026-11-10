@@ -18,6 +18,7 @@ function Test-BcContainer {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
     if (!(Get-Command 'docker' -ErrorAction SilentlyContinue)) {
         return $false
     }
