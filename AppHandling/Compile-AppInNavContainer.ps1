@@ -665,7 +665,7 @@ try {
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
-        if (-not (Test-Path $alcPath)) {
+        if (-not (Test-Path "$alcPath/alc.*")) {
             $alcPath = $binPath
         }
 

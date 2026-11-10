@@ -45,6 +45,7 @@ function Get-ContainerHelperConfig {
             "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
             "artifactDownloadTimeout" = 600
+            "artifactDownloadConnections" = 8
             "defaultDownloadTimeout" = 120
             "baseUrl" = "https://businesscentral.dynamics.com"
             "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
