@@ -1,4 +1,5 @@
 6.1.21
+Issue 4153 GetHypervState "Class not registered" error not caught on non-English Windows locales
 
 6.1.20
 Exclude Test Runner Tests from automatic test toolkit import, including runner-only mode. The app remains in artifact packages for explicit installation.
