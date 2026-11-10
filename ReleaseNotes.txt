@@ -1,4 +1,5 @@
 6.1.21
+Higher performance when using Sort-AppFilesByDependencies by using the al tool to extract and check app file instead of Extract-AppFileToFolder
 
 6.1.20
 Exclude Test Runner Tests from automatic test toolkit import, including runner-only mode. The app remains in artifact packages for explicit installation.

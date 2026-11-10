@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Sort an array of app files
  .Description
@@ -46,27 +46,18 @@ function Sort-AppFilesByDependencies {
         $appFiles | ForEach-Object {
             $appFile = $_
             $includeIt = $true
-            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-            try {
-                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
-                $appJsonFile = Join-Path $tmpFolder "app.json"
-                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-            }
-            catch {
-                if ($_.exception.message -eq "You cannot extract a runtime package") {
-                    if ($excludeRuntimePackages) {
-                        $includeIt = $false
-                    }
-                    else {
-                        $appJson = Get-AppJsonFromAppFile -appFile $appFile
-                    }
+            $appJson = Get-AppJsonFromAppFile -appFile $appFile
+            if ($excludeRuntimePackages.IsPresent) {
+                # Only check for runtime package if it matters
+                try {
+                    RunAlTool -arguments @('IsRuntimePackage', """$appFile""") | Out-Null
+                    # If the above command succeeds, it means the app is a runtime package
+                    $includeIt = $false
                 }
-                else {
-                    throw "Unable to extract and analyze appFile $appFile"
+                catch {
+                    # We were already able to get the AppJson, so the failure must be because the app is not a runtime package
+                    $includeIt = $true
                 }
-            }
-            finally {
-                Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
             }
             if ($includeIt) {
                 $key = "$($appJson.Id):$($appJson.Version)"
