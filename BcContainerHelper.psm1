@@ -44,12 +44,17 @@ function GetHypervState {
             }
         }
         catch {
-            if ($_.Exception.Message -match "Class not registered") {
+            # REGDB_E_CLASSNOTREG (0x80040154) - match on HResult, as the message is localized (#4153)
+            $hResult = $_.Exception.HResult
+            if ($hResult -ne -2147221164 -and $_.Exception.InnerException) {
+                $hResult = $_.Exception.InnerException.HResult
+            }
+            if ($hResult -eq -2147221164 -or $_.Exception.Message -match "Class not registered") {
                 Write-Host "Cannot check Hyper-V status."
             }
             else {
                 throw $_
-            }    
+            }
         }
     }
     return $script:hypervState
