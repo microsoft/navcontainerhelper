@@ -1,5 +1,6 @@
 6.1.21
 Issue 4153 GetHypervState "Class not registered" error not caught on non-English Windows locales
+Issue 4243 updatehosts.ps1 turned a UTF-8 BOM in the hosts file into "???", breaking the first entry. The hosts file is now read and written as UTF-8 and a BOM is kept if present.
 
 6.1.20
 Exclude Test Runner Tests from automatic test toolkit import, including runner-only mode. The app remains in artifact packages for explicit installation.
