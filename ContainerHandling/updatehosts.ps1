@@ -25,7 +25,17 @@ function UpdateHostsFile {
     
         $content = New-Object System.Byte[] ($file.Length)
         $file.Read($content, 0, $file.Length) | Out-Null
-        [System.Collections.ArrayList]$hosts = ([System.Text.Encoding]::ASCII.GetString($content)).Replace("`r`n","`n").Split("`n")
+        # The hosts file may be UTF-8 with a BOM (Docker Desktop writes it that way). Decoding it as ASCII
+        # turns the BOM into "???" and corrupts the first line, so decode as UTF-8 and keep the BOM if present.
+        $utf8 = New-Object System.Text.UTF8Encoding $false
+        $hasBom = ($content.Length -ge 3 -and $content[0] -eq 0xEF -and $content[1] -eq 0xBB -and $content[2] -eq 0xBF)
+        if ($hasBom) {
+            $text = $utf8.GetString($content, 3, $content.Length - 3)
+        }
+        else {
+            $text = $utf8.GetString($content)
+        }
+        [System.Collections.ArrayList]$hosts = $text.Replace("`r`n","`n").Split("`n")
     
         if ($theHostname) {
             $theHostname = $theHostname.ToLowerInvariant()
@@ -76,7 +86,10 @@ function UpdateHostsFile {
                 $hosts.Add("$theIpAddress $theHostname") | Out-Null
             }
         
-            $content = [System.Text.Encoding]::ASCII.GetBytes($($hosts -join [Environment]::NewLine)+[Environment]::NewLine)
+            $content = $utf8.GetBytes($($hosts -join [Environment]::NewLine)+[Environment]::NewLine)
+            if ($hasBom) {
+                $content = [byte[]](@(0xEF, 0xBB, 0xBF) + $content)
+            }
         
             $file.Seek(0, [System.IO.SeekOrigin]::Begin) | Out-Null
             $file.Write($content, 0, $content.Length)
