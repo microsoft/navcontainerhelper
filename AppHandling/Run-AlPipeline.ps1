@@ -2338,41 +2338,46 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($enableAppSourceCop -and $app) {
+        $appSourceCopJsonFile = Join-Path $folder "AppSourceCop.json"
         $appSourceCopJson = @{}
         $saveit = $false
 
+        if (Test-Path $appSourceCopJsonFile) {
+            $existingAppSourceCopContent = Get-Content -LiteralPath $appSourceCopJsonFile -Raw -Encoding UTF8
+            if (-not $existingAppSourceCopContent.TrimStart().StartsWith('{')) {
+                throw "AppSourceCop configuration '$appSourceCopJsonFile' must be a JSON object."
+            }
+            $existingAppSourceCopJson = $existingAppSourceCopContent | ConvertFrom-Json -ErrorAction Stop
+            foreach ($property in $existingAppSourceCopJson.PSObject.Properties) {
+                $appSourceCopJson[$property.Name] = $property.Value
+            }
+            $saveit = $true
+        }
+
         if ($AppSourceCopMandatoryAffixes) {
-            $appSourceCopJson += @{ "mandatoryAffixes" = @()+$AppSourceCopMandatoryAffixes }
+            $appSourceCopJson["mandatoryAffixes"] = @()+$AppSourceCopMandatoryAffixes
             $saveit = $true
         }
         if ($AppSourceCopSupportedCountries) {
-            $appSourceCopJson += @{ "supportedCountries" = @()+$AppSourceCopSupportedCountries }
+            $appSourceCopJson["supportedCountries"] = @()+$AppSourceCopSupportedCountries
             $saveit = $true
         }
         if ($ObsoleteTagMinAllowedMajorMinor) {
-            $appSourceCopJson += @{ "obsoleteTagMinAllowedMajorMinor" = $ObsoleteTagMinAllowedMajorMinor }
+            $appSourceCopJson["obsoleteTagMinAllowedMajorMinor"] = $ObsoleteTagMinAllowedMajorMinor
             $saveit = $true
         }
 
         if ($previousAppVersions.ContainsKey("$($appJson.Publisher)_$($appJson.Name)")) {
-            $appSourceCopJson += @{
-                "Publisher" = $appJson.Publisher
-                "Name" = $appJson.Name
-                "Version" = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"
-            }
+            $appSourceCopJson["Publisher"] = $appJson.Publisher
+            $appSourceCopJson["Name"] = $appJson.Name
+            $appSourceCopJson["Version"] = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"
             $saveit = $true
         }
-        $appSourceCopJsonFile = Join-Path $folder "AppSourceCop.json"
         if ($saveit) {
             Write-Host "Creating AppSourceCop.json for validation"
-            $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content $appSourceCopJsonFile
+            $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content -LiteralPath $appSourceCopJsonFile -Encoding UTF8
             Write-Host "AppSourceCop.json content:"
             $appSourceCopJson | ConvertTo-Json -Depth 99 | Out-Host
-        }
-        else {
-            if (Test-Path $appSourceCopJsonFile) {
-                Remove-Item $appSourceCopJsonFile -force
-            }
         }
     }
 
