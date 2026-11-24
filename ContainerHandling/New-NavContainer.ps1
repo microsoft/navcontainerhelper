@@ -2108,6 +2108,32 @@ if (-not `$restartingInstance) {
     
         if ($includeCSide) {
             $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
+            # C/SIDE uses the local Cronus.flf during object export.
+            # Replace the demo license with the supplied .flf as the demo license may have expired.
+            $csideLicenseFile = Join-Path $myFolder "license.flf"
+            if (Test-Path $csideLicenseFile) {
+                Write-Host "Replacing C/SIDE demo license with supplied license"
+
+                Invoke-ScriptInBcContainer `
+                    -containerName $containerName `
+                    -scriptblock {
+                        Param($licenseFile)
+
+                        $winClientFolder = (
+                            Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+                        ).FullName
+
+                        Copy-Item `
+                            -Path $licenseFile `
+                            -Destination (Join-Path $winClientFolder "Cronus.flf") `
+                            -Force
+                    } `
+                    -argumentList (
+                        Get-BcContainerPath `
+                            -containerName $containerName `
+                            -path $csideLicenseFile
+                    )
+            }
             New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
             New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
     
