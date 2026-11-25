@@ -378,7 +378,7 @@ function Expand-7zipArchive {
             throw "Error $LASTEXITCODE extracting $path"
         }
     }
-    elseif ($isPsCore -and $IsLinux) {
+    elseif ($isLinux) {
         if (!$silent) { Write-Host "using Linux ZIP extraction" }
         Expand-ZipArchiveOnLinux -Path $Path -DestinationPath $DestinationPath
     }

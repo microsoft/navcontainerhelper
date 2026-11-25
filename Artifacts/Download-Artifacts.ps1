@@ -45,7 +45,6 @@ function Download-Artifacts {
 
         $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($destinationPath)) ([System.IO.Path]::GetRandomFileName())
         $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-        $retryOnLinux = $isPsCore -and $IsLinux
         $retry = $false
         do {
             if ($bcContainerHelperConfig.artifactDownloadConnections -gt 0) {
@@ -64,20 +63,12 @@ function Download-Artifacts {
                 if (Test-Path $tmpFolder) {
                     Remove-Item $tmpFolder -Recurse -Force
                 }
-                if ($retry) {
-                    if ($retryOnLinux) {
-                        throw
-                    }
-                    throw "Error trying to unpack artifact, downloaded package is corrupt"
-                }
-                if ($artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
-                    Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
+                if (!$retry -and $artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
                     $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
                     $retry = $true
                 }
-                elseif ($retryOnLinux) {
-                    Write-Host "Error unpacking artifact, retrying download"
-                    $retry = $true
+                else {
+                    throw "Error trying to unpack artifact, downloaded package is corrupt. Error was $($_.Exception.Message)"
                 }
             }
         } while ($retry)
