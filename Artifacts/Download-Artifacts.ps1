@@ -45,6 +45,7 @@ function Download-Artifacts {
 
         $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($destinationPath)) ([System.IO.Path]::GetRandomFileName())
         $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+        $retryOnLinux = $isPsCore -and $IsLinux
         $retry = $false
         do {
             if ($bcContainerHelperConfig.artifactDownloadConnections -gt 0) {
@@ -55,13 +56,7 @@ function Download-Artifacts {
             }
             Write-Host "Unpacking artifact to tmp folder " -NoNewline
             try {
-                if ($IsLinux) {
-                    Write-Host "using Linux ZIP extraction"
-                    Expand-BcArtifactArchiveOnLinux -Path $zipFile -DestinationPath $tmpFolder
-                }
-                else {
-                    Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
-                }
+                Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
                 $retry = $false
             }
             catch {
@@ -70,6 +65,9 @@ function Download-Artifacts {
                     Remove-Item $tmpFolder -Recurse -Force
                 }
                 if ($retry) {
+                    if ($retryOnLinux) {
+                        throw
+                    }
                     throw "Error trying to unpack artifact, downloaded package is corrupt"
                 }
                 if ($artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
@@ -77,8 +75,9 @@ function Download-Artifacts {
                     $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
                     $retry = $true
                 }
-                elseif ($IsLinux) {
-                    throw
+                elseif ($retryOnLinux) {
+                    Write-Host "Error unpacking artifact, retrying download"
+                    $retry = $true
                 }
             }
         } while ($retry)
@@ -325,34 +324,6 @@ catch {
 finally {
     TrackTrace -telemetryScope $telemetryScope
 }
-}
-
-function Expand-BcArtifactArchiveOnLinux {
-    param([string] $path, [string] $destinationPath)
-
-    $root = [System.IO.Path]::GetFullPath($destinationPath).TrimEnd('/') + '/'
-    [System.IO.Directory]::CreateDirectory($root) | Out-Null
-    $archive = [System.IO.Compression.ZipFile]::OpenRead($path)
-    try {
-        foreach ($entry in $archive.Entries) {
-            # Older BC artifacts store Windows path separators in ZIP entry names.
-            $name = $entry.FullName.Replace('\', '/')
-            $target = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($root, $name))
-            if (!$target.StartsWith($root, [System.StringComparison]::Ordinal)) {
-                throw "ZIP entry '$name' is outside the extraction directory."
-            }
-
-            $isDirectory = $name.EndsWith('/')
-            $directory = if ($isDirectory) { $target } else { [System.IO.Path]::GetDirectoryName($target) }
-            [System.IO.Directory]::CreateDirectory($directory) | Out-Null
-            if (!$isDirectory) {
-                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
-            }
-        }
-    }
-    finally {
-        $archive.Dispose()
-    }
 }
 
 Export-ModuleMember -Function Download-Artifacts

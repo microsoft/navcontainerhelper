@@ -378,6 +378,10 @@ function Expand-7zipArchive {
             throw "Error $LASTEXITCODE extracting $path"
         }
     }
+    elseif ($isPsCore -and $IsLinux) {
+        if (!$silent) { Write-Host "using Linux ZIP extraction" }
+        Expand-ZipArchiveOnLinux -Path $Path -DestinationPath $DestinationPath
+    }
     else {
         if (!$silent) { Write-Host "using Expand-Archive" }
         if ([System.IO.Path]::GetExtension($path) -eq '.zip') {
@@ -393,6 +397,34 @@ function Expand-7zipArchive {
                 Remove-Item -Path $tempZip -Force
             }
         }
+    }
+}
+
+function Expand-ZipArchiveOnLinux {
+    param([string] $path, [string] $destinationPath)
+
+    $root = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($destinationPath).TrimEnd('/') + '/'
+    [System.IO.Directory]::CreateDirectory($root) | Out-Null
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path))
+    try {
+        foreach ($entry in $archive.Entries) {
+            # Older BC artifacts store Windows path separators in ZIP entry names.
+            $name = $entry.FullName.Replace('\', '/')
+            $target = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($root, $name))
+            if (!$target.StartsWith($root, [System.StringComparison]::Ordinal)) {
+                throw "ZIP entry '$name' is outside the extraction directory."
+            }
+
+            $isDirectory = $name.EndsWith('/')
+            $directory = if ($isDirectory) { $target } else { [System.IO.Path]::GetDirectoryName($target) }
+            [System.IO.Directory]::CreateDirectory($directory) | Out-Null
+            if (!$isDirectory) {
+                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
     }
 }
 
