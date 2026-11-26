@@ -64,7 +64,7 @@ function Download-Artifacts {
                     Remove-Item $tmpFolder -Recurse -Force
                 }
                 if (!$retry -and $artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
-                    Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
+                    Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL. Error was $($_.Exception.Message)"
                     $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
                     $retry = $true
                 }
